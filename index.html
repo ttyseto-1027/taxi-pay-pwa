@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <title>タクシー給与シミュレーター</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header no-print">
+    <div>
+      <h1>タクシー給与シミュレーター</h1>
+      <p>完全オフライン対応・概算計算</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="card dashboard">
+      <div class="month-row no-print">
+        <button id="prevMonth" class="ghost">前給与月</button>
+        <input id="currentMonth" type="month" aria-label="給与対象月">
+        <button id="nextMonth" class="ghost">翌給与月</button>
+      </div>
+      <h2 id="reportTitle">給与サマリー</h2>
+      <p id="payPeriod" class="note"></p>
+      <div class="summary-grid">
+        <div><span>税込営収</span><strong id="sumGross">0円</strong></div>
+        <div><span>税抜営収</span><strong id="sumNet">0円</strong></div>
+        <div><span>給与算定用月間営業収入</span><strong id="payRevenue">0円</strong></div>
+        <div><span>歩合給A</span><strong id="commissionA">0円</strong></div>
+        <div><span>歩合給B</span><strong id="commissionB">0円</strong></div>
+        <div><span>諸手当</span><strong id="allowances">0円</strong></div>
+        <div><span>割増賃金</span><strong id="premiumPay">0円</strong></div>
+        <div><span>概算総支給</span><strong id="grossPay">0円</strong></div>
+        <div><span>控除合計</span><strong id="deductions">0円</strong></div>
+        <div><span>概算手取り</span><strong id="takeHome">0円</strong></div>
+        <div><span>勤務回数</span><strong id="shiftCount">0回</strong></div>
+        <div><span>実働時間</span><strong id="workHours">0時間00分</strong></div>
+        <div><span>時間外</span><strong id="overtimeHours">0時間00分</strong></div>
+        <div><span>深夜時間</span><strong id="nightHours">0時間00分</strong></div>
+      </div>
+      <div class="actions no-print">
+        <button id="printReport">印刷 / PDF保存</button>
+        <button id="exportCsv" class="secondary">CSV出力</button>
+        <button id="closeMonth" class="danger">給与締め</button>
+      </div>
+      <p class="note">※給与額は設定値にもとづく概算です。実際の給与明細とは差異が出る場合があります。</p>
+    </section>
+
+    <section class="card no-print">
+      <h2>日報入力</h2>
+      <form id="entryForm" class="form-grid">
+        <label>日付<input id="date" type="date" required></label>
+        <label>税込営収<input id="grossRevenue" inputmode="numeric" type="number" min="0" step="1" placeholder="例：88000"></label>
+        <label>税抜営収（自動計算）<input id="netRevenue" inputmode="numeric" type="number" min="0" step="1" placeholder="税込営収から自動計算" readonly aria-readonly="true"></label>
+        <label>出庫時刻<input id="startTime" type="time"></label>
+        <label>帰庫時刻<input id="endTime" type="time"></label>
+        <div class="time-pair">
+          <label>通常休憩 時間<input id="normalBreakHours" inputmode="numeric" type="number" min="0" step="1" value="2"></label>
+          <label>通常休憩 分<input id="normalBreakMinutePart" inputmode="numeric" type="number" min="0" max="59" step="1" value="0"></label>
+        </div>
+        <div class="time-pair">
+          <label>深夜休憩 時間<input id="nightBreakHours" inputmode="numeric" type="number" min="0" step="1" value="1"></label>
+          <label>深夜休憩 分<input id="nightBreakMinutePart" inputmode="numeric" type="number" min="0" max="59" step="1" value="0"></label>
+        </div>
+        <label>休日区分<select id="holidayType"><option value="normal">通常</option><option value="statutory">法定休日</option><option value="nonstatutory">法定外休日</option></select></label>
+        <label><span>事故あり</span><input id="hasAccident" type="checkbox"></label>
+        <label><span>違反あり</span><input id="hasViolation" type="checkbox"></label>
+        <label class="wide">メモ<input id="memo" type="text" placeholder="任意"></label>
+        <input id="editingId" type="hidden">
+        <div class="wide actions">
+          <button type="submit">保存</button>
+          <button id="resetForm" type="button" class="ghost">入力欄クリア</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card no-print">
+      <h2>設定</h2>
+      <div class="form-grid">
+        <label>勤務区分
+          <select id="shiftType">
+            <option>隔日勤務</option>
+            <option>昼日勤</option>
+            <option>夜日勤</option>
+            <option>定時制A</option>
+            <option>定時制B</option>
+          </select>
+        </label>
+        <label>消費税率（%）<input id="taxRate" type="number" min="0" step="0.1" value="10" readonly aria-readonly="true"></label>
+        <label>1乗務所定労働時間<input id="standardShiftHoursDisplay" type="text" value="14時間15分" readonly aria-readonly="true"></label>
+        <label>月間所定労働時間<input id="standardHoursDisplay" type="text" value="171時間00分" readonly aria-readonly="true"></label>
+        <label>健康保険<input id="healthInsurance" type="number" min="0" step="1" value="0"></label>
+        <label>厚生年金<input id="pension" type="number" min="0" step="1" value="0"></label>
+        <label>雇用保険<input id="employmentInsurance" type="number" min="0" step="1" value="0"></label>
+        <label>所得税<input id="incomeTax" type="number" min="0" step="1" value="0"></label>
+        <label>住民税<input id="residentTax" type="number" min="0" step="1" value="0"></label>
+        <label>その他控除<input id="otherDeduction" type="number" min="0" step="1" value="0"></label>
+      </div>
+      <p class="note">※消費税率・1乗務所定労働時間・月間所定労働時間は表示のみです。係数や率は管理者設定に隠しています。</p>
+
+      <div class="actions">
+        <button id="saveSettings">設定を保存</button>
+        <button id="toggleAdmin" type="button" class="ghost">管理者設定を表示</button>
+      </div>
+
+      <div id="adminSettings" class="admin-panel hidden" aria-hidden="true">
+        <h3>管理者設定</h3>
+        <p class="note">通常の乗務員は触らない係数・率・手当額です。労働条件通知書や協定に変更があった場合だけ編集してください。</p>
+        <div class="form-grid">
+          <label>運賃改定係数<input id="fareRevisionCoefficient" type="number" min="0" step="0.0001" value="1"></label>
+          <label>給与算定係数<input id="payRevenueCoefficient" type="number" min="0" step="0.0001" value="0.9585"></label>
+          <label>歩合給A率（%）<input id="commissionARate" type="number" min="0" step="0.01" value="41.44"></label>
+          <label>歩合給B率（%）<input id="commissionBRate" type="number" min="0" step="0.01" value="19.05"></label>
+          <label>B開始額<input id="commissionBThreshold" type="number" min="0" step="1" value="420000"></label>
+          <label>B最高算定額<input id="commissionBMax" type="number" min="0" step="1" value="1200000"></label>
+          <label>模範勤務手当/月<input id="modelWorkAllowance" type="number" min="0" step="1" value="3000"></label>
+          <label>無事故手当/乗務<input id="accidentFreeAllowance" type="number" min="0" step="1" value="700"></label>
+          <label>無違反手当/乗務<input id="violationFreeAllowance" type="number" min="0" step="1" value="200"></label>
+          <label>法定超 時間外割増（%）<input id="legalOvertimeRate" type="number" min="0" step="0.1" value="25"></label>
+          <label>所定超 時間外割増（%）<input id="scheduledOvertimeRate" type="number" min="0" step="0.1" value="25"></label>
+          <label>月60時間超 割増（%）<input id="over60Rate" type="number" min="0" step="0.1" value="50"></label>
+          <label>法定休日割増（%）<input id="statutoryHolidayRate" type="number" min="0" step="0.1" value="35"></label>
+          <label>法定外休日割増（%）<input id="nonStatutoryHolidayRate" type="number" min="0" step="0.1" value="25"></label>
+          <label>深夜割増（%）<input id="nightRate" type="number" min="0" step="0.1" value="25"></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>日別明細</h2>
+      <div class="table-wrap">
+        <table id="entriesTable">
+          <thead><tr><th>日付</th><th>税込</th><th>税抜</th><th>出庫</th><th>帰庫</th><th>通常休憩</th><th>深夜休憩</th><th>実働</th><th>深夜</th><th>休日</th><th>事故</th><th>違反</th><th class="no-print">操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card no-print">
+      <h2>給与締め履歴</h2>
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

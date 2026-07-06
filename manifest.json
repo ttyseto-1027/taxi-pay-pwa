@@ -1,0 +1,9 @@
+{
+  "name": "タクシー給与シミュレーター",
+  "short_name": "TaxiPay",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0f172a",
+  "lang": "ja-JP"
+}
