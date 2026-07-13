@@ -15,38 +15,9 @@
   <button id="openSettings" class="icon-button" aria-label="設定を開く">⚙️</button>
 </header>
 <main class="app-layout">
-<section id="entrySection" class="card no-print layout-entry">
-  <h2>勤務実績を入力</h2>
-  <form id="entryForm" class="entry-form">
-    <label>勤務日<input id="date" type="date" required></label>
-    <label>税込営収<div class="money-input"><input id="grossRevenue" inputmode="numeric" type="number" min="0" step="1" required><span>円</span></div></label>
-    <label>税抜営収（自動）<div class="money-input"><input id="netRevenue" type="text" readonly><span>円</span></div></label>
-    <label>出勤時刻（アルコール）<input id="clockIn" type="time" required></label>
-    <label>退勤時刻（アルコール）<input id="clockOut" type="time" required></label>
-    <label>休日区分<select id="holidayType"><option value="normal">通常勤務</option><option value="statutory">法定休日出勤</option><option value="nonstatutory">法定外休日出勤</option></select></label>
-    <fieldset><legend>通常休憩</legend><div class="break-stepper-group">
-      <div class="break-stepper"><span class="stepper-label">時間</span><button type="button" class="stepper-button" data-step-target="normalBreakHours" data-step-delta="-1" aria-label="通常休憩の時間を1減らす">−</button><output id="normalBreakHoursOutput" class="stepper-value">0</output><input id="normalBreakHours" type="hidden" value="0"><button type="button" class="stepper-button" data-step-target="normalBreakHours" data-step-delta="1" aria-label="通常休憩の時間を1増やす">＋</button><span class="stepper-unit">時間</span></div>
-      <div class="break-stepper"><span class="stepper-label">分</span><button type="button" class="stepper-button" data-step-target="normalBreakMinutes" data-step-delta="-1" aria-label="通常休憩の分を1減らす">−</button><output id="normalBreakMinutesOutput" class="stepper-value">0</output><input id="normalBreakMinutes" type="hidden" value="0"><button type="button" class="stepper-button" data-step-target="normalBreakMinutes" data-step-delta="1" aria-label="通常休憩の分を1増やす">＋</button><span class="stepper-unit">分</span></div>
-    </div></fieldset>
-    <fieldset><legend>深夜休憩（22:00〜翌5:00内）</legend><div class="break-stepper-group">
-      <div class="break-stepper"><span class="stepper-label">時間</span><button type="button" class="stepper-button" data-step-target="nightBreakHours" data-step-delta="-1" aria-label="深夜休憩の時間を1減らす">−</button><output id="nightBreakHoursOutput" class="stepper-value">0</output><input id="nightBreakHours" type="hidden" value="0"><button type="button" class="stepper-button" data-step-target="nightBreakHours" data-step-delta="1" aria-label="深夜休憩の時間を1増やす">＋</button><span class="stepper-unit">時間</span></div>
-      <div class="break-stepper"><span class="stepper-label">分</span><button type="button" class="stepper-button" data-step-target="nightBreakMinutes" data-step-delta="-1" aria-label="深夜休憩の分を1減らす">−</button><output id="nightBreakMinutesOutput" class="stepper-value">0</output><input id="nightBreakMinutes" type="hidden" value="0"><button type="button" class="stepper-button" data-step-target="nightBreakMinutes" data-step-delta="1" aria-label="深夜休憩の分を1増やす">＋</button><span class="stepper-unit">分</span></div>
-    </div></fieldset>
-    <label class="check-label"><input id="hadAccident" type="checkbox">この乗務で事故あり</label>
-    <label class="check-label"><input id="hadViolation" type="checkbox">この乗務で違反あり</label>
-    <input id="editingId" type="hidden">
-    <div class="actions full"><button type="submit">保存</button><button id="resetForm" type="button" class="ghost">入力欄クリア</button></div>
-  </form>
-</section>
-
-<section id="dailySection" class="card layout-daily">
-  <h2>日別明細</h2>
-  <div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>休日</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div>
-</section>
-
-<section id="simulationSection" class="card dashboard layout-simulation">
+<section class="card dashboard layout-simulation">
   <div class="month-row no-print"><button id="prevMonth" class="ghost">前給与月</button><input id="currentMonth" type="month"><button id="nextMonth" class="ghost">翌給与月</button></div>
-  <h2 id="reportTitle">yyyy年mm月 給与シミュレーション</h2><p id="payPeriod" class="note"></p>
+  <h2 id="reportTitle">給与サマリー</h2><p id="payPeriod" class="note"></p>
   <div class="summary-grid">
     <div><span>税込営収</span><strong id="sumGross">0円</strong></div>
     <div><span>税抜営収</span><strong id="sumNet">0円</strong></div>
@@ -63,16 +34,70 @@
   </div>
   <h3>給与明細形式の内訳</h3><div id="paySlipBreakdown" class="breakdown"></div>
   <div class="actions no-print"><button id="printReport">印刷 / PDF保存</button><button id="exportCsv" class="secondary">CSV出力</button><button id="closeMonth" class="danger">給与締め</button></div>
+  <div class="app-disclaimer" role="note">
+    <p>※ 本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
+    <p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
+    <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
+    <p class="version-line">Version 1.0β<br>© Taxi Payroll Processing Simulator</p>
+  </div>
 </section>
-
-<section id="historySection" class="card no-print layout-history"><h2>給与締め履歴</h2><div id="historyList"></div></section>
-
-<footer class="app-disclaimer layout-footer" role="note">
-  <p>※ 本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
-  <p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
-  <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
-  <p class="version-line">Version 1.0β<br>© Taxi Payroll Processing Simulator</p>
-</footer>
+<section class="card no-print layout-entry">
+  <h2>勤務実績を入力</h2>
+  <form id="entryForm" class="entry-form">
+    <label>勤務日<input id="date" type="date" required></label>
+    <label>税込営収<div class="money-input"><input id="grossRevenue" inputmode="numeric" type="number" min="0" step="1" required><span>円</span></div></label>
+    <label>税抜営収（自動）<div class="money-input"><input id="netRevenue" type="text" readonly><span>円</span></div></label>
+    <label>出勤時刻（アルコール）<input id="clockIn" type="time" required></label>
+    <label>退勤時刻（アルコール）<input id="clockOut" type="time" required></label>
+    <label>休日区分<select id="holidayType"><option value="normal">通常勤務</option><option value="statutory">法定休日出勤</option><option value="nonstatutory">法定外休日出勤</option></select></label>
+    <fieldset><legend>通常休憩</legend>
+      <div class="break-stepper-group" aria-label="通常休憩時間">
+        <div class="break-stepper">
+          <span class="stepper-label">時間</span>
+          <button type="button" class="stepper-button ghost" data-step-target="normalBreakHours" data-step-delta="-1" aria-label="通常休憩の時間を1時間減らす">−</button>
+          <output id="normalBreakHoursOutput" class="stepper-value" for="normalBreakHours">0</output>
+          <button type="button" class="stepper-button" data-step-target="normalBreakHours" data-step-delta="1" aria-label="通常休憩の時間を1時間増やす">＋</button>
+          <span class="stepper-unit">時間</span>
+          <input id="normalBreakHours" type="hidden" value="0">
+        </div>
+        <div class="break-stepper">
+          <span class="stepper-label">分</span>
+          <button type="button" class="stepper-button ghost" data-step-target="normalBreakMinutes" data-step-delta="-1" aria-label="通常休憩の分を1分減らす">−</button>
+          <output id="normalBreakMinutesOutput" class="stepper-value" for="normalBreakMinutes">0</output>
+          <button type="button" class="stepper-button" data-step-target="normalBreakMinutes" data-step-delta="1" aria-label="通常休憩の分を1分増やす">＋</button>
+          <span class="stepper-unit">分</span>
+          <input id="normalBreakMinutes" type="hidden" value="0">
+        </div>
+      </div>
+    </fieldset>
+    <fieldset><legend>深夜休憩（22:00〜翌5:00内）</legend>
+      <div class="break-stepper-group" aria-label="深夜休憩時間">
+        <div class="break-stepper">
+          <span class="stepper-label">時間</span>
+          <button type="button" class="stepper-button ghost" data-step-target="nightBreakHours" data-step-delta="-1" aria-label="深夜休憩の時間を1時間減らす">−</button>
+          <output id="nightBreakHoursOutput" class="stepper-value" for="nightBreakHours">0</output>
+          <button type="button" class="stepper-button" data-step-target="nightBreakHours" data-step-delta="1" aria-label="深夜休憩の時間を1時間増やす">＋</button>
+          <span class="stepper-unit">時間</span>
+          <input id="nightBreakHours" type="hidden" value="0">
+        </div>
+        <div class="break-stepper">
+          <span class="stepper-label">分</span>
+          <button type="button" class="stepper-button ghost" data-step-target="nightBreakMinutes" data-step-delta="-1" aria-label="深夜休憩の分を1分減らす">−</button>
+          <output id="nightBreakMinutesOutput" class="stepper-value" for="nightBreakMinutes">0</output>
+          <button type="button" class="stepper-button" data-step-target="nightBreakMinutes" data-step-delta="1" aria-label="深夜休憩の分を1分増やす">＋</button>
+          <span class="stepper-unit">分</span>
+          <input id="nightBreakMinutes" type="hidden" value="0">
+        </div>
+      </div>
+    </fieldset>
+    <label class="check-label"><input id="hadAccident" type="checkbox">この乗務で事故あり</label>
+    <label class="check-label"><input id="hadViolation" type="checkbox">この乗務で違反あり</label>
+    <input id="editingId" type="hidden">
+    <div class="actions full"><button type="submit">保存</button><button id="resetForm" type="button" class="ghost">入力欄クリア</button></div>
+  </form>
+</section>
+<section class="card layout-daily"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>休日</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section>
+<section class="card no-print layout-history"><h2>給与締め履歴</h2><div id="historyList"></div></section>
 </main>
 <dialog id="onboardingDialog" class="modal"><form method="dialog" id="onboardingForm"><h2>最初に勤務区分を選択してください</h2><label>勤務区分<select id="onboardingShiftType" required></select></label><div id="onboardingRule" class="rule-box"></div><label class="agree"><input id="agreeDisclaimer" type="checkbox" required>免責事項を確認しました</label><button id="completeOnboarding">利用を開始</button><div class="app-disclaimer" role="note">
     <p>※ 本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>

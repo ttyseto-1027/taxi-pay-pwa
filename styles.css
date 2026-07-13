@@ -46,3 +46,16 @@
 .stepper-value{display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:1.2rem;font-weight:700;font-variant-numeric:tabular-nums}
 .stepper-unit{font-size:.9rem}
 @media(max-width:420px){.break-stepper{grid-template-columns:2.7em 42px minmax(2.6em,1fr) 42px 2em;gap:6px}}
+
+/* Mobile-safe break-time stepper controls */
+.stepper-button{
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.stepper-button:active{transform:scale(.96);filter:brightness(.94)}
+@media(max-width:700px){
+  .break-stepper{grid-template-columns:3em 48px minmax(3.2em,1fr) 48px 2.4em}
+  .stepper-button{min-width:48px;min-height:48px}
+}
