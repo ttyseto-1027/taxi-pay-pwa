@@ -1,312 +1,163 @@
-const LS_KEY = 'taxiPayPwaStateV5';
-const SHIFT_RULES = {
-  '隔日勤務': { shiftMinutes: 14 * 60 + 15, monthlyMinutes: 171 * 60 },
-  '昼日勤': { shiftMinutes: 7 * 60 + 30, monthlyMinutes: 165 * 60 },
-  '夜日勤': { shiftMinutes: 7 * 60 + 30, monthlyMinutes: 165 * 60 },
-  '定時制A': { shiftMinutes: 7 * 60 + 30, monthlyMinutes: 165 * 60 },
-  '定時制B': { shiftMinutes: 7 * 60 + 30, monthlyMinutes: 165 * 60 }
+'use strict';
+const LS_KEY='taxiPayPwaStateV8';
+const OLD_KEYS=['taxiPayPwaStateV7','taxiPayPwaStateV6'];
+const ADMIN_PASSWORD='TaxiPay-Dev-2026';
+
+const SHIFT_RULES={
+  '隔日勤務':{family:'regular',label:'隔日勤務',shiftMinutes:855,monthlyMinutes:10260,plannedShifts:12,modelAllowance:true,calc:'kaku'},
+  '昼日勤':{family:'regular',label:'昼日勤',shiftMinutes:450,monthlyMinutes:9900,plannedShifts:22,modelAllowance:true,calc:'day'},
+  '夜日勤':{family:'regular',label:'夜日勤',shiftMinutes:450,monthlyMinutes:9900,plannedShifts:22,modelAllowance:true,calc:'night'},
+  '定隔10':{family:'fixed',label:'定隔10',shiftMinutes:855,monthlyMinutes:8550,plannedShifts:10,equivalentDays:20,rate:45.32,modelAllowance:false,display:'定隔積算歩合給'},
+  '定隔8':{family:'fixed',label:'定隔8',shiftMinutes:855,monthlyMinutes:6840,plannedShifts:8,equivalentDays:16,rate:45.32,modelAllowance:false,display:'定隔積算歩合給'},
+  '定隔4':{family:'fixed',label:'定隔4',shiftMinutes:855,monthlyMinutes:3420,plannedShifts:4,equivalentDays:8,rate:45.32,modelAllowance:false,display:'定隔積算歩合給'},
+  '定昼20':{family:'fixed',label:'定昼20',shiftMinutes:450,monthlyMinutes:9000,plannedShifts:20,rate:49.92,modelAllowance:false,display:'定昼積算歩合給'},
+  '定昼16':{family:'fixed',label:'定昼16',shiftMinutes:450,monthlyMinutes:7200,plannedShifts:16,rate:49.92,modelAllowance:false,display:'定昼積算歩合給'},
+  '定昼8':{family:'fixed',label:'定昼8',shiftMinutes:450,monthlyMinutes:3600,plannedShifts:8,rate:49.92,modelAllowance:false,display:'定昼積算歩合給'},
+  '定夜20':{family:'fixed',label:'定夜20',shiftMinutes:450,monthlyMinutes:9000,plannedShifts:20,rate:44.50,modelAllowance:false,display:'定夜積算歩合給'},
+  '定夜16':{family:'fixed',label:'定夜16',shiftMinutes:450,monthlyMinutes:7200,plannedShifts:16,rate:44.50,modelAllowance:false,display:'定夜積算歩合給'},
+  '定夜8':{family:'fixed',label:'定夜8',shiftMinutes:450,monthlyMinutes:3600,plannedShifts:8,rate:44.50,modelAllowance:false,display:'定夜積算歩合給'}
 };
-const DEFAULT_STATE = {
-  settings: {
-    shiftType: '隔日勤務',
-    taxRate: 10,
-    fareRevisionCoefficient: 1,
-    payRevenueCoefficient: 0.9585,
-    commissionARate: 41.44,
-    commissionBRate: 19.05,
-    commissionBThreshold: 420000,
-    commissionBMax: 1200000,
-    modelWorkAllowance: 3000,
-    accidentFreeAllowance: 700,
-    violationFreeAllowance: 200,
-    legalOvertimeRate: 25,
-    scheduledOvertimeRate: 25,
-    over60Rate: 50,
-    statutoryHolidayRate: 35,
-    nonStatutoryHolidayRate: 25,
-    nightRate: 25,
-    healthInsurance: 0,
-    pension: 0,
-    employmentInsurance: 0,
-    incomeTax: 0,
-    residentTax: 0,
-    otherDeduction: 0
-  },
-  entries: [],
-  history: []
+
+const DEFAULT_STATE={
+  initialized:false,
+  settings:{shiftType:'',taxRate:10,fareRevisionCoefficient:1,payRevenueCoefficient:0.9585,modelWorkAllowance:3000,accidentFreeAllowance:700,violationFreeAllowance:200,healthInsurance:0,pension:0,employmentInsurance:0,residentTax:0,unionFee:0,mutualAidFee:0,otherDeduction:0,dependentCount:0,withholdingCategory:'A',paidLeaveDays:0,paidLeaveDailyRate:0,statutoryOvertimeRate:25,scheduledOvertimeRate:25,over60Rate:50,statutoryHolidayRate:35,nonStatutoryHolidayRate:25,nightRate:25},
+  entries:[],history:[]
 };
-let state = loadState();
-migrateState();
 
-const $ = id => document.getElementById(id);
-const yen = n => `${Math.round(Number(n || 0)).toLocaleString('ja-JP')}円`;
-const pad = n => String(n).padStart(2,'0');
-const ymNow = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; };
-const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
-
-function cutoffDay(year, month){
-  // month: 1-12. 賃金締め日は原則15日、2月14日、3月16日。
-  if (month === 2) return 14;
-  if (month === 3) return 16;
-  return 15;
-}
-function ymdParts(dateStr){
-  const [y,m,d] = (dateStr || '').split('-').map(Number);
-  return {y, m, d};
-}
-function ymFromParts(y,m){
-  while(m < 1){ y -= 1; m += 12; }
-  while(m > 12){ y += 1; m -= 12; }
-  return `${y}-${pad(m)}`;
-}
-function addMonthsToYm(ym, delta){
-  const [y,m] = ym.split('-').map(Number);
-  return ymFromParts(y, m + delta);
-}
-function payrollMonthOf(dateStr){
-  const {y,m,d} = ymdParts(dateStr);
-  if(!y || !m || !d) return '';
-  return d <= cutoffDay(y,m) ? ymFromParts(y,m) : ymFromParts(y,m+1);
-}
-function payrollPeriod(ym){
-  const [y,m] = ym.split('-').map(Number);
-  const prevYm = addMonthsToYm(ym, -1);
-  const [py,pm] = prevYm.split('-').map(Number);
-  const startDay = cutoffDay(py, pm) + 1;
-  const endDay = cutoffDay(y, m);
-  return {start:`${py}-${pad(pm)}-${pad(startDay)}`, end:`${y}-${pad(m)}-${pad(endDay)}`};
-}
-function formatDateJP(dateStr){
-  const {y,m,d}=ymdParts(dateStr);
-  return `${y}年${m}月${d}日`;
-}
-
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0');
+const yen=n=>`${Math.round(Number(n||0)).toLocaleString('ja-JP')}円`;
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
+const minutesText=m=>`${Math.floor(Math.max(0,m)/60)}時間${pad(Math.round(Math.max(0,m)%60))}分`;
+const round10=n=>Math.max(0,Math.round(Number(n||0)/10)*10);
+function clone(x){return JSON.parse(JSON.stringify(x));}
+function mergeDeep(base,obj){const out=clone(base);if(obj&&typeof obj==='object'){for(const [k,v] of Object.entries(obj)){if(v&&typeof v==='object'&&!Array.isArray(v)&&out[k]&&typeof out[k]==='object')out[k]=mergeDeep(out[k],v);else out[k]=v;}}return out;}
 function loadState(){
-  for (const key of [LS_KEY, 'taxiPayPwaStateV4', 'taxiPayPwaStateV3', 'taxiPayPwaStateV2', 'taxiPayPwaStateV1']) {
-    try {
-      const saved = JSON.parse(localStorage.getItem(key) || 'null');
-      if (saved) return {...structuredClone(DEFAULT_STATE), ...saved, settings:{...DEFAULT_STATE.settings, ...(saved.settings||{})}};
-    } catch {}
+  let raw=localStorage.getItem(LS_KEY);
+  if(!raw){for(const key of OLD_KEYS){raw=localStorage.getItem(key);if(raw)break;}}
+  try{const s=mergeDeep(DEFAULT_STATE,raw?JSON.parse(raw):{});s.entries=(s.entries||[]).map(e=>({...e,clockIn:e.clockIn||'',clockOut:e.clockOut||'',normalBreakMinutes:Number(e.normalBreakMinutes||0),nightBreakMinutes:Number(e.nightBreakMinutes||0),holidayType:e.holidayType||'normal',hadAccident:!!e.hadAccident,hadViolation:!!e.hadViolation}));return s;}catch{return clone(DEFAULT_STATE);}
+}
+let state=loadState();
+function saveState(){localStorage.setItem(LS_KEY,JSON.stringify(state));}
+function parseDate(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function fmtDate(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function formatDateJP(s){const d=parseDate(s);return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;}
+function addMonths(ym,n){const [y,m]=ym.split('-').map(Number),d=new Date(y,m-1+n,1);return `${d.getFullYear()}-${pad(d.getMonth()+1)}`;}
+function closeDay(year,month){return month===2?14:month===3?16:15;}
+function payrollMonthOf(dateStr){const d=parseDate(dateStr),y=d.getFullYear(),m=d.getMonth()+1,day=d.getDate();if(day<=closeDay(y,m))return `${y}-${pad(m)}`;const nx=new Date(y,m,1);return `${nx.getFullYear()}-${pad(nx.getMonth()+1)}`;}
+function payrollPeriod(ym){const [y,m]=ym.split('-').map(Number);const end=new Date(y,m-1,closeDay(y,m));const pm=new Date(y,m-2,1),start=new Date(pm.getFullYear(),pm.getMonth(),closeDay(pm.getFullYear(),pm.getMonth()+1)+1);return {start:fmtDate(start),end:fmtDate(end)};}
+function currentRule(){return SHIFT_RULES[state.settings.shiftType]||SHIFT_RULES['隔日勤務'];}
+function currentEntries(){const ym=$('currentMonth').value;return state.entries.filter(e=>payrollMonthOf(e.date)===ym).sort((a,b)=>a.date.localeCompare(b.date));}
+function calcNet(gross){return Math.round(Number(gross||0)/(1+Number(state.settings.taxRate||0)/100));}
+function monthlyRevenue(net){const r=currentRule(),fare=Number(state.settings.fareRevisionCoefficient||1);return r.family==='fixed'?net*fare:net*fare*Number(state.settings.payRevenueCoefficient||0.9585);}
+function commission(revenue){
+  const r=currentRule();let A=0,B=0,C=0,names=[];
+  if(r.family==='fixed'){A=revenue*r.rate/100;return {A,B,C,total:A,names:[[r.display,A]]};}
+  if(r.calc==='kaku'){A=revenue*.4144;B=Math.max(0,Math.min(revenue,1200000)-420000)*.1905;names=[['隔日歩合給A',A],['隔日歩合給B',B]];}
+  if(r.calc==='day'){A=revenue*.458;B=Math.max(0,revenue-378000)*.1405;C=Math.max(0,revenue-748000)*.122;names=[['昼日勤歩合給A',A],['昼日勤歩合給B',B],['昼日勤歩合給C',C]];}
+  if(r.calc==='night'){A=revenue*.3798;B=Math.max(0,Math.min(revenue,1200000)-420000)*.2095;names=[['夜日勤歩合給A',A],['夜日勤歩合給B',B]];}
+  return {A,B,C,total:A+B+C,names};
+}
+function timeToMinutes(v){if(!v)return null;const [h,m]=v.split(':').map(Number);return h*60+m;}
+function entryTimeInfo(e){
+  const start=timeToMinutes(e.clockIn),out=timeToMinutes(e.clockOut);if(start===null||out===null)return {duration:0,work:0,night:0};
+  let end=out;if(end<=start)end+=1440;const duration=end-start;
+  const normalBreak=Number(e.normalBreakMinutes||0),nightBreak=Number(e.nightBreakMinutes||0);
+  const work=Math.max(0,duration-normalBreak-nightBreak);
+  let overlap=0;
+  for(const [a,b] of [[1320,1740],[-120,300]]){overlap+=Math.max(0,Math.min(end,b)-Math.max(start,a));}
+  const night=Math.max(0,Math.min(overlap,work)-nightBreak);
+  return {duration,work,night};
+}
+function premiumCalculation(entries,c){
+  const r=currentRule();let work=0,night=0,dailyExcess=0,statHoliday=0,nonStatHoliday=0,regularWork=0;
+  for(const e of entries){const t=entryTimeInfo(e);work+=t.work;night+=t.night;if(e.holidayType==='statutory')statHoliday+=t.work;else if(e.holidayType==='nonstatutory')nonStatHoliday+=t.work;else{regularWork+=t.work;dailyExcess+=Math.max(0,t.work-r.shiftMinutes);}}
+  const monthlyExcess=Math.max(0,regularWork-r.monthlyMinutes);
+  const statutoryOT=Math.max(0,monthlyExcess);
+  const scheduledOnly=Math.max(0,dailyExcess-statutoryOT);
+  const over60=Math.max(0,statutoryOT-3600),statutoryUpTo60=Math.max(0,statutoryOT-over60);
+  const hourly=work>0?c.total/(work/60):0;
+  const s=state.settings;
+  const items={
+    scheduled:hourly*(scheduledOnly/60)*(Number(s.scheduledOvertimeRate)/100),
+    statutory:hourly*(statutoryUpTo60/60)*(Number(s.statutoryOvertimeRate)/100),
+    over60:hourly*(over60/60)*(Number(s.over60Rate)/100),
+    statutoryHoliday:hourly*(statHoliday/60)*(Number(s.statutoryHolidayRate)/100),
+    nonStatutoryHoliday:hourly*(nonStatHoliday/60)*(Number(s.nonStatutoryHolidayRate)/100),
+    night:hourly*(night/60)*(Number(s.nightRate)/100)
+  };
+  return {work,night,dailyExcess,scheduledOnly,statutoryUpTo60,over60,statHoliday,nonStatHoliday,hourly,items,total:Object.values(items).reduce((a,b)=>a+b,0)};
+}
+function incomeTax2026(afterSocial,dependents,category){
+  const x=Math.max(0,Math.floor(afterSocial)),dep=Math.max(0,Math.floor(dependents||0));
+  if(category==='B'){
+    let tax;
+    if(x<105000)tax=x*.03063;
+    else if(x<740000){const row=NTA_MONTHLY_TAX_2026.find(r=>x>=r[0]&&x<r[1]);tax=row?row[10]:0;}
+    else if(x<1710000)tax=259200+(x-740000)*.4084;
+    else tax=655400+(x-1710000)*.45945;
+    return round10(tax);
   }
-  return structuredClone(DEFAULT_STATE);
-}
-function migrateState(){
-  delete state.settings.baseHourly;
-  delete state.settings.basePay;
-  delete state.settings.overtimeHourly;
-  delete state.settings.overtimePremiumRate;
-  delete state.settings.bands;
-  delete state.settings.standardHours;
-  state.settings = {...DEFAULT_STATE.settings, ...state.settings};
-  state.entries = (state.entries || []).map(e => {
-    const totalBreak = Number(e.breakMinutes || 0);
-    const normalBreak = e.normalBreakMinutes !== undefined ? Number(e.normalBreakMinutes || 0) : totalBreak;
-    const nightBreak = e.nightBreakMinutes !== undefined ? Number(e.nightBreakMinutes || 0) : 0;
-    const copy = {...e, normalBreakMinutes: normalBreak, nightBreakMinutes: nightBreak};
-    delete copy.breakMinutes;
-    delete copy.nightMinutes;
-    return copy;
-  });
-  saveState();
-}
-function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
-function num(id){ return Number($(id)?.value || 0); }
-function minutesToHHMM(min){
-  min = Math.max(0, Math.round(min || 0));
-  return `${Math.floor(min/60)}時間${pad(min%60)}分`;
-}
-function minutesToClock(min){
-  min = Math.max(0, Math.round(min || 0));
-  return `${Math.floor(min/60)}:${pad(min%60)}`;
-}
-function monthOf(date){ return (date || '').slice(0,7); }
-function shiftRule(){ return SHIFT_RULES[state.settings.shiftType] || SHIFT_RULES['隔日勤務']; }
-function minutesBetween(start, end){
-  if(!start || !end) return 0;
-  const [sh,sm]=start.split(':').map(Number), [eh,em]=end.split(':').map(Number);
-  let s=sh*60+sm, e=eh*60+em; if(e < s) e += 24*60; return e-s;
-}
-function overlapMinutes(startA, endA, startB, endB){
-  return Math.max(0, Math.min(endA,endB) - Math.max(startA,startB));
-}
-function rawNightMinutes(e){
-  if(!e.startTime || !e.endTime) return 0;
-  const [sh,sm]=e.startTime.split(':').map(Number), [eh,em]=e.endTime.split(':').map(Number);
-  let s=sh*60+sm, end=eh*60+em; if(end < s) end += 1440;
-  const night1 = overlapMinutes(s, end, 22*60, 29*60);   // 22:00-翌5:00
-  const night0 = overlapMinutes(s, end, 0, 5*60);       // 同日0:00-5:00用
-  return night0 + night1;
-}
-function totalBreakMinutes(e){ return Number(e.normalBreakMinutes || 0) + Number(e.nightBreakMinutes || 0); }
-function nightMinutes(e){ return Math.max(0, rawNightMinutes(e) - Number(e.nightBreakMinutes || 0)); }
-function workMinutes(e){ return Math.max(0, minutesBetween(e.startTime, e.endTime) - totalBreakMinutes(e)); }
-function currentEntries(){ const ym=$('currentMonth').value; return state.entries.filter(e => payrollMonthOf(e.date) === ym).sort((a,b)=>a.date.localeCompare(b.date)); }
-function unitWage(payRevenue, totalWorkMin){
-  const hours = totalWorkMin / 60;
-  return hours > 0 ? payRevenue / hours : 0;
+  const col=Math.min(dep,7)+2; // row: lo,hi, 0人(index2)..7人(index9),乙(index10)
+  let tax=0;
+  if(x<105000)tax=0;
+  else if(x<740000){const row=NTA_MONTHLY_TAX_2026.find(r=>x>=r[0]&&x<r[1]);tax=row?row[col]:0;}
+  else{
+    const base={740000:[71680,65210,58750,52290,45810,39350,32890,26410],790000:[81890,75420,68960,62500,56020,49560,43100,36620],960000:[121820,115340,108880,102420,95940,89480,83020,76540],1710000:[374520,368040,361580,355120,348640,342180,335720,329240],2130000:[549440,542970,536500,530040,523570,517110,510640,504170],2170000:[571220,564750,558280,551820,545350,538880,532420,525950],2210000:[593000,586520,580060,573600,567120,560660,554200,547730],2250000:[614770,608300,601840,595380,588900,582440,575980,569500],3500000:[1125270,1118800,1112340,1105880,1099400,1092940,1086480,1080000]};
+    const i=Math.min(dep,7);
+    if(x<790000)tax=base[740000][i]+(x-740000)*.2042;
+    else if(x<960000)tax=base[790000][i]+(x-790000)*.23483;
+    else if(x<1710000)tax=base[960000][i]+(x-960000)*.33693;
+    else if(x<2130000)tax=base[1710000][i]+(x-1710000)*.4084;
+    else if(x<2170000)tax=base[2130000][i]+(x-2130000)*.4084;
+    else if(x<2210000)tax=base[2170000][i]+(x-2170000)*.4084;
+    else if(x<2250000)tax=base[2210000][i]+(x-2210000)*.4084;
+    else if(x<3500000)tax=base[2250000][i]+(x-2250000)*.4084;
+    else tax=base[3500000][i]+(x-3500000)*.45945;
+  }
+  tax=round10(tax);if(dep>7)tax=Math.max(0,tax-(dep-7)*1610);return tax;
 }
 function totals(entries=currentEntries()){
-  const gross = entries.reduce((s,e)=>s+Number(e.grossRevenue||0),0);
-  const net = entries.reduce((s,e)=>s+calcNetRevenue(Number(e.grossRevenue||0)),0);
-  const wm = entries.reduce((s,e)=>s+workMinutes(e),0);
-  const nightMin = entries.reduce((s,e)=>s+nightMinutes(e),0);
-  const payRevenue = net * Number(state.settings.fareRevisionCoefficient || 1) * Number(state.settings.payRevenueCoefficient || 0.9585);
-  const commissionA = payRevenue * Number(state.settings.commissionARate || 0) / 100;
-  const threshold = Number(state.settings.commissionBThreshold || 0);
-  const maxB = Number(state.settings.commissionBMax || payRevenue);
-  const bBase = payRevenue >= threshold ? Math.max(0, Math.min(payRevenue, maxB) - threshold) : 0;
-  const commissionB = bBase * Number(state.settings.commissionBRate || 0) / 100;
-  const noAccidentCount = entries.filter(e=>!e.hasAccident).length;
-  const noViolationCount = entries.filter(e=>!e.hasViolation).length;
-  const allowances = Number(state.settings.modelWorkAllowance || 0)
-    + noAccidentCount * Number(state.settings.accidentFreeAllowance || 0)
-    + noViolationCount * Number(state.settings.violationFreeAllowance || 0);
-  const monthlyStandardMin = shiftRule().monthlyMinutes;
-  const overtimeMin = Math.max(0, wm - monthlyStandardMin);
-  const over60Min = Math.max(0, overtimeMin - 60*60);
-  const normalOverMin = Math.max(0, overtimeMin - over60Min);
-  const statutoryHolidayMin = entries.filter(e=>e.holidayType==='statutory').reduce((s,e)=>s+workMinutes(e),0);
-  const nonStatHolidayMin = entries.filter(e=>e.holidayType==='nonstatutory').reduce((s,e)=>s+workMinutes(e),0);
-  const base = unitWage(payRevenue, wm);
-  const overtimePremium = (normalOverMin/60) * base * (Number(state.settings.legalOvertimeRate||0)/100)
-    + (over60Min/60) * base * (Number(state.settings.over60Rate||0)/100);
-  const holidayPremium = (statutoryHolidayMin/60) * base * (Number(state.settings.statutoryHolidayRate||0)/100)
-    + (nonStatHolidayMin/60) * base * (Number(state.settings.nonStatutoryHolidayRate||0)/100);
-  const nightPremium = (nightMin/60) * base * (Number(state.settings.nightRate||0)/100);
-  const premiumPay = overtimePremium + holidayPremium + nightPremium;
-  const grossPay = commissionA + commissionB + allowances + premiumPay;
-  const deductions = ['healthInsurance','pension','employmentInsurance','incomeTax','residentTax','otherDeduction'].reduce((s,k)=>s+Number(state.settings[k]||0),0);
-  return {gross, net, wm, nightMin, payRevenue, commissionA, commissionB, allowances, overtimeMin, over60Min, premiumPay, grossPay, deductions, takeHome:grossPay-deductions};
+  const gross=entries.reduce((s,e)=>s+Number(e.grossRevenue||0),0),net=entries.reduce((s,e)=>s+calcNet(e.grossRevenue),0),revenue=monthlyRevenue(net),c=commission(revenue),rule=currentRule();
+  const model=rule.modelAllowance&&entries.length?Number(state.settings.modelWorkAllowance||0):0;
+  const accidentFree=entries.filter(e=>!e.hadAccident).length*Number(state.settings.accidentFreeAllowance||0),violationFree=entries.filter(e=>!e.hadViolation).length*Number(state.settings.violationFreeAllowance||0);
+  const allowances=model+accidentFree+violationFree,paidLeavePay=Number(state.settings.paidLeaveDays||0)*Number(state.settings.paidLeaveDailyRate||0),premium=premiumCalculation(entries,c),grossPay=c.total+premium.total+allowances+paidLeavePay;
+  const social=Number(state.settings.healthInsurance||0)+Number(state.settings.pension||0)+Number(state.settings.employmentInsurance||0);
+  const incomeTax=incomeTax2026(Math.max(0,grossPay-social),state.settings.dependentCount,state.settings.withholdingCategory);
+  const deductions=social+incomeTax+Number(state.settings.residentTax||0)+Number(state.settings.unionFee||0)+Number(state.settings.mutualAidFee||0)+Number(state.settings.otherDeduction||0);
+  return {gross,net,revenue,c,premium,model,accidentFree,violationFree,allowances,paidLeavePay,grossPay,social,incomeTax,deductions,takeHome:grossPay-deductions};
 }
-function render(){
-  updateReadOnlySettings();
-  const t = totals(); const ym=$('currentMonth').value;
-  $('reportTitle').textContent = `${ym.replace('-', '年')}月 給与シミュレーション`;
-  const pp = payrollPeriod(ym);
-  if ($('payPeriod')) $('payPeriod').textContent = `給与対象期間：${formatDateJP(pp.start)}〜${formatDateJP(pp.end)}（締め日：${formatDateJP(pp.end)}）`;
-  $('sumGross').textContent = yen(t.gross); $('sumNet').textContent = yen(t.net);
-  $('payRevenue').textContent = yen(t.payRevenue);
-  $('commissionA').textContent = yen(t.commissionA);
-  $('commissionB').textContent = yen(t.commissionB);
-  $('allowances').textContent = yen(t.allowances);
-  $('premiumPay').textContent = yen(t.premiumPay);
-  $('grossPay').textContent = yen(t.grossPay); $('deductions').textContent = yen(t.deductions); $('takeHome').textContent = yen(t.takeHome);
-  $('shiftCount').textContent = `${currentEntries().length}回`; $('workHours').textContent = minutesToHHMM(t.wm); $('overtimeHours').textContent = minutesToHHMM(t.overtimeMin); $('nightHours').textContent = minutesToHHMM(t.nightMin);
-  renderEntries(); renderHistory();
-}
-function renderEntries(){
-  const tbody = $('entriesTable').querySelector('tbody'); tbody.innerHTML='';
-  for(const e of currentEntries()){
-    const tr=document.createElement('tr');
-    const holiday = e.holidayType==='statutory' ? '法定' : e.holidayType==='nonstatutory' ? '法定外' : '';
-    tr.innerHTML = `<td>${e.date}</td><td>${yen(e.grossRevenue)}</td><td>${yen(calcNetRevenue(e.grossRevenue))}</td><td>${e.startTime||''}</td><td>${e.endTime||''}</td><td>${minutesToHHMM(e.normalBreakMinutes)}</td><td>${minutesToHHMM(e.nightBreakMinutes)}</td><td>${minutesToHHMM(workMinutes(e))}</td><td>${minutesToHHMM(nightMinutes(e))}</td><td>${holiday}</td><td>${e.hasAccident?'あり':''}</td><td>${e.hasViolation?'あり':''}</td><td class="no-print"><button class="ghost" data-edit="${e.id}">編集</button> <button class="danger" data-del="${e.id}">削除</button></td>`;
-    tbody.appendChild(tr);
-  }
-}
-function renderHistory(){
-  const div=$('historyList'); div.innerHTML='';
-  if(!state.history.length){ div.innerHTML='<p class="note">まだ給与締め履歴はありません。</p>'; return; }
-  state.history.slice().reverse().forEach(h=>{
-    const item=document.createElement('div'); item.className='history-item';
-    item.innerHTML=`<strong>${h.month} 給与</strong><br>${h.periodStart && h.periodEnd ? `対象期間 ${h.periodStart}〜${h.periodEnd}<br>` : ''}税込営収 ${yen(h.gross)} / 税抜営収 ${yen(h.net)} / 算定営業収入 ${yen(h.payRevenue)} / 概算手取り ${yen(h.takeHome)} / 勤務 ${h.count}回`;
-    div.appendChild(item);
-  });
-}
-function updateReadOnlySettings(){
-  const rule = shiftRule();
-  if ($('standardShiftHoursDisplay')) $('standardShiftHoursDisplay').value = minutesToHHMM(rule.shiftMinutes);
-  if ($('standardHoursDisplay')) $('standardHoursDisplay').value = minutesToHHMM(rule.monthlyMinutes);
-}
-function loadSettingsToForm(){
-  Object.entries(state.settings).forEach(([k,v])=>{ if($(k)) $(k).value = v; });
-  updateReadOnlySettings();
-}
-function saveSettingsFromForm(){
-  ['shiftType'].forEach(k=>state.settings[k]=$(k).value);
-  ['taxRate','fareRevisionCoefficient','payRevenueCoefficient','commissionARate','commissionBRate','commissionBThreshold','commissionBMax','modelWorkAllowance','accidentFreeAllowance','violationFreeAllowance','legalOvertimeRate','scheduledOvertimeRate','over60Rate','statutoryHolidayRate','nonStatutoryHolidayRate','nightRate','healthInsurance','pension','employmentInsurance','incomeTax','residentTax','otherDeduction'].forEach(k=>state.settings[k]=num(k));
-  saveState(); render(); alert('設定を保存しました。');
-}
-function calcNetRevenue(gross){
-  return Math.round(Number(gross || 0) / (1 + Number(state.settings.taxRate || 0) / 100));
-}
-function updateNetRevenueDisplay(){
-  if($('netRevenue')) $('netRevenue').value = $('grossRevenue').value ? calcNetRevenue(num('grossRevenue')) : '';
-}
-function readNormalBreakMinutes(){
-  return Math.max(0, num('normalBreakHours') * 60 + num('normalBreakMinutePart'));
-}
-function readNightBreakMinutes(){
-  return Math.max(0, num('nightBreakHours') * 60 + num('nightBreakMinutePart'));
-}
-function setNormalBreakInputs(minutes){
-  minutes = Math.max(0, Number(minutes || 0));
-  $('normalBreakHours').value = Math.floor(minutes / 60);
-  $('normalBreakMinutePart').value = minutes % 60;
-}
-function setNightBreakInputs(minutes){
-  minutes = Math.max(0, Number(minutes || 0));
-  $('nightBreakHours').value = Math.floor(minutes / 60);
-  $('nightBreakMinutePart').value = minutes % 60;
-}
+function populateShiftSelects(){for(const id of ['shiftType','onboardingShiftType']){const sel=$(id);sel.innerHTML='';for(const k of Object.keys(SHIFT_RULES)){const o=document.createElement('option');o.value=k;o.textContent=k;sel.appendChild(o);}}}
+function ruleDescription(type){const r=SHIFT_RULES[type];if(!r)return '';const desc=r.family==='fixed'?`定時制・積算歩合率 ${r.rate.toFixed(2)}%（給与算定係数0.9585なし、歩合給Bなし）`:'通常勤務・累進歩合';return `<strong>${r.label}</strong><br>1乗務所定：${minutesText(r.shiftMinutes)}／月間所定：${minutesText(r.monthlyMinutes)}／所定乗務：${r.plannedShifts}回${r.equivalentDays?`（実質${r.equivalentDays}日相当）`:''}<br>${desc}`;}
+function payRow(label,value){return `<div><span>${label}</span><strong>${yen(value)}</strong></div>`;}
+function renderBreakdown(t){let html='<h4>積算歩合給</h4>';for(const [n,v] of t.c.names)html+=payRow(n,v);html+=payRow('積算歩合給計',t.c.total);html+='<h4>諸手当</h4>'+payRow('模範勤務手当',t.model)+payRow('無事故手当',t.accidentFree)+payRow('無違反手当',t.violationFree);html+='<h4>割増賃金</h4>'+payRow('所定時間外',t.premium.items.scheduled)+payRow('法定時間外（60時間以内）',t.premium.items.statutory)+payRow('月60時間超',t.premium.items.over60)+payRow('法定休日',t.premium.items.statutoryHoliday)+payRow('法定外休日',t.premium.items.nonStatutoryHoliday)+payRow('深夜',t.premium.items.night)+payRow('割増賃金計',t.premium.total);html+='<h4>支給・控除</h4>'+payRow('有休手当',t.paidLeavePay)+payRow('概算総支給',t.grossPay)+payRow('所得税（令和8年分・自動）',t.incomeTax)+payRow('控除合計',t.deductions)+payRow('概算手取り',t.takeHome);html+=`<p class="note">総実働 ${minutesText(t.premium.work)}／深夜 ${minutesText(t.premium.night)}／歩合時間単価（概算） ${yen(t.premium.hourly)}</p>`;$('paySlipBreakdown').innerHTML=html;}
+function render(){const t=totals(),ym=$('currentMonth').value,pp=payrollPeriod(ym);$('headerShift').textContent=`勤務区分：${state.settings.shiftType||'未設定'}`;$('reportTitle').textContent=`${ym.replace('-','年')}月 給与シミュレーション`;$('payPeriod').textContent=`給与対象期間：${formatDateJP(pp.start)}〜${formatDateJP(pp.end)}`;$('sumGross').textContent=yen(t.gross);$('sumNet').textContent=yen(t.net);$('payRevenue').textContent=yen(t.revenue);$('commissionTotal').textContent=yen(t.c.total);$('premiumTotal').textContent=yen(t.premium.total);$('allowances').textContent=yen(t.allowances);$('paidLeavePay').textContent=yen(t.paidLeavePay);$('grossPay').textContent=yen(t.grossPay);$('incomeTaxResult').textContent=yen(t.incomeTax);$('deductions').textContent=yen(t.deductions);$('takeHome').textContent=yen(t.takeHome);$('shiftCount').textContent=`${currentEntries().length}回`;renderBreakdown(t);renderEntries();renderHistory();updateSettingsViews();}
+function holidayLabel(v){return v==='statutory'?'法定休日':v==='nonstatutory'?'法定外休日':'通常';}
+function renderEntries(){const body=$('entriesTable').querySelector('tbody');body.innerHTML='';for(const e of currentEntries()){const t=entryTimeInfo(e),tr=document.createElement('tr');tr.innerHTML=`<td>${e.date}</td><td>${yen(e.grossRevenue)}</td><td>${e.clockIn||'—'}</td><td>${e.clockOut||'—'}</td><td>${minutesText(t.work)}</td><td>${minutesText(t.night)}</td><td>${holidayLabel(e.holidayType)}</td><td class="no-print"><button class="ghost" data-edit="${e.id}">編集</button> <button class="danger" data-del="${e.id}">削除</button></td>`;body.appendChild(tr);}}
+function renderHistory(){const d=$('historyList');d.innerHTML='';if(!state.history.length){d.innerHTML='<p class="note">まだ給与締め履歴はありません。</p>';return;}for(const h of state.history.slice().reverse()){const x=document.createElement('div');x.className='history-item';x.innerHTML=`<strong>${h.month}給与（${h.shiftType}）</strong><br>対象期間 ${h.periodStart}〜${h.periodEnd}<br>税込営収 ${yen(h.gross)}／積算歩合給 ${yen(h.commission)}／概算手取り ${yen(h.takeHome)}／${h.count}乗務`;d.appendChild(x);}}
+function updateSettingsViews(){const r=currentRule();$('shiftRuleInfo').innerHTML=ruleDescription(state.settings.shiftType);$('taxRateDisplay').value=`${state.settings.taxRate}%`;$('standardShiftHoursDisplay').value=minutesText(r.shiftMinutes);$('standardHoursDisplay').value=minutesText(r.monthlyMinutes);}
+function loadSettingsForm(){for(const k of Object.keys(state.settings))if($(k))$(k).value=state.settings[k];$('shiftType').value=state.settings.shiftType;updateSettingsViews();}
+function saveSettingsForm(){const nums=['healthInsurance','pension','employmentInsurance','residentTax','unionFee','mutualAidFee','otherDeduction','dependentCount','paidLeaveDays','paidLeaveDailyRate'];state.settings.shiftType=$('shiftType').value;for(const k of nums)state.settings[k]=Number($(k).value||0);state.settings.withholdingCategory=$('withholdingCategory').value;saveState();render();}
+const ADMIN_FIELDS=['fareRevisionCoefficient','payRevenueCoefficient','taxRate','modelWorkAllowance','accidentFreeAllowance','violationFreeAllowance','statutoryOvertimeRate','scheduledOvertimeRate','over60Rate','statutoryHolidayRate','nonStatutoryHolidayRate','nightRate'];
+function loadAdminForm(){for(const k of ADMIN_FIELDS)$(k).value=state.settings[k];}
+function saveAdminForm(){for(const k of ADMIN_FIELDS)state.settings[k]=Number($(k).value||0);saveState();render();}
+function breakValue(prefix){return Number($(prefix+'Hours').value||0)*60+Number($(prefix+'Minutes').value||0);}
+function setBreak(prefix,total){$(prefix+'Hours').value=Math.floor(Number(total||0)/60);$(prefix+'Minutes').value=Number(total||0)%60;}
+function clearEntry(){$('entryForm').reset();$('date').value=today();$('normalBreakHours').value=0;$('normalBreakMinutes').value=0;$('nightBreakHours').value=0;$('nightBreakMinutes').value=0;$('editingId').value='';$('netRevenue').value='';}
+function updateNet(){const v=Number($('grossRevenue').value||0);$('netRevenue').value=v?calcNet(v).toLocaleString('ja-JP'):'';}
+function validateEntry(e){const t=entryTimeInfo(e);if(!e.clockIn||!e.clockOut)return '出勤・退勤時刻を入力してください。';if(t.duration<=0)return '勤務時間を確認してください。';if(e.normalBreakMinutes+e.nightBreakMinutes>t.duration)return '休憩時間が拘束時間を超えています。';if(t.work<=0)return '実働時間が0以下です。';return '';}
 
-$('entryForm').addEventListener('submit', ev=>{
-  ev.preventDefault();
-  const gross=num('grossRevenue');
-  const net = calcNetRevenue(gross);
-  const entry = {
-    id:$('editingId').value || crypto.randomUUID(), date:$('date').value, grossRevenue:gross, netRevenue:net,
-    startTime:$('startTime').value, endTime:$('endTime').value, normalBreakMinutes:readNormalBreakMinutes(),
-    nightBreakMinutes:readNightBreakMinutes(), holidayType:$('holidayType').value,
-    hasAccident:$('hasAccident').checked, hasViolation:$('hasViolation').checked, memo:$('memo').value
-  };
-  state.entries = state.entries.filter(e=>e.id!==entry.id).concat(entry);
-  saveState(); clearEntryForm(); render();
-});
-function clearEntryForm(){
-  $('entryForm').reset(); $('date').value=today(); setNormalBreakInputs(120); setNightBreakInputs(60); $('netRevenue').value=''; $('editingId').value=''; $('holidayType').value='normal'; $('hasAccident').checked=false; $('hasViolation').checked=false;
-}
-$('entriesTable').addEventListener('click', ev=>{
-  const edit=ev.target.dataset.edit, del=ev.target.dataset.del;
-  if(edit){
-    const e=state.entries.find(x=>x.id===edit);
-    ['date','grossRevenue','startTime','endTime','memo'].forEach(k=>$(k).value=e[k]??'');
-    updateNetRevenueDisplay();
-    setNormalBreakInputs(e.normalBreakMinutes || 0);
-    setNightBreakInputs(e.nightBreakMinutes || 0);
-    $('holidayType').value=e.holidayType || 'normal'; $('hasAccident').checked=!!e.hasAccident; $('hasViolation').checked=!!e.hasViolation; $('editingId').value=e.id; scrollTo({top:0, behavior:'smooth'});
-  }
-  if(del && confirm('この日報を削除しますか？')){ state.entries=state.entries.filter(e=>e.id!==del); saveState(); render(); }
-});
-$('saveSettings').onclick=saveSettingsFromForm;
-$('shiftType').addEventListener('change', ()=>{ state.settings.shiftType = $('shiftType').value; updateReadOnlySettings(); render(); });
-$('toggleAdmin').onclick=()=>{
-  const panel = $('adminSettings');
-  const willShow = panel.classList.contains('hidden');
-  if(willShow){
-    const code = prompt('管理者設定を表示します。管理者コードを入力してください。初期コードは 0000 です。');
-    if(code !== '0000') return;
-  }
-  panel.classList.toggle('hidden');
-  panel.setAttribute('aria-hidden', panel.classList.contains('hidden') ? 'true' : 'false');
-  $('toggleAdmin').textContent = panel.classList.contains('hidden') ? '管理者設定を表示' : '管理者設定を隠す';
-};
-$('resetForm').onclick=clearEntryForm;
-$('printReport').onclick=()=>window.print();
-$('exportCsv').onclick=()=>{
-  const rows=[['日付','税込営収','税抜営収','出庫','帰庫','通常休憩','通常休憩分','深夜休憩','深夜休憩分','実働','実働分','深夜労働','深夜労働分','休日区分','事故あり','違反あり','メモ'], ...currentEntries().map(e=>[e.date,e.grossRevenue,calcNetRevenue(e.grossRevenue),e.startTime,e.endTime,minutesToHHMM(e.normalBreakMinutes),e.normalBreakMinutes,minutesToHHMM(e.nightBreakMinutes),e.nightBreakMinutes,minutesToHHMM(workMinutes(e)),workMinutes(e),minutesToHHMM(nightMinutes(e)),nightMinutes(e),e.holidayType||'normal',e.hasAccident?'1':'0',e.hasViolation?'1':'0',e.memo||''])];
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
-  const blob=new Blob(['\ufeff'+csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`taxi-pay-payroll-${$('currentMonth').value}.csv`; a.click();
-};
-$('closeMonth').onclick=()=>{
-  const entries=currentEntries(); if(!entries.length){ alert('給与締めする日報がありません。'); return; }
-  const ym=$('currentMonth').value;
-  const pp = payrollPeriod(ym);
-  if(!confirm(`${ym} 給与（対象期間：${pp.start}〜${pp.end}）を給与締めします。履歴に保存し、この給与対象期間の日報を削除します。設定は残ります。`)) return;
-  const t=totals(entries); state.history.push({month:ym, periodStart:pp.start, periodEnd:pp.end, gross:t.gross, net:t.net, payRevenue:t.payRevenue, takeHome:t.takeHome, grossPay:t.grossPay, count:entries.length, closedAt:new Date().toISOString()});
-  state.entries=state.entries.filter(e=>payrollMonthOf(e.date)!==ym); saveState(); render(); alert('給与締めが完了しました。');
-};
-$('prevMonth').onclick=()=>{ $('currentMonth').value=addMonthsToYm($('currentMonth').value, -1); render(); };
-$('nextMonth').onclick=()=>{ $('currentMonth').value=addMonthsToYm($('currentMonth').value, 1); render(); };
-$('grossRevenue').addEventListener('input', updateNetRevenueDisplay);
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
-$('currentMonth').value=payrollMonthOf(today()); $('date').value=today(); loadSettingsToForm(); clearEntryForm(); render();
+populateShiftSelects();$('currentMonth').value=payrollMonthOf(today());clearEntry();
+$('grossRevenue').addEventListener('input',updateNet);
+$('entryForm').addEventListener('submit',ev=>{ev.preventDefault();const gross=Number($('grossRevenue').value||0);if(gross<=0)return alert('税込営収を入力してください。');const id=$('editingId').value||crypto.randomUUID();const entry={id,date:$('date').value,grossRevenue:gross,clockIn:$('clockIn').value,clockOut:$('clockOut').value,normalBreakMinutes:breakValue('normalBreak'),nightBreakMinutes:breakValue('nightBreak'),holidayType:$('holidayType').value,hadAccident:$('hadAccident').checked,hadViolation:$('hadViolation').checked};const err=validateEntry(entry);if(err)return alert(err);state.entries=state.entries.filter(x=>x.id!==id).concat(entry);saveState();clearEntry();render();});
+$('resetForm').onclick=clearEntry;
+$('entriesTable').addEventListener('click',ev=>{const edit=ev.target.dataset.edit,del=ev.target.dataset.del;if(edit){const e=state.entries.find(x=>x.id===edit);$('date').value=e.date;$('grossRevenue').value=e.grossRevenue;$('clockIn').value=e.clockIn;$('clockOut').value=e.clockOut;setBreak('normalBreak',e.normalBreakMinutes);setBreak('nightBreak',e.nightBreakMinutes);$('holidayType').value=e.holidayType;$('hadAccident').checked=e.hadAccident;$('hadViolation').checked=e.hadViolation;$('editingId').value=e.id;updateNet();scrollTo({top:0,behavior:'smooth'});}if(del&&confirm('この勤務データを削除しますか？')){state.entries=state.entries.filter(x=>x.id!==del);saveState();render();}});
+$('prevMonth').onclick=()=>{$('currentMonth').value=addMonths($('currentMonth').value,-1);render();};$('nextMonth').onclick=()=>{$('currentMonth').value=addMonths($('currentMonth').value,1);render();};$('currentMonth').onchange=render;$('printReport').onclick=()=>window.print();
+$('exportCsv').onclick=()=>{const rows=[['勤務日','勤務区分','税込営収','税抜営収','出勤時刻（アルコール）','退勤時刻（アルコール）','通常休憩分','深夜休憩分','実働分','深夜労働分','休日区分'],...currentEntries().map(e=>{const t=entryTimeInfo(e);return[e.date,state.settings.shiftType,e.grossRevenue,calcNet(e.grossRevenue),e.clockIn,e.clockOut,e.normalBreakMinutes,e.nightBreakMinutes,t.work,t.night,holidayLabel(e.holidayType)]})];const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download=`taxi-pay-${$('currentMonth').value}.csv`;a.click();};
+$('closeMonth').onclick=()=>{const entries=currentEntries();if(!entries.length)return alert('給与締めするデータがありません。');const ym=$('currentMonth').value,pp=payrollPeriod(ym);if(!confirm(`${ym}給与を締めます。履歴保存後、この期間の勤務データは削除されます。`))return;const t=totals(entries);state.history.push({month:ym,shiftType:state.settings.shiftType,periodStart:pp.start,periodEnd:pp.end,gross:t.gross,commission:t.c.total,takeHome:t.takeHome,count:entries.length,closedAt:new Date().toISOString()});state.entries=state.entries.filter(e=>payrollMonthOf(e.date)!==ym);saveState();render();};
+$('openSettings').onclick=()=>{loadSettingsForm();$('settingsDialog').showModal();};$('shiftType').onchange=()=>{$('shiftRuleInfo').innerHTML=ruleDescription($('shiftType').value);const r=SHIFT_RULES[$('shiftType').value];$('standardShiftHoursDisplay').value=minutesText(r.shiftMinutes);$('standardHoursDisplay').value=minutesText(r.monthlyMinutes);};$('saveSettings').onclick=e=>{e.preventDefault();saveSettingsForm();$('settingsDialog').close();};
+$('openAdmin').onclick=()=>{const p=prompt('開発者パスワードを入力してください。');if(p!==ADMIN_PASSWORD)return alert('パスワードが違います。');loadAdminForm();$('adminDialog').showModal();};$('saveAdmin').onclick=e=>{e.preventDefault();saveAdminForm();$('adminDialog').close();alert('開発者設定を保存しました。');};
+$('onboardingShiftType').onchange=()=>{$('onboardingRule').innerHTML=ruleDescription($('onboardingShiftType').value);};$('completeOnboarding').onclick=e=>{e.preventDefault();if(!$('agreeDisclaimer').checked)return alert('確認欄にチェックしてください。');state.settings.shiftType=$('onboardingShiftType').value;state.initialized=true;saveState();$('onboardingDialog').close();render();};
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if(!state.initialized||!SHIFT_RULES[state.settings.shiftType]){const first=Object.keys(SHIFT_RULES)[0];$('onboardingShiftType').value=first;$('onboardingRule').innerHTML=ruleDescription(first);$('onboardingDialog').showModal();}else loadSettingsForm();
+render();

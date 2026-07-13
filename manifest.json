@@ -1,9 +1,11 @@
 {
-  "name": "タクシー給与シミュレーター",
-  "short_name": "TaxiPay",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#f4f7fb",
-  "theme_color": "#0f172a",
-  "lang": "ja-JP"
+  "name":"タクシー給与シミュレーター",
+  "short_name":"Taxi Pay",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "background_color":"#eef3f5",
+  "theme_color":"#0f4c5c",
+  "lang":"ja",
+  "description":"タクシー乗務員向け給与概算シミュレーター"
 }
