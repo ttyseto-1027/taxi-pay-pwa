@@ -142,15 +142,14 @@ const ADMIN_FIELDS=['fareRevisionCoefficient','payRevenueCoefficient','taxRate',
 function loadAdminForm(){for(const k of ADMIN_FIELDS)$(k).value=state.settings[k];}
 function saveAdminForm(){for(const k of ADMIN_FIELDS)state.settings[k]=Number($(k).value||0);saveState();render();}
 function breakValue(prefix){return Number($(prefix+'Hours').value||0)*60+Number($(prefix+'Minutes').value||0);}
-function updateStepperOutput(inputId){const input=$(inputId),output=$(inputId+'Output');if(output)output.textContent=String(Number(input.value||0));}
-function setStepperValue(inputId,value){const max=inputId.endsWith('Hours')?24:59;$(inputId).value=Math.max(0,Math.min(max,Math.trunc(Number(value)||0)));updateStepperOutput(inputId);}
-function initBreakSteppers(){document.querySelectorAll('[data-step-target]').forEach(button=>{button.addEventListener('click',()=>{const id=button.dataset.stepTarget,delta=Number(button.dataset.stepDelta||0);setStepperValue(id,Number($(id).value||0)+delta);});});['normalBreakHours','normalBreakMinutes','nightBreakHours','nightBreakMinutes'].forEach(updateStepperOutput);}
-function setBreak(prefix,total){setStepperValue(prefix+'Hours',Math.floor(Number(total||0)/60));setStepperValue(prefix+'Minutes',Number(total||0)%60);}
-function clearEntry(){$('entryForm').reset();$('date').value=today();setStepperValue('normalBreakHours',0);setStepperValue('normalBreakMinutes',0);setStepperValue('nightBreakHours',0);setStepperValue('nightBreakMinutes',0);$('editingId').value='';$('netRevenue').value='';}
+function fillNumberSelect(id,max){const select=$(id);select.innerHTML='';for(let i=0;i<=max;i++){const option=document.createElement('option');option.value=String(i);option.textContent=String(i).padStart(2,'0');select.appendChild(option);}}
+function initBreakPickers(){fillNumberSelect('normalBreakHours',24);fillNumberSelect('normalBreakMinutes',59);fillNumberSelect('nightBreakHours',24);fillNumberSelect('nightBreakMinutes',59);}
+function setBreak(prefix,total){const minutes=Math.max(0,Number(total||0));$(prefix+'Hours').value=String(Math.min(24,Math.floor(minutes/60)));$(prefix+'Minutes').value=String(Math.min(59,minutes%60));}
+function clearEntry(){$('entryForm').reset();$('date').value=today();setBreak('normalBreak',0);setBreak('nightBreak',0);$('editingId').value='';$('netRevenue').value='';}
 function updateNet(){const v=Number($('grossRevenue').value||0);$('netRevenue').value=v?calcNet(v).toLocaleString('ja-JP'):'';}
 function validateEntry(e){const t=entryTimeInfo(e);if(!e.clockIn||!e.clockOut)return '出勤・退勤時刻を入力してください。';if(t.duration<=0)return '勤務時間を確認してください。';if(e.normalBreakMinutes+e.nightBreakMinutes>t.duration)return '休憩時間が拘束時間を超えています。';if(t.work<=0)return '実働時間が0以下です。';return '';}
 
-initBreakSteppers();populateShiftSelects();$('currentMonth').value=payrollMonthOf(today());clearEntry();
+initBreakPickers();populateShiftSelects();$('currentMonth').value=payrollMonthOf(today());clearEntry();
 $('grossRevenue').addEventListener('input',updateNet);
 $('entryForm').addEventListener('submit',ev=>{ev.preventDefault();const gross=Number($('grossRevenue').value||0);if(gross<=0)return alert('税込営収を入力してください。');const id=$('editingId').value||crypto.randomUUID();const entry={id,date:$('date').value,grossRevenue:gross,clockIn:$('clockIn').value,clockOut:$('clockOut').value,normalBreakMinutes:breakValue('normalBreak'),nightBreakMinutes:breakValue('nightBreak'),holidayType:$('holidayType').value,hadAccident:$('hadAccident').checked,hadViolation:$('hadViolation').checked};const err=validateEntry(entry);if(err)return alert(err);state.entries=state.entries.filter(x=>x.id!==id).concat(entry);saveState();clearEntry();render();});
 $('resetForm').onclick=clearEntry;
