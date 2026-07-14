@@ -1,33 +1,25 @@
-# Taxi Pay PWA
+# Taxi Payroll Processing Simulator — Version 1.0β
 
-タクシー乗務員向け給与概算シミュレーターのテスト版です。
+タクシー乗務員向けの給与概算PWAです。
 
-## 起動
-`index.html` をWebサーバーで公開してください。GitHub Pagesではリポジトリのルートを公開対象に設定します。
+## β版の主な機能
 
-## 主なファイル
-- `index.html` 画面
-- `styles.css` スタイル
-- `app.js` 計算・保存ロジック
-- `tax-table-2026.js` 国税庁令和8年分月額表データ
-- `manifest.json` PWA設定
-- `sw.js` オフラインキャッシュ
-- 各種仕様書・マニュアル
+- 12種類の勤務区分
+- 税込営収、勤務時刻、通常休憩・深夜休憩の入力
+- 歩合給、割増賃金、手当、所得税、控除の概算
+- 給与締め、履歴、CSV、印刷/PDF
+- Firebase Authenticationによるメール・パスワード認証
+- β版無料利用コード
+- Firestoreによる登録ユーザー一覧と利用停止管理
 
-## データ保存
-利用者データはブラウザのLocalStorageに保存されます。ブラウザデータを削除すると入力内容も消えるため、給与締め前のCSV保存を推奨します。
+## Firebase接続
 
-## 所得税の参照元
-国税庁「令和8年分 源泉徴収税額表」
-https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/01.htm
+認証機能を動かすには `firebase-config.js` を設定し、Firebase AuthenticationとCloud Firestoreを有効にする必要があります。詳しくは `FIREBASE_SETUP_BETA.md` を参照してください。
 
-## 免責
-本アプリは概算シミュレーションです。実際の給与支給額は会社の給与明細をご確認ください。
+## データ方針
 
-## Version 1.0βの運営表示
-- サービス名: Taxi Payroll Processing Simulator
-- 個人名は表示しません。
-- ベータ版では問い合わせ窓口を設けません。
-- 利用条件: `TERMS_BETA.md`
-- データ取扱い: `PRIVACY_POLICY_BETA.md`
-- ブランド表記: `BRAND_GUIDELINES_v1.md`
+氏名・メールアドレス・利用状態などの利用者管理情報はFirebaseへ保存します。給与・営収・勤務実績はβ版では原則として各端末内へ保存します。
+
+## 公開
+
+GitHub Pagesへ静的ファイルをアップロードして公開できます。Firebase Authenticationの承認済みドメインへGitHub Pagesのホスト名を追加してください。

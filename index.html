@@ -1,102 +1,130 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f4c5c">
-  <meta name="description" content="タクシー乗務員向け給与概算シミュレーター">
-  <title>タクシー給与シミュレーター</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<meta content="#0f4c5c" name="theme-color"/>
+<meta content="タクシー乗務員向け給与概算シミュレーター" name="description"/>
+<title>タクシー給与シミュレーター</title>
+<link href="manifest.json" rel="manifest"/>
+<link href="styles.css" rel="stylesheet"/>
 </head>
-<body>
+<body class="auth-pending"><section aria-live="polite" class="auth-gate no-print" id="authGate">
+<div class="auth-card">
+<h1>タクシー給与シミュレーター</h1>
+<p class="note">Version 1.0β</p>
+<div class="setup-notice" hidden="" id="firebaseSetupNotice">
+      Firebaseの初期設定が未完了です。管理者向けセットアップマニュアルをご確認ください。
+    </div>
+<div class="auth-message" id="authMessage" role="alert"></div>
+<div class="auth-tabs">
+<button class="auth-tab active" id="showLogin" type="button">ログイン</button>
+<button class="auth-tab" id="showRegister" type="button">新規登録</button>
+</div>
+<form class="auth-form" id="loginForm">
+<label>メールアドレス<input autocomplete="email" id="loginEmail" required="" type="email"/></label>
+<label>パスワード<input autocomplete="current-password" id="loginPassword" minlength="8" required="" type="password"/></label>
+<button type="submit">ログイン</button>
+</form>
+<form class="auth-form" hidden="" id="registerForm">
+<label>氏名<input autocomplete="name" id="registerName" maxlength="80" required="" type="text"/></label>
+<label>メールアドレス<input autocomplete="email" id="registerEmail" required="" type="email"/></label>
+<label>ログイン用パスワード<input autocomplete="new-password" id="registerPassword" minlength="8" required="" type="password"/></label>
+<label>β版無料利用コード<input autocomplete="off" id="registerAccessCode" required="" type="password"/></label>
+<label class="check-label"><input id="registerTerms" required="" type="checkbox"/>ベータ版利用条件とプライバシーポリシーに同意します</label>
+<button type="submit">登録して利用開始</button>
+</form>
+<p class="auth-footnote">給与・営収・勤務実績は端末内に保存されます。クラウドには氏名、メールアドレス、登録日時、利用状態のみを保存します。</p>
+</div>
+</section>
 <header class="app-header no-print">
-  <div><h1>タクシー給与シミュレーター</h1><p id="headerShift">勤務区分未設定</p></div>
-  <button id="openSettings" class="icon-button" aria-label="設定を開く">⚙️</button>
-</header>
+<div><h1>タクシー給与シミュレーター</h1><p id="headerShift">勤務区分未設定</p></div>
+<button aria-label="設定を開く" class="icon-button" id="openSettings">⚙️</button>
+<div class="header-controls"><span class="signed-in-user" id="signedInUser"></span><a class="ghost admin-link" hidden="" href="admin.html" id="adminPageLink">ユーザー管理</a><button class="ghost" id="logoutButton">ログアウト</button></div></header>
 <main class="app-layout">
-<section class="card dashboard layout-simulation">
-  <div class="month-row no-print"><button id="prevMonth" class="ghost">前給与月</button><input id="currentMonth" type="month"><button id="nextMonth" class="ghost">翌給与月</button></div>
-  <h2 id="reportTitle">給与サマリー</h2><p id="payPeriod" class="note"></p>
-  <div class="summary-grid">
-    <div><span>税込営収</span><strong id="sumGross">0円</strong></div>
-    <div><span>税抜営収</span><strong id="sumNet">0円</strong></div>
-    <div><span>月間営収</span><strong id="payRevenue">0円</strong></div>
-    <div><span>積算歩合給計</span><strong id="commissionTotal">0円</strong></div>
-    <div><span>割増賃金計</span><strong id="premiumTotal">0円</strong></div>
-    <div><span>諸手当</span><strong id="allowances">0円</strong></div>
-    <div><span>有休加算</span><strong id="paidLeavePay">0円</strong></div>
-    <div><span>概算総支給</span><strong id="grossPay">0円</strong></div>
-    <div><span>所得税（自動）</span><strong id="incomeTaxResult">0円</strong></div>
-    <div><span>控除合計</span><strong id="deductions">0円</strong></div>
-    <div><span>概算手取り</span><strong id="takeHome">0円</strong></div>
-    <div><span>乗務回数</span><strong id="shiftCount">0回</strong></div>
-  </div>
-  <h3>給与明細形式の内訳</h3><div id="paySlipBreakdown" class="breakdown"></div>
-  <div class="actions no-print"><button id="printReport">印刷 / PDF保存</button><button id="exportCsv" class="secondary">CSV出力</button><button id="closeMonth" class="danger">給与締め</button></div>
-  <div class="app-disclaimer" role="note">
-    <p>※ 本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
-    <p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
-    <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
-    <p class="version-line">Version 1.0β<br>© Taxi Payroll Processing Simulator</p>
-  </div>
-</section>
+
+
+
+
 <section class="card no-print layout-entry">
-  <h2>勤務実績を入力</h2>
-  <form id="entryForm" class="entry-form">
-    <label>勤務日<input id="date" type="date" required></label>
-    <label>税込営収<div class="money-input"><input id="grossRevenue" inputmode="numeric" type="number" min="0" step="1" required><span>円</span></div></label>
-    <label>税抜営収（自動）<div class="money-input"><input id="netRevenue" type="text" readonly><span>円</span></div></label>
-    <label>出勤時刻（アルコール）<input id="clockIn" type="time" required></label>
-    <label>退勤時刻（アルコール）<input id="clockOut" type="time" required></label>
-    <label>休日区分<select id="holidayType"><option value="normal">通常勤務</option><option value="statutory">法定休日出勤</option><option value="nonstatutory">法定外休日出勤</option></select></label>
-    <fieldset><legend>通常休憩</legend>
-      <div class="break-picker" aria-label="通常休憩時間">
-        <label><span>時間</span><select id="normalBreakHours" aria-label="通常休憩の時間"></select><span>時間</span></label>
-        <label><span>分</span><select id="normalBreakMinutes" aria-label="通常休憩の分"></select><span>分</span></label>
-      </div>
-    </fieldset>
-    <fieldset><legend>深夜休憩（22:00〜翌5:00内）</legend>
-      <div class="break-picker" aria-label="深夜休憩時間">
-        <label><span>時間</span><select id="nightBreakHours" aria-label="深夜休憩の時間"></select><span>時間</span></label>
-        <label><span>分</span><select id="nightBreakMinutes" aria-label="深夜休憩の分"></select><span>分</span></label>
-      </div>
-    </fieldset>
-    <label class="check-label"><input id="hadAccident" type="checkbox">この乗務で事故あり</label>
-    <label class="check-label"><input id="hadViolation" type="checkbox">この乗務で違反あり</label>
-    <input id="editingId" type="hidden">
-    <div class="actions full"><button type="submit">保存</button><button id="resetForm" type="button" class="ghost">入力欄クリア</button></div>
-  </form>
-</section>
-<section class="card layout-daily"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>休日</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section>
-<section class="card no-print layout-history"><h2>給与締め履歴</h2><div id="historyList"></div></section>
-</main>
-<dialog id="onboardingDialog" class="modal"><form method="dialog" id="onboardingForm"><h2>最初に勤務区分を選択してください</h2><label>勤務区分<select id="onboardingShiftType" required></select></label><div id="onboardingRule" class="rule-box"></div><label class="agree"><input id="agreeDisclaimer" type="checkbox" required>免責事項を確認しました</label><button id="completeOnboarding">利用を開始</button><div class="app-disclaimer" role="note">
-    <p>※ 本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
-    <p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
-    <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
-    <p class="version-line">Version 1.0β<br>© Taxi Payroll Processing Simulator</p>
-  </div></form></dialog>
-<dialog id="settingsDialog" class="modal settings-modal"><form method="dialog" id="settingsForm"><div class="modal-title-row"><h2>設定</h2><button class="icon-button" value="cancel">✕</button></div>
-<label>勤務区分<select id="shiftType"></select></label><div id="shiftRuleInfo" class="rule-box"></div>
+<h2>勤務実績を入力</h2>
+<form class="entry-form" id="entryForm">
+<label>勤務日<input id="date" required="" type="date"/></label>
+<label>税込営収<div class="money-input"><input id="grossRevenue" inputmode="numeric" min="0" required="" step="1" type="number"/><span>円</span></div></label>
+<label>税抜営収（自動）<div class="money-input"><input id="netRevenue" readonly="" type="text"/><span>円</span></div></label>
+<label>出勤時刻（アルコール）<input id="clockIn" required="" type="time"/></label>
+<label>退勤時刻（アルコール）<input id="clockOut" required="" type="time"/></label>
+<label>休日区分<select id="holidayType"><option value="normal">通常勤務</option><option value="statutory">法定休日出勤</option><option value="nonstatutory">法定外休日出勤</option></select></label>
+<fieldset><legend>通常休憩</legend>
+<div aria-label="通常休憩時間" class="break-picker">
+<label><span>時間</span><select aria-label="通常休憩の時間" id="normalBreakHours"></select><span>時間</span></label>
+<label><span>分</span><select aria-label="通常休憩の分" id="normalBreakMinutes"></select><span>分</span></label>
+</div>
+</fieldset>
+<fieldset><legend>深夜休憩（22:00〜翌5:00内）</legend>
+<div aria-label="深夜休憩時間" class="break-picker">
+<label><span>時間</span><select aria-label="深夜休憩の時間" id="nightBreakHours"></select><span>時間</span></label>
+<label><span>分</span><select aria-label="深夜休憩の分" id="nightBreakMinutes"></select><span>分</span></label>
+</div>
+</fieldset>
+<label class="check-label"><input id="hadAccident" type="checkbox"/>この乗務で事故あり</label>
+<label class="check-label"><input id="hadViolation" type="checkbox"/>この乗務で違反あり</label>
+<input id="editingId" type="hidden"/>
+<div class="actions full"><button type="submit">保存</button><button class="ghost" id="resetForm" type="button">入力欄クリア</button></div>
+</form>
+</section><section class="card layout-daily"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>休日</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section><section class="card dashboard layout-simulation">
+<div class="month-row no-print"><button class="ghost" id="prevMonth">前給与月</button><input id="currentMonth" type="month"/><button class="ghost" id="nextMonth">翌給与月</button></div>
+<h2 id="reportTitle">給与サマリー</h2><p class="note" id="payPeriod"></p>
+<div class="summary-grid">
+<div><span>税込営収</span><strong id="sumGross">0円</strong></div>
+<div><span>税抜営収</span><strong id="sumNet">0円</strong></div>
+<div><span>月間営収</span><strong id="payRevenue">0円</strong></div>
+<div><span>積算歩合給計</span><strong id="commissionTotal">0円</strong></div>
+<div><span>割増賃金計</span><strong id="premiumTotal">0円</strong></div>
+<div><span>諸手当</span><strong id="allowances">0円</strong></div>
+<div><span>有休加算</span><strong id="paidLeavePay">0円</strong></div>
+<div><span>概算総支給</span><strong id="grossPay">0円</strong></div>
+<div><span>所得税（自動）</span><strong id="incomeTaxResult">0円</strong></div>
+<div><span>控除合計</span><strong id="deductions">0円</strong></div>
+<div><span>概算手取り</span><strong id="takeHome">0円</strong></div>
+<div><span>乗務回数</span><strong id="shiftCount">0回</strong></div>
+</div>
+<h3>給与明細形式の内訳</h3><div class="breakdown" id="paySlipBreakdown"></div>
+<div class="actions no-print"><button id="printReport">印刷 / PDF保存</button><button class="secondary" id="exportCsv">CSV出力</button><button class="danger" id="closeMonth">給与締め</button></div>
+<div class="app-disclaimer" role="note">
+<p>※ 本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
+<p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
+<p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
+<p class="version-line">Version 1.0β<br/>© Taxi Payroll Processing Simulator</p>
+</div>
+</section><section class="card no-print layout-history"><h2>給与締め履歴</h2><div id="historyList"></div></section></main>
+<dialog class="modal" id="onboardingDialog"><form id="onboardingForm" method="dialog"><h2>最初に勤務区分を選択してください</h2><label>勤務区分<select id="onboardingShiftType" required=""></select></label><div class="rule-box" id="onboardingRule"></div><label class="agree"><input id="agreeDisclaimer" required="" type="checkbox"/>免責事項を確認しました</label><button id="completeOnboarding">利用を開始</button><div class="app-disclaimer" role="note">
+<p>※ 本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
+<p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
+<p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
+<p class="version-line">Version 1.0β<br/>© Taxi Payroll Processing Simulator</p>
+</div></form></dialog>
+<dialog class="modal settings-modal" id="settingsDialog"><form id="settingsForm" method="dialog"><div class="modal-title-row"><h2>設定</h2><button class="icon-button" value="cancel">✕</button></div>
+<label>勤務区分<select id="shiftType"></select></label><div class="rule-box" id="shiftRuleInfo"></div>
 <h3>控除・個人設定</h3><div class="form-grid">
-<label>健康保険<input id="healthInsurance" type="number" min="0"></label><label>厚生年金<input id="pension" type="number" min="0"></label><label>雇用保険<input id="employmentInsurance" type="number" min="0"></label>
-<label>住民税<input id="residentTax" type="number" min="0"></label><label>組合費<input id="unionFee" type="number" min="0"></label><label>共済費<input id="mutualAidFee" type="number" min="0"></label><label>その他控除<input id="otherDeduction" type="number" min="0"></label>
-<label>扶養親族等の数<input id="dependentCount" type="number" min="0" max="20"></label><label>源泉徴収区分<select id="withholdingCategory"><option value="A">甲欄（扶養控除等申告書あり）</option><option value="B">乙欄（申告書なし）</option></select></label>
-<label>有休日数<input id="paidLeaveDays" type="number" min="0" step="0.5"></label><label>標準報酬日額<input id="paidLeaveDailyRate" type="number" min="0"></label></div>
+<label>健康保険<input id="healthInsurance" min="0" type="number"/></label><label>厚生年金<input id="pension" min="0" type="number"/></label><label>雇用保険<input id="employmentInsurance" min="0" type="number"/></label>
+<label>住民税<input id="residentTax" min="0" type="number"/></label><label>組合費<input id="unionFee" min="0" type="number"/></label><label>共済費<input id="mutualAidFee" min="0" type="number"/></label><label>その他控除<input id="otherDeduction" min="0" type="number"/></label>
+<label>扶養親族等の数<input id="dependentCount" max="20" min="0" type="number"/></label><label>源泉徴収区分<select id="withholdingCategory"><option value="A">甲欄（扶養控除等申告書あり）</option><option value="B">乙欄（申告書なし）</option></select></label>
+<label>有休日数<input id="paidLeaveDays" min="0" step="0.5" type="number"/></label><label>標準報酬日額<input id="paidLeaveDailyRate" min="0" type="number"/></label></div>
 <p class="note">所得税は国税庁「令和8年分 給与所得の源泉徴収税額表（月額表）」により、社会保険料等控除後の給与額と扶養人数から概算します。</p>
-<details><summary>表示専用情報</summary><div class="form-grid"><label>消費税率<input id="taxRateDisplay" readonly></label><label>1乗務所定労働時間<input id="standardShiftHoursDisplay" readonly></label><label>月間所定労働時間<input id="standardHoursDisplay" readonly></label></div></details>
+<details><summary>表示専用情報</summary><div class="form-grid"><label>消費税率<input id="taxRateDisplay" readonly=""/></label><label>1乗務所定労働時間<input id="standardShiftHoursDisplay" readonly=""/></label><label>月間所定労働時間<input id="standardHoursDisplay" readonly=""/></label></div></details>
 <details class="legal-details"><summary>利用条件・プライバシー</summary>
-  <div class="legal-copy">
-    <h4>ベータ版の利用条件</h4>
-    <p>本アプリは給与支給額の概算確認を目的とするテスト版です。計算結果は参考値であり、実際の支給額を保証するものではありません。利用者は、会社が発行する給与明細を最終確認資料として使用してください。</p>
-    <h4>データの取扱い</h4>
-    <p>入力データおよび設定値は、原則として利用者の端末内に保存されます。本ベータ版には、問い合わせ窓口、利用者登録、クラウド同期および運営者による入力データ閲覧機能はありません。</p>
-  </div>
+<div class="legal-copy">
+<h4>ベータ版の利用条件</h4>
+<p>本アプリは給与支給額の概算確認を目的とするテスト版です。計算結果は参考値であり、実際の支給額を保証するものではありません。利用者は、会社が発行する給与明細を最終確認資料として使用してください。</p>
+<h4>データの取扱い</h4>
+<p>入力データおよび設定値は、原則として利用者の端末内に保存されます。本ベータ版には、問い合わせ窓口、利用者登録、クラウド同期および運営者による入力データ閲覧機能はありません。</p>
+</div>
 </details>
-<div class="actions"><button id="saveSettings">設定を保存</button><button id="openAdmin" type="button" class="ghost">開発者設定</button></div></form></dialog>
-<dialog id="adminDialog" class="modal"><form method="dialog" id="adminForm"><div class="modal-title-row"><h2>開発者専用設定</h2><button class="icon-button" value="cancel">✕</button></div><p class="note">静的PWA内の簡易保護です。公開ソースから完全に秘匿できる認証ではありません。</p><div class="form-grid">
-<label>運賃改定係数<input id="fareRevisionCoefficient" type="number" step="0.0001"></label><label>給与算定係数<input id="payRevenueCoefficient" type="number" step="0.0001"></label><label>消費税率（%）<input id="taxRate" type="number" step="0.1"></label>
-<label>模範勤務手当/月<input id="modelWorkAllowance" type="number"></label><label>無事故手当/乗務<input id="accidentFreeAllowance" type="number"></label><label>無違反手当/乗務<input id="violationFreeAllowance" type="number"></label>
-<label>法定超 時間外割増（%）<input id="statutoryOvertimeRate" type="number" step="0.01"></label><label>所定超 時間外割増（%）<input id="scheduledOvertimeRate" type="number" step="0.01"></label><label>月60時間超 割増（%）<input id="over60Rate" type="number" step="0.01"></label><label>法定休日割増（%）<input id="statutoryHolidayRate" type="number" step="0.01"></label><label>法定外休日割増（%）<input id="nonStatutoryHolidayRate" type="number" step="0.01"></label><label>深夜割増（%）<input id="nightRate" type="number" step="0.01"></label></div><div class="actions"><button id="saveAdmin">開発者設定を保存</button></div></form></dialog>
-<script src="tax-table-2026.js"></script><script src="app.js"></script></body></html>
+<div class="actions"><button id="saveSettings">設定を保存</button><button class="ghost" id="openAdmin" type="button">開発者設定</button></div></form></dialog>
+<dialog class="modal" id="adminDialog"><form id="adminForm" method="dialog"><div class="modal-title-row"><h2>開発者専用設定</h2><button class="icon-button" value="cancel">✕</button></div><p class="note">静的PWA内の簡易保護です。公開ソースから完全に秘匿できる認証ではありません。</p><div class="form-grid">
+<label>運賃改定係数<input id="fareRevisionCoefficient" step="0.0001" type="number"/></label><label>給与算定係数<input id="payRevenueCoefficient" step="0.0001" type="number"/></label><label>消費税率（%）<input id="taxRate" step="0.1" type="number"/></label>
+<label>模範勤務手当/月<input id="modelWorkAllowance" type="number"/></label><label>無事故手当/乗務<input id="accidentFreeAllowance" type="number"/></label><label>無違反手当/乗務<input id="violationFreeAllowance" type="number"/></label>
+<label>法定超 時間外割増（%）<input id="statutoryOvertimeRate" step="0.01" type="number"/></label><label>所定超 時間外割増（%）<input id="scheduledOvertimeRate" step="0.01" type="number"/></label><label>月60時間超 割増（%）<input id="over60Rate" step="0.01" type="number"/></label><label>法定休日割増（%）<input id="statutoryHolidayRate" step="0.01" type="number"/></label><label>法定外休日割増（%）<input id="nonStatutoryHolidayRate" step="0.01" type="number"/></label><label>深夜割増（%）<input id="nightRate" step="0.01" type="number"/></label></div><div class="actions"><button id="saveAdmin">開発者設定を保存</button></div></form></dialog>
+<script src="firebase-config.js"></script><script src="firebase-auth.js" type="module"></script><script src="tax-table-2026.js"></script><script src="app.js"></script></body></html>

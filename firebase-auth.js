@@ -1,0 +1,131 @@
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js';
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged, deleteUser
+} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
+import {
+  getFirestore, doc, getDoc, runTransaction, serverTimestamp, updateDoc
+} from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
+
+const config = window.TAXI_PAY_FIREBASE_CONFIG || {};
+const gate = document.getElementById('authGate');
+const message = document.getElementById('authMessage');
+const setupNotice = document.getElementById('firebaseSetupNotice');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const showLogin = document.getElementById('showLogin');
+const showRegister = document.getElementById('showRegister');
+const userLabel = document.getElementById('signedInUser');
+const logoutButton = document.getElementById('logoutButton');
+const adminLink = document.getElementById('adminPageLink');
+
+function setMessage(text, kind = 'error') {
+  message.textContent = text || '';
+  message.dataset.kind = kind;
+}
+function showApp(profile) {
+  document.body.classList.remove('auth-pending');
+  gate.hidden = true;
+  userLabel.textContent = profile?.name || profile?.email || '';
+  adminLink.hidden = !profile?.isAdmin;
+}
+function showGate() {
+  document.body.classList.add('auth-pending');
+  gate.hidden = false;
+  userLabel.textContent = '';
+  adminLink.hidden = true;
+}
+function switchTab(mode) {
+  const login = mode === 'login';
+  loginForm.hidden = !login;
+  registerForm.hidden = login;
+  showLogin.classList.toggle('active', login);
+  showRegister.classList.toggle('active', !login);
+  setMessage('');
+}
+showLogin?.addEventListener('click', () => switchTab('login'));
+showRegister?.addEventListener('click', () => switchTab('register'));
+
+if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
+  setupNotice.hidden = false;
+  setMessage('Firebase接続前のため、ユーザー登録・ログインはまだ利用できません。', 'info');
+  showGate();
+} else {
+  const app = initializeApp(config);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  async function sha256(text) {
+    const bytes = new TextEncoder().encode(text.trim());
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function loadProfile(user) {
+    const profileRef = doc(db, 'users', user.uid);
+    const profileSnap = await getDoc(profileRef);
+    if (!profileSnap.exists()) throw new Error('利用者情報が登録されていません。');
+    const profile = profileSnap.data();
+    if (profile.status !== 'active') throw new Error('このアカウントは利用停止中です。');
+    const adminSnap = await getDoc(doc(db, 'admins', user.uid));
+    await updateDoc(profileRef, { lastLoginAt: serverTimestamp() }).catch(() => {});
+    return { ...profile, email: user.email, isAdmin: adminSnap.exists() };
+  }
+
+  loginForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setMessage('ログインしています…', 'info');
+    try {
+      await signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value.trim(), document.getElementById('loginPassword').value);
+    } catch (error) {
+      setMessage('ログインできませんでした。メールアドレスとパスワードをご確認ください。');
+    }
+  });
+
+  registerForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setMessage('登録しています…', 'info');
+    let credential;
+    try {
+      const name = document.getElementById('registerName').value.trim();
+      const email = document.getElementById('registerEmail').value.trim();
+      const password = document.getElementById('registerPassword').value;
+      const accessCodeHash = await sha256(document.getElementById('registerAccessCode').value);
+      credential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = credential.user;
+      const codeRef = doc(db, 'accessCodes', accessCodeHash);
+      const userRef = doc(db, 'users', user.uid);
+      await runTransaction(db, async (tx) => {
+        const codeSnap = await tx.get(codeRef);
+        if (!codeSnap.exists()) throw new Error('無料利用コードが正しくありません。');
+        const code = codeSnap.data();
+        const uses = Number(code.usageCount || 0);
+        const max = Number(code.maxUses || 0);
+        if (code.active !== true || (max > 0 && uses >= max)) throw new Error('無料利用コードは無効または使用上限に達しています。');
+        tx.update(codeRef, { usageCount: uses + 1, lastUsedAt: serverTimestamp(), lastUsedBy: user.uid });
+        tx.set(userRef, {
+          name, email, status: 'active', plan: 'beta_free', accessCodeHash,
+          createdAt: serverTimestamp(), lastLoginAt: serverTimestamp(), termsAcceptedAt: serverTimestamp()
+        });
+      });
+    } catch (error) {
+      if (credential?.user) await deleteUser(credential.user).catch(() => {});
+      setMessage(error?.message || '登録できませんでした。入力内容をご確認ください。');
+    }
+  });
+
+  logoutButton?.addEventListener('click', () => signOut(auth));
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { showGate(); return; }
+    try {
+      const profile = await loadProfile(user);
+      setMessage('');
+      showApp(profile);
+    } catch (error) {
+      await signOut(auth).catch(() => {});
+      showGate();
+      setMessage(error?.message || 'このアカウントでは利用できません。');
+    }
+  });
+}

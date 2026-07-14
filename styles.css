@@ -46,3 +46,33 @@
 .break-picker label>span:last-child{font-size:.9rem}
 @media(max-width:420px){.break-picker{grid-template-columns:1fr}.break-picker select{min-height:52px;font-size:1.15rem}}
 
+
+/* Firebase Authentication / user management */
+.auth-pending > .app-header,
+.auth-pending > main,
+.auth-pending > dialog { display:none !important; }
+.auth-gate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;background:linear-gradient(145deg,#e8f3f5,#f7fafb);overflow:auto}
+.auth-gate[hidden]{display:none!important}
+.auth-card{width:min(100%,480px);background:#fff;border-radius:18px;padding:24px;box-shadow:0 14px 40px rgba(0,0,0,.16)}
+.auth-card h1{margin-top:0;font-size:1.55rem}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0}
+.auth-tab{background:#e7eef0;color:#19383f;border:0}
+.auth-tab.active{background:var(--primary,#0f4c5c);color:#fff}
+.auth-form{display:grid;gap:14px}
+.auth-form[hidden]{display:none!important}
+.auth-form label{display:grid;gap:6px;font-weight:700}
+.auth-form input{min-height:48px;font-size:1rem}
+.auth-message{min-height:1.4em;margin:8px 0;color:#a11212;font-weight:700}
+.auth-message[data-kind="info"]{color:#305d6a}
+.setup-notice{padding:12px;border:1px solid #d7a900;background:#fff8d8;border-radius:10px}
+.auth-footnote{font-size:.8rem;color:var(--muted,#667);line-height:1.6;margin-bottom:0}
+.header-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.signed-in-user{font-size:.82rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-link{display:inline-flex;align-items:center;text-decoration:none;padding:.55rem .7rem;border-radius:8px}
+.admin-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.admin-summary>div{background:#f1f5f6;border-radius:12px;padding:14px;display:grid;gap:5px}
+.admin-summary span{font-size:.82rem;color:var(--muted,#667)}
+.admin-summary strong{font-size:1.35rem}
+.code-admin-box{margin:16px 0;padding:16px;background:#f6f8f9;border-radius:12px}
+.code-admin-form{display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:end}
+@media(max-width:700px){.header-controls{width:100%;justify-content:flex-start}.signed-in-user{max-width:100%}.admin-summary{grid-template-columns:1fr}.code-admin-form{grid-template-columns:1fr}.auth-card{padding:18px}}
