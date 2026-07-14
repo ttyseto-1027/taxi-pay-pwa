@@ -1,8 +1,15 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function isAdmin() { return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
 
     match /admins/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
@@ -12,16 +19,22 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow list: if isAdmin();
-      allow create: if signedIn() && request.auth.uid == uid
+
+      allow create: if signedIn()
+        && request.auth.uid == uid
         && request.resource.data.status == 'active'
         && request.resource.data.plan == 'beta_free'
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.accessCodeHash is string
         && getAfter(/databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeHash)).data.lastUsedBy == request.auth.uid
-        && getAfter(/databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeHash)).data.usageCount == get(/databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeHash)).data.usageCount + 1;
+        && getAfter(/databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeHash)).data.usageCount
+          == get(/databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeHash)).data.usageCount + 1;
+
       allow update: if isAdmin()
-        || (signedIn() && request.auth.uid == uid
+        || (signedIn()
+          && request.auth.uid == uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLoginAt']));
+
       allow delete: if isAdmin();
     }
 
@@ -29,12 +42,23 @@ service cloud.firestore {
       allow get: if signedIn();
       allow list: if isAdmin();
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (signedIn()
-        && resource.data.active == true
-        && request.resource.data.usageCount == resource.data.usageCount + 1
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usageCount','lastUsedAt','lastUsedBy'])
-        && request.resource.data.lastUsedBy == request.auth.uid
-        && (resource.data.maxUses == 0 || request.resource.data.usageCount <= resource.data.maxUses));
+
+      allow update: if isAdmin()
+        || (signedIn()
+          && resource.data.active == true
+          && resource.data.usageCount is int
+          && resource.data.maxUses is int
+          && resource.data.usageCount >= 0
+          && resource.data.maxUses >= 0
+          && request.resource.data.usageCount == resource.data.usageCount + 1
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'usageCount',
+            'lastUsedAt',
+            'lastUsedBy'
+          ])
+          && request.resource.data.lastUsedBy == request.auth.uid
+          && (resource.data.maxUses == 0
+            || request.resource.data.usageCount <= resource.data.maxUses));
     }
   }
 }
