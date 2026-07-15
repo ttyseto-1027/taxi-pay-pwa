@@ -51,6 +51,7 @@
 <h2>勤務実績を入力</h2>
 <form class="entry-form" id="entryForm">
 <label>勤務日<input id="date" required="" type="date"/></label>
+<fieldset class="paid-leave-selector"><legend>勤務・有給区分</legend><div class="paid-leave-radios"><label><input checked="" name="paidLeaveType" type="radio" value="0"/>通常勤務</label><label><input name="paidLeaveType" type="radio" value="1"/>1有給</label><label><input name="paidLeaveType" type="radio" value="2"/>2有給</label></div><p class="note" id="paidLeaveEntryNote"></p></fieldset>
 <label>税込営収<div class="money-input"><input id="grossRevenue" inputmode="numeric" min="0" required="" step="1" type="number"/><span>円</span></div></label>
 <label>税抜営収（自動）<div class="money-input"><input id="netRevenue" readonly="" type="text"/><span>円</span></div></label>
 <label>出勤時刻（アルコール）<input id="clockIn" required="" type="time"/></label>
@@ -73,7 +74,7 @@
 <input id="editingId" type="hidden"/>
 <div class="actions full"><button type="submit">保存</button><button class="ghost" id="resetForm" type="button">入力欄クリア</button></div>
 </form>
-</section><section class="card layout-daily"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>休日</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section><section class="card dashboard layout-simulation">
+</section><section class="card layout-daily"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>勤務・有給区分</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section><section class="card dashboard layout-simulation">
 <div class="month-row no-print"><button class="ghost" id="prevMonth">前給与月</button><input id="currentMonth" type="month"/><button class="ghost" id="nextMonth">翌給与月</button></div>
 <h2 id="reportTitle">給与サマリー</h2><p class="note" id="payPeriod"></p>
 <div class="summary-grid">
@@ -111,7 +112,8 @@
 <label>健康保険<input id="healthInsurance" min="0" type="number"/></label><label>厚生年金<input id="pension" min="0" type="number"/></label><label>雇用保険<input id="employmentInsurance" min="0" type="number"/></label>
 <label>住民税<input id="residentTax" min="0" type="number"/></label><label>組合費<input id="unionFee" min="0" type="number"/></label><label>共済費<input id="mutualAidFee" min="0" type="number"/></label><label>その他控除<input id="otherDeduction" min="0" type="number"/></label>
 <label>扶養親族等の数<input id="dependentCount" max="20" min="0" type="number"/></label><label>源泉徴収区分<select id="withholdingCategory"><option value="A">甲欄（扶養控除等申告書あり）</option><option value="B">乙欄（申告書なし）</option></select></label>
-<label>有休日数<input id="paidLeaveDays" min="0" step="0.5" type="number"/></label><label>標準報酬日額<input id="paidLeaveDailyRate" min="0" type="number"/></label></div>
+<label>標準報酬日額<input id="paidLeaveDailyRate" min="0" type="number"/></label></div>
+<h3>有給休暇管理</h3><div class="form-grid paid-leave-settings"><label>管理開始時の有給残日数<input id="paidLeaveOpeningBalance" min="0" step="0.5" type="number"/></label><label>次回有給付与日<input id="paidLeaveNextGrantDate" type="date"/></label><label>次回付与日数<input id="paidLeaveNextGrantDays" min="0" step="0.5" type="number"/></label><label>現在の有給残日数<input id="paidLeaveCurrentBalance" readonly="" type="text"/></label></div><p class="note">付与日を迎えると、設定した付与日数を一度だけ加算し、次回付与日は1年後へ更新します。</p><div class="paid-leave-history" id="paidLeaveHistoryList"></div>
 <p class="note">所得税は国税庁「令和8年分 給与所得の源泉徴収税額表（月額表）」により、社会保険料等控除後の給与額と扶養人数から概算します。</p>
 <details><summary>表示専用情報</summary><div class="form-grid"><label>消費税率<input id="taxRateDisplay" readonly=""/></label><label>1乗務所定労働時間<input id="standardShiftHoursDisplay" readonly=""/></label><label>月間所定労働時間<input id="standardHoursDisplay" readonly=""/></label></div></details>
 <details class="legal-details"><summary>利用条件・プライバシー</summary>

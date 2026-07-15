@@ -72,61 +72,60 @@ if (!config.enabled || config.apiKey === 'REPLACE_ME') {
       .join('');
   }
 
+  function positiveInteger(value, label) {
+    const number = Number(value);
+    if (!Number.isInteger(number) || number < 1) {
+      throw new Error(`${label}は1人以上の整数で入力してください。`);
+    }
+    return number;
+  }
+
   document.getElementById('codeForm').onsubmit = async (event) => {
     event.preventDefault();
     const status = document.getElementById('codeStatus');
-    status.textContent = '登録しています…';
-
+    status.textContent = '発行しています…';
     try {
       const codeInput = document.getElementById('newAccessCode');
       const maxInput = document.getElementById('newAccessMaxUses');
       const code = codeInput.value.trim();
-      const maxUses = Number(maxInput.value || 3);
-
+      const maxUses = positiveInteger(maxInput.value, '利用上限');
       if (!code) throw new Error('利用コードを入力してください。');
-      if (!Number.isInteger(maxUses) || maxUses < 1) {
-        throw new Error('利用上限は1人以上の整数で入力してください。');
-      }
-
-      const hash = await sha256(code);
-      const codeRef = doc(db, 'accessCodes', hash);
+      const codeRef = doc(db, 'accessCodes', await sha256(code));
       const existingSnap = await getDoc(codeRef);
-
       if (existingSnap.exists()) {
-        const existing = existingSnap.data();
-        const usageCount = Number(existing.usageCount || 0);
-
-        if (!Number.isInteger(usageCount) || usageCount < 0) {
-          throw new Error('既存コードの登録人数が不正です。');
-        }
-
-        if (maxUses < usageCount) {
-          throw new Error(`現在${usageCount}人が登録済みのため、上限を${maxUses}人には減らせません。`);
-        }
-
-        await updateDoc(codeRef, {
-          active: true,
-          maxUses,
-          updatedAt: serverTimestamp()
-        });
-
-        status.textContent = `既存コードの利用上限を${maxUses}人に変更しました。現在${usageCount}人が登録済みです。`;
-      } else {
-        await setDoc(codeRef, {
-          active: true,
-          maxUses,
-          usageCount: 0,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-
-        status.textContent = `新しい利用コードを発行しました。利用上限は${maxUses}人です。`;
+        throw new Error('このコードは既に登録されています。下の「利用上限を変更」を使用してください。');
       }
-
+      await setDoc(codeRef, {active:true,maxUses,usageCount:0,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
+      status.textContent = `新しい利用コードを発行しました。利用上限は${maxUses}人です。`;
       codeInput.value = '';
       maxInput.value = '3';
     } catch (error) {
-      status.textContent = error?.message || 'コードを登録できませんでした。';
+      status.textContent = error?.message || 'コードを発行できませんでした。';
+    }
+  };
+
+  document.getElementById('limitForm').onsubmit = async (event) => {
+    event.preventDefault();
+    const status = document.getElementById('limitStatus');
+    status.textContent = '変更しています…';
+    try {
+      const codeInput = document.getElementById('limitAccessCode');
+      const code = codeInput.value.trim();
+      const maxUses = positiveInteger(document.getElementById('limitMaxUses').value, '新しい利用上限');
+      if (!code) throw new Error('現在の利用コードを入力してください。');
+      const codeRef = doc(db, 'accessCodes', await sha256(code));
+      const snap = await getDoc(codeRef);
+      if (!snap.exists()) throw new Error('入力された利用コードは登録されていません。');
+      const data = snap.data();
+      const usageCount = Number(data.usageCount || 0);
+      const oldMaxUses = Number(data.maxUses || 0);
+      if (!Number.isInteger(usageCount) || usageCount < 0) throw new Error('登録済み人数のデータが不正です。');
+      if (maxUses < usageCount) throw new Error(`現在${usageCount}人が登録済みのため、上限を${maxUses}人には変更できません。`);
+      await updateDoc(codeRef, {maxUses,active:true,updatedAt:serverTimestamp()});
+      status.textContent = `利用上限を${oldMaxUses}人から${maxUses}人へ変更しました。登録済み人数は${usageCount}人のままです。`;
+      codeInput.value = '';
+    } catch (error) {
+      status.textContent = error?.message || '利用上限を変更できませんでした。';
     }
   };
 
