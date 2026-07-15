@@ -67,6 +67,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
   const app = initializeApp(config);
   const auth = getAuth(app);
   const db = getFirestore(app);
+  let registrationInProgress = false;
 
   async function sha256(text) {
     const bytes = new TextEncoder().encode(text.trim());
@@ -115,6 +116,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
     setMessage('登録しています…', 'info');
 
     let credential;
+    registrationInProgress = true;
 
     try {
       const name = document.getElementById('registerName').value.trim();
@@ -179,12 +181,18 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         await deleteUser(credential.user).catch(() => {});
       }
       setMessage(error?.message || '登録できませんでした。入力内容をご確認ください。');
+    } finally {
+      registrationInProgress = false;
     }
   });
 
   logoutButton?.addEventListener('click', () => signOut(auth));
 
   onAuthStateChanged(auth, async (user) => {
+    if (registrationInProgress) {
+      return;
+    }
+
     if (!user) {
       showGate();
       return;
