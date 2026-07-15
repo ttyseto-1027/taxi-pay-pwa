@@ -1,4 +1,4 @@
-const CACHE='taxi-pay-v11-beta';
+const CACHE='taxi-pay-v11-beta-registration-fix-1';
 const FILES=['./','./index.html','./styles.css','./app.js','./tax-table-2026.js','./manifest.json','./firebase-config.js','./firebase-auth.js','./admin.html','./admin.js'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

@@ -175,12 +175,32 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         });
       });
 
+      // 登録中は onAuthStateChanged を抑止しているため、登録完了後は
+      // ここで利用者情報を直接読み込み、確実にアプリ画面へ移動する。
+      const profile = await loadProfile(user);
+      registrationInProgress = false;
       setMessage('登録が完了しました。', 'info');
+      showApp(profile);
     } catch (error) {
       if (credential?.user) {
         await deleteUser(credential.user).catch(() => {});
       }
-      setMessage(error?.message || '登録できませんでした。入力内容をご確認ください。');
+
+      const code = error?.code || '';
+      const friendlyMessage =
+        code === 'auth/email-already-in-use'
+          ? 'このメールアドレスは既に登録されています。ログインしてください。'
+          : code === 'auth/invalid-email'
+            ? 'メールアドレスの形式が正しくありません。'
+            : code === 'auth/weak-password'
+              ? 'パスワードは8文字以上で設定してください。'
+              : code === 'permission-denied' || code === 'firestore/permission-denied'
+                ? '登録権限を確認できませんでした。Firestoreルールを最新版へ更新してください。'
+                : (error?.message || '登録できませんでした。入力内容をご確認ください。');
+
+      showGate();
+      switchTab('register');
+      setMessage(friendlyMessage);
     } finally {
       registrationInProgress = false;
     }
