@@ -60,6 +60,7 @@ function showGate() {
   gate.hidden = false;
   userLabel.textContent = '';
   adminLink.hidden = true;
+  requestAnimationFrame(() => document.getElementById('loginEmail')?.focus());
 }
 
 function showPasswordChangeGate(profile) {
@@ -72,6 +73,7 @@ function showPasswordChangeGate(profile) {
   passwordChangeMessage.textContent = '';
   document.getElementById('newPassword').value = '';
   document.getElementById('newPasswordConfirm').value = '';
+  requestAnimationFrame(() => document.getElementById('newPassword')?.focus());
 }
 
 function switchTab(mode) {
@@ -136,13 +138,18 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       );
     } catch (error) {
       console.error('Firebase Login Error:', error);
-
-      const errorCode = error?.code || 'unknown';
-      const errorMessage = error?.message || '詳細不明のエラーです。';
-
-      setMessage(
-        `ログインエラー\nコード：${errorCode}\n内容：${errorMessage}`
-      );
+      const code = error?.code || '';
+      const friendlyMessage =
+        code === 'auth/invalid-email'
+          ? 'メールアドレスの形式が正しくありません。'
+          : code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found'
+            ? 'メールアドレスまたはパスワードが正しくありません。'
+            : code === 'auth/too-many-requests'
+              ? '試行回数が多すぎます。時間をおいてから再度お試しください。'
+              : code === 'auth/network-request-failed'
+                ? '通信に失敗しました。インターネット接続をご確認ください。'
+                : `ログインできませんでした。エラーコード：${code || 'unknown'}`;
+      setMessage(friendlyMessage);
     }
   });
 

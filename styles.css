@@ -51,7 +51,7 @@
 .auth-pending > .app-header,
 .auth-pending > main,
 .auth-pending > dialog { display:none !important; }
-.auth-gate{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;background:linear-gradient(145deg,#e8f3f5,#f7fafb);overflow:auto}
+.auth-gate{position:static;width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(145deg,#e8f3f5,#f7fafb);overflow:visible}
 .auth-gate[hidden]{display:none!important}
 .auth-card{width:min(100%,480px);background:#fff;border-radius:18px;padding:24px;box-shadow:0 14px 40px rgba(0,0,0,.16)}
 .auth-card h1{margin-top:0;font-size:1.55rem}
@@ -91,8 +91,20 @@
 .password-change-pending > main,
 .password-change-pending > dialog,
 .password-change-pending > .auth-gate { display:none !important; }
-.password-change-gate{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:20px;background:linear-gradient(145deg,#e8f3f5,#f7fafb);overflow:auto}
+.password-change-gate{position:static;width:100%;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(145deg,#e8f3f5,#f7fafb);overflow:visible}
 .password-change-gate[hidden]{display:none!important}
 .password-change-gate .ghost{width:100%;margin-top:10px}
 
 .account-password-section{margin:18px 0;padding:16px;border:1px solid var(--border);border-radius:12px;background:#f7fafb}.account-password-section h3{margin-top:0}.account-password-message{margin-top:12px}.account-password-section button:disabled{opacity:.6;cursor:wait}
+
+
+/* v1.2β input safety audit 2026-07-17
+   Interactive controls remain in the normal hit-test flow.
+   Intentional disabled and readonly states are preserved. */
+.auth-card,.modal form,.entry-form,.form-grid,.code-admin-form{isolation:isolate}
+input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled),label{pointer-events:auto}
+input:not(:disabled),select:not(:disabled),textarea:not(:disabled){touch-action:manipulation;-webkit-user-select:text;user-select:text}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:3px solid rgba(15,76,92,.35);outline-offset:2px}
+.auth-gate::before,.auth-gate::after,.password-change-gate::before,.password-change-gate::after,.auth-card::before,.auth-card::after{content:none!important;display:none!important;pointer-events:none!important}
+body.auth-pending,body.password-change-pending{min-height:100vh}
+@media(max-width:520px){.auth-gate,.password-change-gate{align-items:flex-start}.auth-card{margin-top:12px;margin-bottom:12px}}
