@@ -5,6 +5,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  updatePassword,
   deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {
@@ -27,6 +28,10 @@ const showRegister = document.getElementById('showRegister');
 const userLabel = document.getElementById('signedInUser');
 const logoutButton = document.getElementById('logoutButton');
 const adminLink = document.getElementById('adminPageLink');
+const passwordChangeGate = document.getElementById('passwordChangeGate');
+const passwordChangeForm = document.getElementById('passwordChangeForm');
+const passwordChangeMessage = document.getElementById('passwordChangeMessage');
+const passwordChangeLogout = document.getElementById('passwordChangeLogout');
 
 function setMessage(text, kind = 'error') {
   message.textContent = text || '';
@@ -34,17 +39,32 @@ function setMessage(text, kind = 'error') {
 }
 
 function showApp(profile) {
-  document.body.classList.remove('auth-pending');
+  document.body.classList.remove('auth-pending', 'password-change-pending');
   gate.hidden = true;
+  passwordChangeGate.hidden = true;
   userLabel.textContent = profile?.name || profile?.email || '';
   adminLink.hidden = !profile?.isAdmin;
 }
 
 function showGate() {
+  document.body.classList.remove('password-change-pending');
   document.body.classList.add('auth-pending');
+  passwordChangeGate.hidden = true;
   gate.hidden = false;
   userLabel.textContent = '';
   adminLink.hidden = true;
+}
+
+function showPasswordChangeGate(profile) {
+  document.body.classList.remove('auth-pending');
+  document.body.classList.add('password-change-pending');
+  gate.hidden = true;
+  passwordChangeGate.hidden = false;
+  userLabel.textContent = profile?.name || profile?.email || '';
+  adminLink.hidden = true;
+  passwordChangeMessage.textContent = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('newPasswordConfirm').value = '';
 }
 
 function switchTab(mode) {
@@ -183,7 +203,8 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
           accessCodeHash,
           createdAt: serverTimestamp(),
           lastLoginAt: serverTimestamp(),
-          termsAcceptedAt: serverTimestamp()
+          termsAcceptedAt: serverTimestamp(),
+          mustChangePassword: false
         });
       });
 
@@ -220,6 +241,48 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
   });
 
   logoutButton?.addEventListener('click', () => signOut(auth));
+  passwordChangeLogout?.addEventListener('click', () => signOut(auth));
+
+  passwordChangeForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const user = auth.currentUser;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('newPasswordConfirm').value;
+
+    passwordChangeMessage.dataset.kind = 'error';
+    if (!user) {
+      passwordChangeMessage.textContent = 'ログイン状態を確認できません。もう一度ログインしてください。';
+      return;
+    }
+    if (newPassword.length < 8) {
+      passwordChangeMessage.textContent = '新しいパスワードは8文字以上で設定してください。';
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      passwordChangeMessage.textContent = '確認用パスワードが一致しません。';
+      return;
+    }
+
+    passwordChangeMessage.dataset.kind = 'info';
+    passwordChangeMessage.textContent = 'パスワードを変更しています…';
+
+    try {
+      await updatePassword(user, newPassword);
+      const profileRef = doc(db, 'users', user.uid);
+      await updateDoc(profileRef, {
+        mustChangePassword: false,
+        passwordChangedAt: serverTimestamp()
+      });
+      const profile = await loadProfile(user);
+      passwordChangeMessage.textContent = '';
+      showApp(profile);
+    } catch (error) {
+      passwordChangeMessage.dataset.kind = 'error';
+      passwordChangeMessage.textContent = error?.code === 'auth/requires-recent-login'
+        ? '安全確認のため、いったんログアウトして仮パスワードで再ログインしてください。'
+        : 'パスワードを変更できませんでした。別のパスワードをお試しください。';
+    }
+  });
 
   onAuthStateChanged(auth, async (user) => {
     if (registrationInProgress) {
@@ -234,7 +297,11 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
     try {
       const profile = await loadProfile(user);
       setMessage('');
-      showApp(profile);
+      if (profile.mustChangePassword === true) {
+        showPasswordChangeGate(profile);
+      } else {
+        showApp(profile);
+      }
     } catch (error) {
       if (error?.message === '利用者情報が登録されていません。') {
         profileRecoveryUser = user;

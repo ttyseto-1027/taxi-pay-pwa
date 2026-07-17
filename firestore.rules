@@ -33,7 +33,16 @@ service cloud.firestore {
       allow update: if isAdmin()
         || (signedIn()
           && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLoginAt']));
+          && (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLoginAt'])
+            || (
+              resource.data.mustChangePassword == true
+              && request.resource.data.mustChangePassword == false
+              && request.resource.data.passwordChangedAt is timestamp
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['mustChangePassword', 'passwordChangedAt'])
+            )
+          ));
 
       allow delete: if isAdmin();
     }
