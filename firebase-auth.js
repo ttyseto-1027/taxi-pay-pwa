@@ -68,6 +68,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
   const auth = getAuth(app);
   const db = getFirestore(app);
   let registrationInProgress = false;
+  let profileRecoveryUser = null;
 
   async function sha256(text) {
     const bytes = new TextEncoder().encode(text.trim());
@@ -128,9 +129,20 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       if (!accessCode) throw new Error('β版無料利用コードを入力してください。');
 
       const accessCodeHash = await sha256(accessCode);
-      credential = await createUserWithEmailAndPassword(auth, email, password);
 
-      const user = credential.user;
+      let user;
+      let createdNewAuthUser = false;
+
+      if (profileRecoveryUser) {
+        if ((profileRecoveryUser.email || '').toLowerCase() !== email.toLowerCase()) {
+          throw new Error('ログイン中のメールアドレスと登録メールアドレスが一致しません。');
+        }
+        user = profileRecoveryUser;
+      } else {
+        credential = await createUserWithEmailAndPassword(auth, email, password);
+        user = credential.user;
+        createdNewAuthUser = true;
+      }
       const codeRef = doc(db, 'accessCodes', accessCodeHash);
       const userRef = doc(db, 'users', user.uid);
 
@@ -178,11 +190,12 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       // 登録中は onAuthStateChanged を抑止しているため、登録完了後は
       // ここで利用者情報を直接読み込み、確実にアプリ画面へ移動する。
       const profile = await loadProfile(user);
+      profileRecoveryUser = null;
       registrationInProgress = false;
       setMessage('登録が完了しました。', 'info');
       showApp(profile);
     } catch (error) {
-      if (credential?.user) {
+      if (credential?.user && !profileRecoveryUser) {
         await deleteUser(credential.user).catch(() => {});
       }
 
@@ -223,6 +236,19 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       setMessage('');
       showApp(profile);
     } catch (error) {
+      if (error?.message === '利用者情報が登録されていません。') {
+        profileRecoveryUser = user;
+        showGate();
+        switchTab('register');
+        document.getElementById('registerEmail').value = user.email || '';
+        document.getElementById('registerEmail').readOnly = true;
+        const passwordInput = document.getElementById('registerPassword');
+        passwordInput.required = false;
+        passwordInput.closest('label').hidden = true;
+        setMessage('利用者情報が未登録です。氏名と無料利用コードを入力して登録を完了してください。', 'info');
+        return;
+      }
+
       await signOut(auth).catch(() => {});
       showGate();
       setMessage(error?.message || 'このアカウントでは利用できません。');

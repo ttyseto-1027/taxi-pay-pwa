@@ -20,7 +20,7 @@ service cloud.firestore {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow list: if isAdmin();
 
-      allow create: if signedIn()
+      allow create: if isAdmin() || (signedIn()
         && request.auth.uid == uid
         && request.resource.data.status == 'active'
         && request.resource.data.plan == 'beta_free'
@@ -28,7 +28,7 @@ service cloud.firestore {
         && request.resource.data.accessCodeHash is string
         && getAfter(/databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeHash)).data.lastUsedBy == request.auth.uid
         && getAfter(/databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeHash)).data.usageCount
-          == get(/databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeHash)).data.usageCount + 1;
+          == get(/databases/$(database)/documents/accessCodes/$(request.resource.data.accessCodeHash)).data.usageCount + 1);
 
       allow update: if isAdmin()
         || (signedIn()
