@@ -134,8 +134,15 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         document.getElementById('loginEmail').value.trim(),
         document.getElementById('loginPassword').value
       );
-    } catch {
-      setMessage('ログインできませんでした。メールアドレスとパスワードをご確認ください。');
+    } catch (error) {
+      console.error('Firebase Login Error:', error);
+
+      const errorCode = error?.code || 'unknown';
+      const errorMessage = error?.message || '詳細不明のエラーです。';
+
+      setMessage(
+        `ログインエラー\nコード：${errorCode}\n内容：${errorMessage}`
+      );
     }
   });
 
