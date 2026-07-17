@@ -94,3 +94,5 @@
 .password-change-gate{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;padding:20px;background:linear-gradient(145deg,#e8f3f5,#f7fafb);overflow:auto}
 .password-change-gate[hidden]{display:none!important}
 .password-change-gate .ghost{width:100%;margin-top:10px}
+
+.account-password-section{margin:18px 0;padding:16px;border:1px solid var(--border);border-radius:12px;background:#f7fafb}.account-password-section h3{margin-top:0}.account-password-message{margin-top:12px}.account-password-section button:disabled{opacity:.6;cursor:wait}

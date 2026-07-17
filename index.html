@@ -126,6 +126,17 @@
 </div></form></dialog>
 <dialog class="modal settings-modal" id="settingsDialog"><form id="settingsForm" method="dialog"><div class="modal-title-row"><h2>設定</h2><button class="icon-button" value="cancel">✕</button></div>
 <label>勤務区分<select id="shiftType"></select></label><div class="rule-box" id="shiftRuleInfo"></div>
+<section class="account-password-section" aria-labelledby="accountPasswordHeading">
+<h3 id="accountPasswordHeading">パスワード変更</h3>
+<p class="note">現在のパスワードで本人確認後、新しいパスワードへ変更します。何度でも変更できます。</p>
+<div class="form-grid">
+<label>現在のパスワード<input id="accountPasswordCurrent" type="password" autocomplete="current-password" minlength="8"/></label>
+<label>新しいパスワード<input id="accountPasswordNew" type="password" autocomplete="new-password" minlength="8"/></label>
+<label>新しいパスワード（確認）<input id="accountPasswordConfirm" type="password" autocomplete="new-password" minlength="8"/></label>
+</div>
+<div class="auth-message account-password-message" id="accountPasswordMessage" role="status" aria-live="polite"></div>
+<div class="actions"><button id="accountPasswordChangeButton" type="button">パスワードを変更</button></div>
+</section>
 <h3>控除・個人設定</h3><div class="form-grid">
 <label>健康保険<input id="healthInsurance" min="0" type="number"/></label><label>厚生年金<input id="pension" min="0" type="number"/></label><label>雇用保険<input id="employmentInsurance" min="0" type="number"/></label>
 <label>住民税<input id="residentTax" min="0" type="number"/></label><label>組合費<input id="unionFee" min="0" type="number"/></label><label>共済費<input id="mutualAidFee" min="0" type="number"/></label><label>その他控除<input id="otherDeduction" min="0" type="number"/></label>

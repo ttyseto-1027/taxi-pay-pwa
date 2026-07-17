@@ -6,6 +6,8 @@ import {
   signOut,
   onAuthStateChanged,
   updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   deleteUser
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {
@@ -32,6 +34,11 @@ const passwordChangeGate = document.getElementById('passwordChangeGate');
 const passwordChangeForm = document.getElementById('passwordChangeForm');
 const passwordChangeMessage = document.getElementById('passwordChangeMessage');
 const passwordChangeLogout = document.getElementById('passwordChangeLogout');
+const accountPasswordCurrent = document.getElementById('accountPasswordCurrent');
+const accountPasswordNew = document.getElementById('accountPasswordNew');
+const accountPasswordConfirm = document.getElementById('accountPasswordConfirm');
+const accountPasswordChangeButton = document.getElementById('accountPasswordChangeButton');
+const accountPasswordMessage = document.getElementById('accountPasswordMessage');
 
 function setMessage(text, kind = 'error') {
   message.textContent = text || '';
@@ -281,6 +288,70 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       passwordChangeMessage.textContent = error?.code === 'auth/requires-recent-login'
         ? '安全確認のため、いったんログアウトして仮パスワードで再ログインしてください。'
         : 'パスワードを変更できませんでした。別のパスワードをお試しください。';
+    }
+  });
+
+
+  accountPasswordChangeButton?.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    const currentPassword = accountPasswordCurrent?.value || '';
+    const newPassword = accountPasswordNew?.value || '';
+    const confirmPassword = accountPasswordConfirm?.value || '';
+
+    if (!accountPasswordMessage) return;
+    accountPasswordMessage.dataset.kind = 'error';
+    accountPasswordMessage.textContent = '';
+
+    if (!user || !user.email) {
+      accountPasswordMessage.textContent = 'ログイン状態を確認できません。もう一度ログインしてください。';
+      return;
+    }
+    if (!currentPassword) {
+      accountPasswordMessage.textContent = '現在のパスワードを入力してください。';
+      return;
+    }
+    if (newPassword.length < 8) {
+      accountPasswordMessage.textContent = '新しいパスワードは8文字以上で設定してください。';
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      accountPasswordMessage.textContent = '新しいパスワードと確認用パスワードが一致しません。';
+      return;
+    }
+    if (currentPassword === newPassword) {
+      accountPasswordMessage.textContent = '現在とは異なる新しいパスワードを設定してください。';
+      return;
+    }
+
+    accountPasswordChangeButton.disabled = true;
+    accountPasswordMessage.dataset.kind = 'info';
+    accountPasswordMessage.textContent = '本人確認後、パスワードを変更しています…';
+
+    try {
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+
+      accountPasswordCurrent.value = '';
+      accountPasswordNew.value = '';
+      accountPasswordConfirm.value = '';
+      accountPasswordMessage.dataset.kind = 'info';
+      accountPasswordMessage.textContent = 'パスワードを変更しました。次回から新しいパスワードでログインしてください。';
+    } catch (error) {
+      const code = error?.code || '';
+      accountPasswordMessage.dataset.kind = 'error';
+      accountPasswordMessage.textContent =
+        code === 'auth/invalid-credential' || code === 'auth/wrong-password'
+          ? '現在のパスワードが正しくありません。'
+          : code === 'auth/weak-password'
+            ? '新しいパスワードは8文字以上で設定してください。'
+            : code === 'auth/too-many-requests'
+              ? '試行回数が多すぎます。時間をおいてから再度お試しください。'
+              : code === 'auth/network-request-failed'
+                ? '通信に失敗しました。インターネット接続をご確認ください。'
+                : 'パスワードを変更できませんでした。入力内容をご確認ください。';
+    } finally {
+      accountPasswordChangeButton.disabled = false;
     }
   });
 
