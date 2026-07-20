@@ -1,13 +1,143 @@
 <!DOCTYPE html>
-<html lang="ja"><head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/><meta content="#0f4c5c" name="theme-color"/><title>ユーザー管理 | タクシー給与シミュレーター</title><link href="styles.css" rel="stylesheet"/></head>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0f4c5c">
+  <title>ユーザー管理 | タクシー給与シミュレーター</title>
+  <link href="styles.css" rel="stylesheet">
+</head>
+
 <body class="admin-page auth-pending">
-<section class="auth-gate" id="adminAuthGate"><div class="auth-card"><h1>ユーザー管理</h1><p id="adminMessage">管理者のGoogleアカウントでログインしてください。</p><button class="google-login-button" id="adminGoogleLogin" type="button">Googleでログイン</button><p><a href="index.html">アプリへ戻る</a></p></div></section>
-<header class="app-header"><div><h1>v1.2β 利用者管理</h1><p>Googleログイン＋事前メール許可リスト</p></div><div class="header-controls"><a class="ghost admin-link" href="index.html">アプリへ戻る</a><button class="ghost" id="adminLogout">ログアウト</button></div></header>
-<main><section class="card">
-<div class="admin-summary"><div><span>登録ユーザー数</span><strong id="userCount">0人</strong></div><div><span>利用中</span><strong id="activeCount">0人</strong></div><div><span>利用停止</span><strong id="lockedCount">0人</strong></div></div>
-<div class="code-admin-box"><h2>メール許可リスト</h2><p class="note">テスターが決まり次第、Googleログインに使用するメールアドレスを追加してください。</p>
-<form class="code-admin-form" id="allowlistForm"><label>表示名<input id="allowDisplayName" maxlength="80" type="text"/></label><label>Googleアカウントのメールアドレス<input id="allowEmail" required type="email"/></label><button type="submit">許可リストへ追加</button></form><p class="note" id="allowlistStatus"></p>
-<div class="table-wrap"><table><thead><tr><th>表示名</th><th>メール</th><th>状態</th><th>初回登録</th><th>操作</th></tr></thead><tbody id="allowlistBody"></tbody></table></div></div>
-<div class="code-admin-box"><h2>招待コード</h2><h3>新しいコードを発行</h3><form class="code-admin-form" id="codeForm"><label>新しい招待コード<input id="newAccessCode" minlength="8" required type="text"/></label><label>利用上限<input id="newAccessMaxUses" min="1" required step="1" type="number" value="10"/></label><button type="submit">新しいコードを発行</button></form><p class="note" id="codeStatus"></p><hr/><h3>既存コードの利用上限を変更</h3><form class="code-admin-form" id="limitForm"><label>現在の招待コード<input id="limitAccessCode" minlength="8" required type="text"/></label><label>新しい利用上限<input id="limitMaxUses" min="1" required step="1" type="number" value="10"/></label><button type="submit">利用上限を変更</button></form><p class="note" id="limitStatus"></p></div>
-<p class="note" id="adminStatus"></p><div class="table-wrap"><table><thead><tr><th>氏名</th><th>メール</th><th>プラン</th><th>状態</th><th>登録日時</th><th>最終利用</th><th>操作</th></tr></thead><tbody id="usersBody"></tbody></table></div>
-</section></main><script src="firebase-config.js"></script><script src="admin.js" type="module"></script></body></html>
+  <section class="auth-gate" id="adminAuthGate">
+    <div class="auth-card">
+      <h1>ユーザー管理</h1>
+      <p id="adminMessage">管理者のGoogleアカウントでログインしてください。</p>
+      <button id="adminGoogleLogin" type="button">Googleでログイン</button>
+      <p><a href="index.html">アプリへ戻る</a></p>
+    </div>
+  </section>
+
+  <header class="app-header">
+    <div>
+      <h1>登録ユーザー管理</h1>
+      <p>Version 1.2β</p>
+    </div>
+    <div class="header-controls">
+      <a class="ghost admin-link" href="index.html">アプリへ戻る</a>
+      <button class="ghost" id="adminLogout" type="button">ログアウト</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="admin-summary">
+        <div>
+          <span>登録ユーザー数</span>
+          <strong id="userCount">0人</strong>
+        </div>
+        <div>
+          <span>利用中</span>
+          <strong id="activeCount">0人</strong>
+        </div>
+        <div>
+          <span>利用停止</span>
+          <strong id="lockedCount">0人</strong>
+        </div>
+      </div>
+
+      <div class="code-admin-box">
+        <h2>β版無料利用コードの発行</h2>
+        <p class="note">
+          コード本文は保存せず、SHA-256ハッシュだけをFirestoreへ保存します。
+          初期値は先着10人です。
+        </p>
+        <form class="code-admin-form" id="codeForm">
+          <label>
+            利用コード
+            <input id="newAccessCode" minlength="8" required type="text" autocomplete="off">
+          </label>
+          <label>
+            利用上限
+            <input id="newAccessMaxUses" min="1" required type="number" value="10">
+          </label>
+          <button type="submit">新規コードを登録</button>
+        </form>
+        <p class="note" id="codeStatus" aria-live="polite"></p>
+      </div>
+
+      <div class="code-admin-box">
+        <h2>既存コードの利用上限変更</h2>
+        <form class="code-admin-form" id="limitForm">
+          <label>
+            利用コード
+            <input id="limitAccessCode" minlength="8" required type="text" autocomplete="off">
+          </label>
+          <label>
+            新しい利用上限
+            <input id="limitMaxUses" min="1" required type="number" value="10">
+          </label>
+          <button type="submit">上限を変更</button>
+        </form>
+        <p class="note" id="limitStatus" aria-live="polite"></p>
+      </div>
+
+      <div class="code-admin-box">
+        <h2>Googleアカウント許可リスト</h2>
+        <p class="note">
+          利用者がGoogleログインに使うメールアドレスを、初回登録前に追加します。
+        </p>
+        <form class="code-admin-form" id="allowlistForm">
+          <label>
+            表示名
+            <input id="allowDisplayName" type="text" autocomplete="name">
+          </label>
+          <label>
+            Googleアカウントのメールアドレス
+            <input id="allowEmail" required type="email" autocomplete="email">
+          </label>
+          <button type="submit">許可リストへ追加</button>
+        </form>
+        <p class="note" id="allowlistStatus" aria-live="polite"></p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>表示名</th>
+                <th>メール</th>
+                <th>許可状態</th>
+                <th>初回登録</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="allowlistBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <h2>登録ユーザー一覧</h2>
+      <p class="note" id="adminStatus" aria-live="polite"></p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>氏名</th>
+              <th>メール</th>
+              <th>プラン</th>
+              <th>状態</th>
+              <th>登録日時</th>
+              <th>最終利用</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="firebase-config.js"></script>
+  <script src="admin.js" type="module"></script>
+</body>
+</html>
