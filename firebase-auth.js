@@ -160,6 +160,22 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
   }
 
   async function routeUser(user) {
+    // 管理者は利用者登録・許可リスト・招待コードを必要としない。
+    // admins/{UID} が存在し、enabled が false でなければ利用者画面も利用できる。
+    const adminSnapshot = await getDoc(doc(db, 'admins', user.uid));
+
+    if (adminSnapshot.exists() && adminSnapshot.data().enabled !== false) {
+      showApp({
+        name: user.displayName || adminSnapshot.data().displayName || '',
+        displayName: user.displayName || adminSnapshot.data().displayName || '',
+        email: emailOf(user),
+        status: 'active',
+        plan: 'administrator',
+        isAdmin: true
+      });
+      return;
+    }
+
     const allow = await getAllowlist(user);
     const profile = await loadProfile(user);
 

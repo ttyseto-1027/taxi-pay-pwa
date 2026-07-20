@@ -11,7 +11,7 @@
 4. 展開したフォルダの**中にある全ファイル**をまとめて選択します。
 5. GitHubの画面へドラッグ＆ドロップします。
 6. `Commit changes...` を押します。
-7. コミットメッセージ例：`Deploy complete v1.2 beta repository`
+7. コミットメッセージ例：`Deploy v1.2 beta administrator bypass`
 8. `Commit changes` を押します。
 
 ZIPファイルそのものや、外側のフォルダだけをアップロードしないでください。
@@ -58,3 +58,11 @@ Firebase Authenticationで管理者本人のGoogleアカウントのUIDを確認
 ## 古い画面が表示される場合
 
 `sw.js` のキャッシュ番号は更新済みです。反映直後に古い画面が残る場合は、ブラウザを完全に閉じて開き直すか、強制再読み込みしてください。
+
+
+## 今回の変更
+
+- Firestoreの `admins/{UID}` に有効な管理者登録があるアカウントは、利用者登録なしで `index.html` を利用できます。
+- 管理者には `betaAllowlist`、招待コード、`users` ドキュメントは不要です。
+- 一般利用者の許可リスト・招待コード・登録条件は従来どおりです。
+- Firestore Security Rulesの内容は前版と同じため、すでに公開済みなら再公開は必須ではありません。
