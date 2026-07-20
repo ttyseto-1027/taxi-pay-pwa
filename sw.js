@@ -1,4 +1,4 @@
-const CACHE = 'taxi-pay-v12-beta-google-auth-final-20260721-1';
+const CACHE = 'taxi-pay-v12-beta-full-release-20260721-1';
 
 const FILES = [
   './',

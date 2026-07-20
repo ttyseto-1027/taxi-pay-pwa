@@ -88,28 +88,17 @@
 <p>※ 本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
 <p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
 <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
-<p class="version-line">Version 1.0β<br/>© Taxi Payroll Processing Simulator</p>
+<p class="version-line">Version 1.2β<br/>© Taxi Payroll Processing Simulator</p>
 </div>
 </section><section class="card no-print layout-history"><h2>給与締め履歴</h2><div id="historyList"></div></section></main>
 <dialog class="modal" id="onboardingDialog"><form id="onboardingForm" method="dialog"><h2>最初に勤務区分を選択してください</h2><label>勤務区分<select id="onboardingShiftType" required=""></select></label><div class="rule-box" id="onboardingRule"></div><label class="agree"><input id="agreeDisclaimer" required="" type="checkbox"/>免責事項を確認しました</label><button id="completeOnboarding">利用を開始</button><div class="app-disclaimer" role="note">
 <p>※ 本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
 <p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
 <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
-<p class="version-line">Version 1.0β<br/>© Taxi Payroll Processing Simulator</p>
+<p class="version-line">Version 1.2β<br/>© Taxi Payroll Processing Simulator</p>
 </div></form></dialog>
 <dialog class="modal settings-modal" id="settingsDialog"><form id="settingsForm" method="dialog"><div class="modal-title-row"><h2>設定</h2><button class="icon-button" value="cancel">✕</button></div>
 <label>勤務区分<select id="shiftType"></select></label><div class="rule-box" id="shiftRuleInfo"></div>
-<section class="account-password-section" aria-labelledby="accountPasswordHeading">
-<h3 id="accountPasswordHeading">パスワード変更</h3>
-<p class="note">現在のパスワードで本人確認後、新しいパスワードへ変更します。何度でも変更できます。</p>
-<div class="form-grid">
-<label>現在のパスワード<input id="accountPasswordCurrent" type="password" autocomplete="current-password" minlength="8"/></label>
-<label>新しいパスワード<input id="accountPasswordNew" type="password" autocomplete="new-password" minlength="8"/></label>
-<label>新しいパスワード（確認）<input id="accountPasswordConfirm" type="password" autocomplete="new-password" minlength="8"/></label>
-</div>
-<div class="auth-message account-password-message" id="accountPasswordMessage" role="status" aria-live="polite"></div>
-<div class="actions"><button id="accountPasswordChangeButton" type="button">パスワードを変更</button></div>
-</section>
 <h3>控除・個人設定</h3><div class="form-grid">
 <label>健康保険<input id="healthInsurance" min="0" type="number"/></label><label>厚生年金<input id="pension" min="0" type="number"/></label><label>雇用保険<input id="employmentInsurance" min="0" type="number"/></label>
 <label>住民税<input id="residentTax" min="0" type="number"/></label><label>組合費<input id="unionFee" min="0" type="number"/></label><label>共済費<input id="mutualAidFee" min="0" type="number"/></label><label>その他控除<input id="otherDeduction" min="0" type="number"/></label>
@@ -123,7 +112,7 @@
 <h4>ベータ版の利用条件</h4>
 <p>本アプリは給与支給額の概算確認を目的とするテスト版です。計算結果は参考値であり、実際の支給額を保証するものではありません。利用者は、会社が発行する給与明細を最終確認資料として使用してください。</p>
 <h4>データの取扱い</h4>
-<p>入力データおよび設定値は、原則として利用者の端末内に保存されます。本ベータ版には、問い合わせ窓口、利用者登録、クラウド同期および運営者による入力データ閲覧機能はありません。</p>
+<p>給与計算に入力した勤務実績および個人設定は、原則として利用者の端末内に保存されます。Googleログインに必要なメールアドレス、氏名、利用状態、登録日時および最終利用日時は、利用者管理のためFirebaseに保存されます。運営者が端末内の給与計算データを閲覧する機能はありません。</p>
 </div>
 </details>
 <div class="actions"><button id="saveSettings">設定を保存</button><button class="ghost" id="openAdmin" type="button">開発者設定</button></div></form></dialog>
