@@ -13,48 +13,21 @@
 <body class="auth-pending"><section aria-live="polite" class="auth-gate no-print" id="authGate">
 <div class="auth-card">
 <h1>タクシー給与シミュレーター</h1>
-<p class="note">Version 1.0β</p>
-<div class="setup-notice" hidden="" id="firebaseSetupNotice">
-      Firebaseの初期設定が未完了です。管理者向けセットアップマニュアルをご確認ください。
-    </div>
-<div class="auth-message" id="authMessage" role="alert"></div>
-<div class="auth-tabs">
-<button class="auth-tab active" id="showLogin" type="button">ログイン</button>
-<button class="auth-tab" id="showRegister" type="button">新規登録</button>
+<p class="note">Version 1.2β</p>
+<div class="setup-notice" hidden id="firebaseSetupNotice">Firebaseの初期設定が未完了です。管理者向けセットアップマニュアルをご確認ください。</div>
+<div class="auth-message" id="authMessage" role="status"></div>
+<button class="google-login-button" id="googleLoginButton" type="button">Googleでログイン</button>
+<form class="auth-form" id="inviteForm">
+<div id="invitePanel" hidden>
+<p class="note">事前に利用を許可されたGoogleアカウントです。初回利用時のみ、案内された招待コードを入力してください。</p>
+<label>招待コード<input autocomplete="one-time-code" id="inviteCode" required type="password"/></label>
+<label class="check-label"><input id="inviteTerms" required type="checkbox"/>ベータ版利用条件とプライバシーポリシーに同意します</label>
+<button type="submit">初回登録を完了する</button>
+<button class="ghost" id="inviteCancelButton" type="button">別のGoogleアカウントを使う</button>
 </div>
-<form class="auth-form" id="loginForm">
-<label>メールアドレス<input autocomplete="email" id="loginEmail" required="" type="email"/></label>
-<label>パスワード<input autocomplete="current-password" id="loginPassword" minlength="8" required="" type="password"/></label>
-<button type="submit">ログイン</button>
 </form>
-<form class="auth-form" hidden="" id="registerForm">
-<label>氏名<input autocomplete="name" id="registerName" maxlength="80" required="" type="text"/></label>
-<label>メールアドレス<input autocomplete="email" id="registerEmail" required="" type="email"/></label>
-<label>ログイン用パスワード<input autocomplete="new-password" id="registerPassword" minlength="8" required="" type="password"/></label>
-<label>β版無料利用コード<input autocomplete="off" id="registerAccessCode" required="" type="password"/></label>
-<label class="check-label"><input id="registerTerms" required="" type="checkbox"/>ベータ版利用条件とプライバシーポリシーに同意します</label>
-<button type="submit">登録して利用開始</button>
-</form>
-<p class="auth-footnote">給与・営収・勤務実績は端末内に保存されます。クラウドには氏名、メールアドレス、登録日時、利用状態のみを保存します。</p>
+<p class="auth-footnote">利用できるのは、管理者が事前に許可リストへ登録したGoogleアカウントだけです。招待コードは初回登録時にのみ使用します。</p>
 </div>
-</section>
-<section class="password-change-gate no-print" id="passwordChangeGate" hidden aria-live="polite">
-  <div class="auth-card">
-    <h1>初回パスワード変更</h1>
-    <p class="note">仮パスワードのままでは利用できません。ご本人だけが分かる新しいパスワードへ変更してください。</p>
-    <div class="auth-message" id="passwordChangeMessage" role="alert"></div>
-    <form class="auth-form" id="passwordChangeForm">
-      <label>新しいパスワード
-        <input id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
-      </label>
-      <label>新しいパスワード（確認）
-        <input id="newPasswordConfirm" type="password" autocomplete="new-password" minlength="8" required>
-      </label>
-      <button type="submit">パスワードを変更して利用開始</button>
-    </form>
-    <p class="auth-footnote">8文字以上で設定してください。変更完了後は仮パスワードではログインできません。</p>
-    <button class="ghost" id="passwordChangeLogout" type="button">ログアウト</button>
-  </div>
 </section>
 <header class="app-header no-print">
 <div><h1>タクシー給与シミュレーター</h1><p id="headerShift">勤務区分未設定</p></div>

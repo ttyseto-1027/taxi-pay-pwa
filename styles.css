@@ -108,3 +108,5 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .auth-gate::before,.auth-gate::after,.password-change-gate::before,.password-change-gate::after,.auth-card::before,.auth-card::after{content:none!important;display:none!important;pointer-events:none!important}
 body.auth-pending,body.password-change-pending{min-height:100vh}
 @media(max-width:520px){.auth-gate,.password-change-gate{align-items:flex-start}.auth-card{margin-top:12px;margin-bottom:12px}}
+
+.google-login-button{width:100%;min-height:50px;margin:12px 0;padding:12px 16px;border:1px solid #c7cdd1;border-radius:8px;background:#fff;color:#222;font:inherit;font-weight:700;cursor:pointer}.google-login-button:hover{background:#f7f7f7}.google-login-button:disabled{opacity:.6;cursor:wait}
