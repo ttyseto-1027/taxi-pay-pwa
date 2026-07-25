@@ -21,7 +21,7 @@
   <header class="app-header">
     <div>
       <h1>登録ユーザー管理</h1>
-      <p>Version 1.2β</p>
+      <p>Version 1.3β</p>
     </div>
     <div class="header-controls">
       <a class="ghost admin-link" href="index.html">アプリへ戻る</a>
@@ -44,7 +44,9 @@
           <span>利用停止</span>
           <strong id="lockedCount">0人</strong>
         </div>
-      </div>
+      </div><div><span>v1.3βログイン成功</span><strong id="v13LoginCount">0人</strong></div><div><span>14日猶予期間</span><strong id="graceStatus">未開始</strong></div>
+
+      <div class="code-admin-box"><h2>v1.3β 事前登録マスター</h2><p class="note">CSV見出し：displayName,email,driverNumber,office,unionStatus,tester,enabled</p><input id="masterCsv" type="file" accept=".csv,text/csv"><button id="importMaster" type="button">CSVを取り込む</button><p id="masterStatus" class="note" aria-live="polite"></p></div>
 
       <div class="code-admin-box">
         <h2>β版無料利用コードの発行</h2>

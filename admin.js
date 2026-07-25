@@ -161,7 +161,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
 
       await setDoc(codeRef, {
         active: true,
-        version: 'v1.2-beta',
+        version: 'v1.3-beta',
         maxUses,
         usageCount: 0,
         createdAt: serverTimestamp(),
@@ -218,7 +218,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
 
       await updateDoc(codeRef, {
         active: true,
-        version: 'v1.2-beta',
+        version: 'v1.3-beta',
         maxUses,
         updatedAt: serverTimestamp()
       });
@@ -440,3 +440,25 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
     }
   });
 }
+
+
+// v1.3β 事前登録マスターと猶予期間表示
+async function refreshV13Status(){
+  try{
+    const success=await getDocs(collection(db,'v13LoginSuccess'));
+    const count=success.docs.filter(x=>x.data().isAdmin!==true).length;
+    const el=document.getElementById('v13LoginCount'); if(el)el.textContent=`${count}人`;
+    const st=await getDoc(doc(db,'appSettings','v1_3_beta')); const box=document.getElementById('graceStatus');
+    if(box){if(!st.exists()||!st.data().gracePeriodStartedAt)box.textContent='未開始';else{const d=st.data().gracePeriodStartedAt.toDate();const end=new Date(d);end.setDate(end.getDate()+13);box.textContent=`進行中（${d.toLocaleDateString('ja-JP')}〜${end.toLocaleDateString('ja-JP')}）`;}}
+  }catch(e){console.error(e);}
+}
+async function importMasterCsv(){
+  const file=document.getElementById('masterCsv')?.files?.[0],status=document.getElementById('masterStatus');if(!file){status.textContent='CSVファイルを選択してください。';return;}
+  const text=await file.text(),lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean),headers=lines.shift().split(',').map(x=>x.trim());
+  const required=['displayName','email','driverNumber','office','unionStatus','tester','enabled'];if(required.some(x=>!headers.includes(x))){status.textContent='見出しが仕様と一致しません。';return;}
+  let ok=0,ng=0;
+  for(const line of lines){try{const vals=line.split(',').map(x=>x.trim().replace(/^"|"$/g,'')),row=Object.fromEntries(headers.map((h,i)=>[h,vals[i]??''])),email=String(row.email).toLowerCase();if(!email||!row.driverNumber)throw new Error();await setDoc(doc(db,'betaAllowlist',email),{displayName:row.displayName||'',email,driverNumber:String(row.driverNumber),office:row.office||'',unionStatus:row.unionStatus==='member'?'member':'nonmember',tester:String(row.tester).toLowerCase()!=='false',enabled:String(row.enabled).toLowerCase()!=='false',version:'v1.3-beta',updatedAt:serverTimestamp()},{merge:true});ok++;}catch{ng++;}}
+  status.textContent=`取込完了：成功${ok}件／エラー${ng}件`;await loadAllowlist();
+}
+document.getElementById('importMaster')?.addEventListener('click',()=>importMasterCsv().catch(e=>{document.getElementById('masterStatus').textContent=`取込失敗：${e.message}`}));
+setTimeout(refreshV13Status,1000);

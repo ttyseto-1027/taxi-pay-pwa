@@ -180,5 +180,7 @@ $('openAdmin').onclick=()=>{const p=prompt('開発者パスワードを入力し
 $('onboardingShiftType').onchange=()=>{$('onboardingRule').innerHTML=ruleDescription($('onboardingShiftType').value);};$('completeOnboarding').onclick=e=>{e.preventDefault();if(!$('agreeDisclaimer').checked)return alert('確認欄にチェックしてください。');state.settings.shiftType=$('onboardingShiftType').value;state.initialized=true;saveState();$('onboardingDialog').close();render();};
 applyDuePaidLeaveGrant();
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
-if(!state.initialized||!SHIFT_RULES[state.settings.shiftType]){const first=Object.keys(SHIFT_RULES)[0];$('onboardingShiftType').value=first;$('onboardingRule').innerHTML=ruleDescription(first);$('onboardingDialog').showModal();}else loadSettingsForm();
+function showOnboardingAfterLogin(){const dialog=$('onboardingDialog');if(!dialog||document.body.classList.contains('auth-pending'))return;if(!state.initialized||!SHIFT_RULES[state.settings.shiftType]){const first=Object.keys(SHIFT_RULES)[0];$('onboardingShiftType').value=first;$('onboardingRule').innerHTML=ruleDescription(first);if(!dialog.open)dialog.showModal();}else{if(dialog.open)dialog.close();loadSettingsForm();}}
+window.addEventListener('taxipay:profile',showOnboardingAfterLogin);
+showOnboardingAfterLogin();
 render();
