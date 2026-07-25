@@ -66,7 +66,7 @@
 .auth-form[hidden]{display:none!important}
 .auth-form label{display:grid;gap:6px;font-weight:700}
 .auth-form input{min-height:48px;font-size:1rem}
-.auth-message{min-height:1.4em;margin:8px 0;color:#a11212;font-weight:700;white-space:pre-line}
+.auth-message{min-height:1.4em;margin:8px 0;color:#a11212;font-weight:700}
 .auth-message[data-kind="info"]{color:#305d6a}
 .setup-notice{padding:12px;border:1px solid #d7a900;background:#fff8d8;border-radius:10px}
 .auth-footnote{font-size:.8rem;color:var(--muted,#667);line-height:1.6;margin-bottom:0}
@@ -120,3 +120,16 @@ body.auth-pending,body.password-change-pending{min-height:100vh}
 .app-notification{padding:12px 14px;border-radius:10px;background:#eef4f6;border-left:5px solid #305d6a;box-shadow:0 5px 20px rgba(0,0,0,.2);display:grid;gap:4px}
 .app-notification.success{background:#e9f7ef;border-color:#25834b}.app-notification.warning{background:#fff7d8;border-color:#c18b00}.app-notification.error{background:#fdeaea;border-color:#b42318}.app-notification small{font-size:.75rem;color:#59656a}
 .eligibility-badge{font-size:.78rem;padding:5px 8px;border-radius:999px;background:#e7eef0}.union-dashboard input{width:100%;margin-top:6px}.prereg-notice{margin:12px 0}
+
+/* Login diagnostics v1.3 beta */
+.auth-diagnostic{margin-top:14px;text-align:left;border:1px solid #9bbbc4;border-radius:10px;background:#f5fbfc;padding:10px}
+.auth-diagnostic summary{cursor:pointer;font-weight:700;color:#174d5b}
+.auth-diagnostic-help{margin:8px 0;font-size:.88rem;color:#49636a}
+.auth-diagnostic-current{padding:10px;border-radius:8px;background:#e8f3f5;color:#174d5b;font-weight:700;white-space:pre-wrap}
+.auth-diagnostic-steps{margin:10px 0;padding-left:1.7rem;font-size:.9rem;line-height:1.55}
+.auth-diagnostic-steps li[data-level="success"]{color:#19652b}
+.auth-diagnostic-steps li[data-level="error"]{color:#a11212;font-weight:700}
+.auth-diagnostic-steps li[data-level="info"]{color:#305d6a}
+.auth-diagnostic-error{margin-top:10px;padding:10px;border:1px solid #d99797;border-radius:8px;background:#fff0f0;color:#8f1111;font-weight:700;white-space:pre-wrap;overflow-wrap:anywhere}
+.auth-diagnostic-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.auth-diagnostic-actions button{font-size:.85rem;padding:8px 10px}

@@ -19,6 +19,17 @@
 <button class="google-login-button" id="googleLoginButton" type="button">Googleでログイン</button>
 <div class="setup-notice prereg-notice">初回利用前に、管理者による事前登録が必要です。登録済みのGoogleアカウントでログインしてください。</div>
 <p class="auth-footnote">利用できるのは、事前登録マスターに登録されたGoogleアカウントだけです。</p>
+<details class="auth-diagnostic" id="authDiagnostic" open>
+<summary>ログイン診断情報</summary>
+<p class="auth-diagnostic-help">ログインできない場合は、下の「現在の状態」とエラーコードをご確認ください。</p>
+<div class="auth-diagnostic-current" id="authDiagnosticCurrent">認証機能を準備しています…</div>
+<ol class="auth-diagnostic-steps" id="authDiagnosticSteps"></ol>
+<div class="auth-diagnostic-error" id="authDiagnosticError" hidden></div>
+<div class="auth-diagnostic-actions">
+<button class="ghost" id="copyAuthDiagnostic" type="button">診断情報をコピー</button>
+<button class="ghost" id="clearAuthDiagnostic" type="button">診断情報を消去</button>
+</div>
+</details>
 </div>
 </section>
 <header class="app-header no-print">
