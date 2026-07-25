@@ -1,4 +1,4 @@
-const CACHE = 'taxi-pay-v1.3-beta-20260725-fix1';
+const CACHE = 'taxi-pay-v1.3-beta-20260725-authdiag1';
 
 const FILES = [
   './',

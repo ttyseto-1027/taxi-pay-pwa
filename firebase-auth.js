@@ -9,6 +9,12 @@ export async function initializeTaxiPayAuth(){
   const login=document.getElementById('googleLoginButton'), userLabel=document.getElementById('signedInUser'), logout=document.getElementById('logoutButton'), adminLink=document.getElementById('adminPageLink');
   if(!login||!gate) throw new Error('認証画面の必須要素がありません。');
   const setMessage=(text='',kind='error')=>{message.textContent=text;message.dataset.kind=kind;};
+  let pendingAuthError='';
+  const setAuthError=(code,text,user=null)=>{
+    const account=emailOf(user);
+    pendingAuthError=[text,code,account?`選択されたGoogleアカウント：${account}`:''].filter(Boolean).join('\n');
+    setMessage(pendingAuthError,'error');
+  };
   const showGate=()=>{document.body.classList.add('auth-pending');gate.hidden=false;userLabel.textContent='';adminLink.hidden=true;};
   const showApp=(profile)=>{document.body.classList.remove('auth-pending');gate.hidden=true;userLabel.textContent=profile.name||profile.email||'';adminLink.hidden=profile.isAdmin!==true;window.dispatchEvent(new CustomEvent('taxipay:profile',{detail:profile}));};
   if(!config.enabled||!config.apiKey||config.apiKey==='REPLACE_ME'){setup.hidden=false;setMessage('Firebase接続設定が完了していません。','info');showGate();throw new Error('Firebase config missing');}
@@ -46,18 +52,39 @@ export async function initializeTaxiPayAuth(){
       if(unique.size>=3) tx.set(settingsRef,{gracePeriodStartedAt:serverTimestamp(),gracePeriodDays:14,gracePeriodTriggerCount:3,status:'running'},{merge:true});
     }).catch(err=>D.record('AUTH-GRACE-01','error','猶予期間判定を更新できませんでした',err?.message||err));
   }
-  async function route(user){setMessage('利用者情報を確認しています…','info');const p=await ensureProfile(user);await recordSuccessfulLogin(user,p);showApp(p);D.notify('ログインしました。','success','AUTH-SIGNIN-OK');}
+  async function route(user){pendingAuthError='';setMessage('利用者情報を確認しています…','info');const p=await ensureProfile(user);await recordSuccessfulLogin(user,p);showApp(p);D.notify('ログインしました。','success','AUTH-SIGNIN-OK');}
   login.addEventListener('click',async()=>{
     login.disabled=true;setMessage('Googleログインを開始しています…','info');D.record('AUTH-SIGNIN-START','info','Googleログイン開始');
     try{await setPersistence(auth,browserLocalPersistence);await signInWithPopup(auth,provider);}catch(err){
       const code=err?.code||''; if(code==='auth/popup-blocked'||code==='auth/cancelled-popup-request'){await signInWithRedirect(auth,provider);return;}
       const text=code==='auth/popup-closed-by-user'?'Googleログインがキャンセルされました。':code==='auth/unauthorized-domain'?'この公開URLがFirebaseの承認済みドメインに登録されていません。':'Googleログインに失敗しました。再試行してください。';
-      setMessage(text);D.notify(text,'error','AUTH-SIGNIN-01',`${code} ${err?.message||''}`);
+      setAuthError('AUTH-SIGNIN-01',text);D.notify(text,'error','AUTH-SIGNIN-01',`${code} ${err?.message||''}`);
     }finally{login.disabled=false;}
   });
   if(!login.onclick && login.disabled){login.disabled=false;D.record('AUTH-BUTTON-01','info','ログインボタンを有効化');}
   logout?.addEventListener('click',async()=>{await signOut(auth);D.notify('ログアウトしました。','success','AUTH-SIGNOUT-OK');});
-  getRedirectResult(auth).catch(err=>D.notify('リダイレクト後のGoogleログインに失敗しました。','error','AUTH-SIGNIN-01',err?.message||err));
-  onAuthStateChanged(auth,async user=>{if(!user){showGate();setMessage('Googleアカウントでログインしてください。','info');return;}try{await route(user);}catch(err){await signOut(auth).catch(()=>{});showGate();setMessage(err?.message||'このアカウントでは利用できません。');D.notify(err?.message||'利用資格を確認できませんでした。','error','AUTH-USER-01',err?.stack||err);}});
+  getRedirectResult(auth).catch(err=>{
+    const text='リダイレクト後のGoogleログインに失敗しました。';
+    setAuthError('AUTH-SIGNIN-REDIRECT-01',text);
+    D.notify(text,'error','AUTH-SIGNIN-REDIRECT-01',err?.message||err);
+  });
+  onAuthStateChanged(auth,async user=>{
+    if(!user){
+      showGate();
+      if(pendingAuthError){setMessage(pendingAuthError,'error');return;}
+      setMessage('Googleアカウントでログインしてください。','info');
+      return;
+    }
+    try{
+      await route(user);
+    }catch(err){
+      const text=err?.message||'このアカウントでは利用できません。';
+      setAuthError('AUTH-USER-01',text,user);
+      D.notify(text,'error','AUTH-USER-01',err?.stack||err);
+      await signOut(auth).catch(signOutErr=>D.record('AUTH-SIGNOUT-ERROR','error','認証エラー後のログアウトに失敗しました',signOutErr?.message||signOutErr));
+      showGate();
+      setMessage(pendingAuthError,'error');
+    }
+  });
   return true;
 }

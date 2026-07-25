@@ -66,7 +66,7 @@
 .auth-form[hidden]{display:none!important}
 .auth-form label{display:grid;gap:6px;font-weight:700}
 .auth-form input{min-height:48px;font-size:1rem}
-.auth-message{min-height:1.4em;margin:8px 0;color:#a11212;font-weight:700}
+.auth-message{min-height:1.4em;margin:8px 0;color:#a11212;font-weight:700;white-space:pre-line}
 .auth-message[data-kind="info"]{color:#305d6a}
 .setup-notice{padding:12px;border:1px solid #d7a900;background:#fff8d8;border-radius:10px}
 .auth-footnote{font-size:.8rem;color:var(--muted,#667);line-height:1.6;margin-bottom:0}
