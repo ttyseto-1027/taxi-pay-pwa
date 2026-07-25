@@ -19,8 +19,8 @@
 <script>
 (function(){
   'use strict';
-  var BUILD='20260725-v4';
-  var KEY='taxiPayInlineDiagnosticV4';
+  var BUILD='20260725-v5';
+  var KEY='taxiPayInlineDiagnosticV5';
   var lines=[];
   function ts(){try{return new Date().toLocaleTimeString('ja-JP',{hour12:false});}catch(e){return new Date().toISOString();}}
   function safe(v){try{if(v instanceof Error)return (v.name+': '+v.message+'\n'+(v.stack||''));if(typeof v==='string')return v;return JSON.stringify(v);}catch(e){return String(v);}}
@@ -36,7 +36,7 @@
     var card=document.querySelector('#authGate .auth-card');
     if(card){
       var badge=document.createElement('div');badge.id='authBuildBadge';badge.textContent='診断版 Build '+BUILD;var note=card.querySelector('.note');if(note)note.insertAdjacentElement('afterend',badge);else card.prepend(badge);
-      var panel=document.createElement('section');panel.id='inlineDiagnosticPanel';panel.innerHTML='<h2>端末内コンソール（診断版v4）</h2><div id="inlineDiagnosticLog"></div><button type="button" id="copyInlineDiagnostic">診断全文をコピー</button><button type="button" id="clearInlineDiagnostic">診断を消去</button>';card.appendChild(panel);
+      var panel=document.createElement('section');panel.id='inlineDiagnosticPanel';panel.innerHTML='<h2>端末内コンソール（診断版v5）</h2><div id="inlineDiagnosticLog"></div><button type="button" id="copyInlineDiagnostic">診断全文をコピー</button><button type="button" id="clearInlineDiagnostic">診断を消去</button>';card.appendChild(panel);
       document.getElementById('copyInlineDiagnostic').addEventListener('click',async function(){var t=window.TaxiPayInlineDiagnostic.report();try{await navigator.clipboard.writeText(t);add('V5-COPY-OK','診断全文をコピーしました。');}catch(e){window.prompt('下の診断情報をコピーしてください。',t);}});
       document.getElementById('clearInlineDiagnostic').addEventListener('click',function(){lines=[];save();add('V5-CLEAR','診断を消去しました。');});
       draw();
