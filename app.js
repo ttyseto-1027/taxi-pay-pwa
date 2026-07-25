@@ -179,7 +179,8 @@ $('openSettings').onclick=()=>{loadSettingsForm();$('settingsDialog').showModal(
 $('openAdmin').onclick=()=>{const p=prompt('開発者パスワードを入力してください。');if(p!==ADMIN_PASSWORD)return alert('パスワードが違います。');loadAdminForm();$('adminDialog').showModal();};$('saveAdmin').onclick=e=>{e.preventDefault();saveAdminForm();$('adminDialog').close();alert('開発者設定を保存しました。');};
 $('onboardingShiftType').onchange=()=>{$('onboardingRule').innerHTML=ruleDescription($('onboardingShiftType').value);};$('completeOnboarding').onclick=e=>{e.preventDefault();if(!$('agreeDisclaimer').checked)return alert('確認欄にチェックしてください。');state.settings.shiftType=$('onboardingShiftType').value;state.initialized=true;saveState();$('onboardingDialog').close();render();};
 applyDuePaidLeaveGrant();
-if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+// 診断版v4では古いキャッシュを避けるためService Workerを登録しない。
+window.TaxiPayInlineDiagnostic?.add('V4-SW-SKIP','診断版のためService Worker登録を停止しています。');
 function showOnboardingAfterLogin(){const dialog=$('onboardingDialog');if(!dialog||document.body.classList.contains('auth-pending'))return;if(!state.initialized||!SHIFT_RULES[state.settings.shiftType]){const first=Object.keys(SHIFT_RULES)[0];$('onboardingShiftType').value=first;$('onboardingRule').innerHTML=ruleDescription(first);if(!dialog.open)dialog.showModal();}else{if(dialog.open)dialog.close();loadSettingsForm();}}
 window.addEventListener('taxipay:profile',showOnboardingAfterLogin);
 showOnboardingAfterLogin();

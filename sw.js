@@ -1,4 +1,4 @@
-const CACHE = 'taxi-pay-v1.3-beta-20260725-auth-diagnostics-v2';
+const CACHE = 'taxi-pay-v1.3-beta-20260725-auth-diagnostics-v3-session';
 
 const FILES = [
   './',
@@ -9,6 +9,8 @@ const FILES = [
   './manifest.json',
   './firebase-config.js',
   './firebase-auth.js',
+  './diagnostics.js',
+  './boot.js',
   './admin.html',
   './admin.js'
 ];

@@ -24,8 +24,9 @@ import {
   where
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
-const DIAG_KEY = 'taxiPayAuthDiagnosticV2';
-const MAX_STEPS = 40;
+const DIAG_KEY = 'taxiPayAuthDiagnosticV3';
+const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
+const MAX_STEPS = 60;
 
 function safeStorageGet() {
   try { return JSON.parse(localStorage.getItem(DIAG_KEY) || '{}'); } catch { return {}; }
@@ -33,6 +34,33 @@ function safeStorageGet() {
 function safeStorageSet(value) {
   try { localStorage.setItem(DIAG_KEY, JSON.stringify(value)); } catch {}
 }
+
+function readAttempt() {
+  try { return JSON.parse(localStorage.getItem(ATTEMPT_KEY) || 'null'); } catch { return null; }
+}
+function writeAttempt(value) {
+  try { localStorage.setItem(ATTEMPT_KEY, JSON.stringify(value)); } catch {}
+}
+function clearAttempt() {
+  try { localStorage.removeItem(ATTEMPT_KEY); } catch {}
+}
+function startAttempt(method='popup') {
+  const value = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+    startedAt: Date.now(),
+    method,
+    pageUrl: location.href,
+    userAgent: navigator.userAgent,
+    phase: 'started'
+  };
+  writeAttempt(value);
+  return value;
+}
+function updateAttempt(patch={}) {
+  const current = readAttempt() || {startedAt: Date.now()};
+  writeAttempt({...current, ...patch, updatedAt: Date.now()});
+}
+
 function maskEmail(email='') {
   const [name, domain] = String(email).split('@');
   if (!domain) return '';
@@ -137,6 +165,7 @@ function createDiagnosticUI() {
 }
 
 export async function initializeTaxiPayAuth(){
+  const I=window.TaxiPayInlineDiagnostic; I?.add('V4-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
   const D = window.TaxiPayDiagnostics;
   const diag = createDiagnosticUI();
   const config = window.TAXI_PAY_FIREBASE_CONFIG || {};
@@ -236,35 +265,45 @@ export async function initializeTaxiPayAuth(){
   async function route(user){
     setMessage('利用者情報を確認しています…','info');
     diag.step('AUTH-STATE-SIGNED-IN','Google認証に成功しました。','success');
+    updateAttempt({phase:'auth-state-signed-in', email:maskEmail(user?.email||'')});
     const p=await ensureProfile(user);
     await recordSuccessfulLogin(user,p);
     diag.step('AUTH-COMPLETE-001','ログインが完了しました。','success');
+    clearAttempt();
     showApp(p); D.notify('ログインしました。','success','AUTH-SIGNIN-OK');
   }
 
   login.addEventListener('click',async()=>{
+    I?.add('V4-LOGIN-CLICK','Googleログインボタンが押されました。');
     preservedFailure=false;
     login.disabled=true;
     setMessage('Googleログインを開始しています…','info');
-    diag.clear();
     diag.step('AUTH-SIGNIN-START','Googleログインを開始しました。');
+    startAttempt('popup');
+    diag.step('AUTH-ATTEMPT-SAVED','ログイン試行情報を端末に保存しました。','success');
     try {
       diag.step('AUTH-PERSIST-START','認証情報の保存可否を確認しています。');
       await setPersistence(auth,browserLocalPersistence);
       diag.step('AUTH-PERSIST-OK','認証情報を保存できます。','success');
       diag.step('AUTH-POPUP-START','Googleアカウント選択画面を開いています。');
+      I?.add('V4-POPUP-CALL','signInWithPopup を呼び出します。');
       const result=await signInWithPopup(auth,provider);
+      I?.add('V4-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
+      updateAttempt({phase:'popup-resolved', email:maskEmail(result?.user?.email||'')});
       diag.setUserEmail(result?.user?.email||'');
       diag.step('AUTH-POPUP-OK','Googleアカウントの選択が完了しました。','success');
     } catch(err) {
       const code=err?.code||'';
       if(code==='auth/popup-blocked'||code==='auth/cancelled-popup-request'){
         diag.step('AUTH-REDIRECT-FALLBACK','ポップアップを開けないため、画面遷移方式へ切り替えます。');
+        updateAttempt({method:'redirect',phase:'redirect-start'});
         try { await signInWithRedirect(auth,provider); return; }
         catch(redirErr) {
+          clearAttempt();
           const info=userFriendlyError('REDIRECT',redirErr); preservedFailure=true; setMessage(info.text); diag.fail(info,'REDIRECT'); D.notify(info.text,'error',info.displayCode,redirErr?.stack||redirErr);
         }
       } else {
+        clearAttempt();
         const info=userFriendlyError('SIGNIN',err); preservedFailure=true; setMessage(info.text); diag.fail(info,'SIGNIN'); D.notify(info.text,'error',info.displayCode,err?.stack||err);
       }
     } finally { login.disabled=false; }
@@ -277,6 +316,7 @@ export async function initializeTaxiPayAuth(){
     const redirectResult=await getRedirectResult(auth);
     if(redirectResult?.user){
       diag.setUserEmail(redirectResult.user.email||'');
+      updateAttempt({phase:'redirect-resolved', email:maskEmail(redirectResult.user.email||'')});
       diag.step('AUTH-REDIRECT-OK','画面遷移方式のGoogle認証に成功しました。','success');
     } else {
       diag.step('AUTH-REDIRECT-NONE','画面遷移後の認証結果はありません。','info');
@@ -285,12 +325,40 @@ export async function initializeTaxiPayAuth(){
     const info=userFriendlyError('REDIRECT',err); preservedFailure=true; setMessage(info.text); diag.fail(info,'REDIRECT-RESULT'); D.notify(info.text,'error',info.displayCode,err?.stack||err);
   }
 
+  let signedOutCheckTimer = null;
   onAuthStateChanged(auth,async user=>{
+    I?.add('V4-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
     if(!user){
       showGate();
-      if(!preservedFailure){ setMessage('Googleアカウントでログインしてください。','info'); diag.step('AUTH-STATE-SIGNED-OUT','現在は未ログインです。'); }
+      const attempt = readAttempt();
+      const age = attempt?.startedAt ? Date.now() - attempt.startedAt : null;
+      const recentAttempt = attempt && age >= 0 && age < 180000;
+      if(recentAttempt){
+        setMessage('Google認証後のログイン状態を確認しています…','info');
+        diag.step('AUTH-STATE-WAIT','Googleアカウント選択後の認証状態を確認しています。');
+        clearTimeout(signedOutCheckTimer);
+        signedOutCheckTimer = setTimeout(()=>{
+          if(auth.currentUser) return;
+          preservedFailure = true;
+          const method = attempt.method === 'redirect' ? '画面遷移方式' : 'ポップアップ方式';
+          const info = {
+            displayCode:'AUTH-SESSION-001',
+            text:`Googleアカウントは選択されましたが、${method}の認証情報をこのブラウザで保持できませんでした。Safari/ChromeのCookie・サイトデータ制限、プライベートブラウズ、またはFirebase認証セッションの保存失敗が考えられます。`,
+            rawCode:'auth-state-not-persisted',
+            rawMessage:`attempt=${attempt.id || ''}, method=${attempt.method || ''}, phase=${attempt.phase || ''}, age=${Date.now()-(attempt.startedAt||Date.now())}`
+          };
+          setMessage(info.text);
+          diag.fail(info,'SESSION');
+          D.notify(info.text,'error',info.displayCode,info.rawMessage);
+          clearAttempt();
+        }, 2500);
+      } else if(!preservedFailure){
+        setMessage('Googleアカウントでログインしてください。','info');
+        diag.step('AUTH-STATE-SIGNED-OUT','現在は未ログインです。');
+      }
       return;
     }
+    clearTimeout(signedOutCheckTimer);
     try { await route(user); }
     catch(err) {
       const stage=err?.authStage||'USER';
