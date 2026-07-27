@@ -240,35 +240,70 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
     const status = document.getElementById('allowlistStatus');
 
     try {
-      setStatus(status, '追加しています…', 'info');
+      setStatus(status, '登録しています…', 'info');
 
-      const email = document.getElementById('allowEmail').value.trim().toLowerCase();
       const displayName = document.getElementById('allowDisplayName').value.trim();
+      const email = document.getElementById('allowEmail').value.trim().toLowerCase();
+      const driverNumber = document.getElementById('allowDriverNumber').value.trim();
+      const office = document.getElementById('allowOffice').value.trim();
+      const unionStatus = document.getElementById('allowUnionStatus').value;
+      const tester = document.getElementById('allowTester').value === 'true';
+      const enabled = document.getElementById('allowEnabled').value === 'true';
 
-      if (!email) throw new Error('メールアドレスを入力してください。');
+      if (!displayName) throw new Error('氏名を入力してください。');
+      if (!email) throw new Error('Googleアカウントを入力してください。');
+      if (!driverNumber) throw new Error('乗務員番号を入力してください。');
+      if (!/^\d+$/.test(driverNumber)) {
+        throw new Error('乗務員番号は半角数字のみで入力してください。');
+      }
+      if (!office) throw new Error('営業所を入力してください。');
+      if (!['member', 'nonmember'].includes(unionStatus)) {
+        throw new Error('組合員区分を選択してください。');
+      }
 
       const allowRef = doc(db, 'betaAllowlist', email);
       const existing = await getDoc(allowRef);
 
       if (existing.exists()) {
-        throw new Error('このメールアドレスは既に許可リストへ登録されています。');
+        throw new Error('このGoogleアカウントは既に登録されています。');
+      }
+
+      const allowSnapshot = await getDocs(collection(db, 'betaAllowlist'));
+      const duplicateDriver = allowSnapshot.docs.find(
+        (item) => String(item.data().driverNumber || '').trim() === driverNumber
+      );
+
+      if (duplicateDriver) {
+        throw new Error(`乗務員番号 ${driverNumber} は既に登録されています。`);
       }
 
       await setDoc(allowRef, {
-        email,
         displayName,
-        enabled: true,
+        email,
+        driverNumber,
+        office,
+        unionStatus,
+        tester,
+        enabled,
         invitationUsed: false,
         registeredUid: null,
+        version: 'v1.3-beta',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
 
-      setStatus(status, '許可リストへ追加しました。', 'success');
+      setStatus(
+        status,
+        `${displayName}さんをテストユーザーとして登録しました。`,
+        'success'
+      );
+
       form.reset();
+      document.getElementById('allowTester').value = 'true';
+      document.getElementById('allowEnabled').value = 'true';
       await loadAllowlist();
     } catch (error) {
-      setStatus(status, errorText(error, '許可リストへ追加できませんでした。'), 'error');
+      setStatus(status, errorText(error, 'テストユーザーを登録できませんでした。'), 'error');
     }
   });
 
@@ -286,8 +321,12 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
 
       row.innerHTML = `
         <td>${escapeHtml(entry.displayName || '—')}</td>
-        <td>${escapeHtml(entry.id)}</td>
-        <td>${entry.enabled === true ? '許可' : '停止'}</td>
+        <td>${escapeHtml(entry.email || entry.id)}</td>
+        <td>${escapeHtml(entry.driverNumber || '—')}</td>
+        <td>${escapeHtml(entry.office || '—')}</td>
+        <td>${entry.unionStatus === 'member' ? '組合員' : '非組合員'}</td>
+        <td>${entry.tester === false ? '対象外' : '対象'}</td>
+        <td>${entry.enabled === true ? '利用中' : '利用停止'}</td>
         <td>${entry.invitationUsed === true ? '登録済み' : '未登録'}</td>
         <td>
           <button

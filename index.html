@@ -19,8 +19,8 @@
 <script>
 (function(){
   'use strict';
-  var BUILD='20260725-v5';
-  var KEY='taxiPayInlineDiagnosticV5';
+  var BUILD='20260725-v6';
+  var KEY='taxiPayInlineDiagnosticV6';
   var lines=[];
   function ts(){try{return new Date().toLocaleTimeString('ja-JP',{hour12:false});}catch(e){return new Date().toISOString();}}
   function safe(v){try{if(v instanceof Error)return (v.name+': '+v.message+'\n'+(v.stack||''));if(typeof v==='string')return v;return JSON.stringify(v);}catch(e){return String(v);}}
@@ -36,7 +36,7 @@
     var card=document.querySelector('#authGate .auth-card');
     if(card){
       var badge=document.createElement('div');badge.id='authBuildBadge';badge.textContent='診断版 Build '+BUILD;var note=card.querySelector('.note');if(note)note.insertAdjacentElement('afterend',badge);else card.prepend(badge);
-      var panel=document.createElement('section');panel.id='inlineDiagnosticPanel';panel.innerHTML='<h2>端末内コンソール（診断版v5）</h2><div id="inlineDiagnosticLog"></div><button type="button" id="copyInlineDiagnostic">診断全文をコピー</button><button type="button" id="clearInlineDiagnostic">診断を消去</button>';card.appendChild(panel);
+      var panel=document.createElement('section');panel.id='inlineDiagnosticPanel';panel.innerHTML='<h2>端末内コンソール（診断版v6）</h2><div id="inlineDiagnosticLog"></div><button type="button" id="copyInlineDiagnostic">診断全文をコピー</button><button type="button" id="clearInlineDiagnostic">診断を消去</button>';card.appendChild(panel);
       document.getElementById('copyInlineDiagnostic').addEventListener('click',async function(){var t=window.TaxiPayInlineDiagnostic.report();try{await navigator.clipboard.writeText(t);add('V5-COPY-OK','診断全文をコピーしました。');}catch(e){window.prompt('下の診断情報をコピーしてください。',t);}});
       document.getElementById('clearInlineDiagnostic').addEventListener('click',function(){lines=[];save();add('V5-CLEAR','診断を消去しました。');});
       draw();
@@ -169,4 +169,4 @@
 <label>運賃改定係数<input id="fareRevisionCoefficient" step="0.0001" type="number"/></label><label>給与算定係数<input id="payRevenueCoefficient" step="0.0001" type="number"/></label><label>消費税率（%）<input id="taxRate" step="0.1" type="number"/></label>
 <label>模範勤務手当/月<input id="modelWorkAllowance" type="number"/></label><label>無事故手当/乗務<input id="accidentFreeAllowance" type="number"/></label><label>無違反手当/乗務<input id="violationFreeAllowance" type="number"/></label>
 <label>法定超 時間外割増（%）<input id="statutoryOvertimeRate" step="0.01" type="number"/></label><label>所定超 時間外割増（%）<input id="scheduledOvertimeRate" step="0.01" type="number"/></label><label>月60時間超 割増（%）<input id="over60Rate" step="0.01" type="number"/></label><label>法定休日割増（%）<input id="statutoryHolidayRate" step="0.01" type="number"/></label><label>法定外休日割増（%）<input id="nonStatutoryHolidayRate" step="0.01" type="number"/></label><label>深夜割増（%）<input id="nightRate" step="0.01" type="number"/></label></div><div class="actions"><button id="saveAdmin">開発者設定を保存</button></div></form></dialog>
-<script src="diagnostics.js?v=20260725-5"></script><script src="firebase-config.js"></script><script src="tax-table-2026.js"></script><script src="app.js"></script><script src="v13-features.js"></script><script src="boot.js?v=20260725-5"></script></body></html>
+<script src="diagnostics.js?v=20260725-6"></script><script src="firebase-config.js"></script><script src="tax-table-2026.js"></script><script src="app.js"></script><script src="v13-features.js"></script><script src="boot.js?v=20260725-6"></script></body></html>

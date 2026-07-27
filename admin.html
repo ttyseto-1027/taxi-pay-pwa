@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0f4c5c">
   <title>ユーザー管理 | タクシー給与シミュレーター</title>
-  <link href="styles.css" rel="stylesheet">
+  <link href="styles.css?v=20260727-7" rel="stylesheet">
 </head>
 
 <body class="admin-page auth-pending">
@@ -21,7 +21,7 @@
   <header class="app-header">
     <div>
       <h1>登録ユーザー管理</h1>
-      <p>Version 1.3β</p>
+      <p>Version 1.3β / 管理画面 v7</p>
     </div>
     <div class="header-controls">
       <a class="ghost admin-link" href="index.html">アプリへ戻る</a>
@@ -85,20 +85,53 @@
       </div>
 
       <div class="code-admin-box">
-        <h2>Googleアカウント許可リスト</h2>
+        <h2>新規テストユーザー登録（1名ずつ）</h2>
         <p class="note">
-          利用者がGoogleログインに使うメールアドレスを、初回登録前に追加します。
+          CSV取込と同じ7項目を登録します。登録したGoogleアカウントで初回ログインすると、
+          利用者情報と紐づきます。
         </p>
         <form class="code-admin-form" id="allowlistForm">
           <label>
-            表示名
-            <input id="allowDisplayName" type="text" autocomplete="name">
+            氏名
+            <input id="allowDisplayName" required type="text" autocomplete="name">
           </label>
           <label>
-            Googleアカウントのメールアドレス
+            Googleアカウント
             <input id="allowEmail" required type="email" autocomplete="email">
           </label>
-          <button type="submit">許可リストへ追加</button>
+          <label>
+            乗務員番号
+            <input id="allowDriverNumber" required type="text" inputmode="numeric" autocomplete="off"
+              placeholder="例：381234">
+          </label>
+          <label>
+            営業所
+            <input id="allowOffice" required type="text" autocomplete="organization"
+              placeholder="例：成城">
+          </label>
+          <label>
+            組合員区分
+            <select id="allowUnionStatus" required>
+              <option value="">選択してください</option>
+              <option value="member">組合員</option>
+              <option value="nonmember">非組合員</option>
+            </select>
+          </label>
+          <label>
+            テストユーザー
+            <select id="allowTester" required>
+              <option value="true" selected>対象</option>
+              <option value="false">対象外</option>
+            </select>
+          </label>
+          <label>
+            利用状態
+            <select id="allowEnabled" required>
+              <option value="true" selected>利用中</option>
+              <option value="false">利用停止</option>
+            </select>
+          </label>
+          <button type="submit">テストユーザーを登録</button>
         </form>
         <p class="note" id="allowlistStatus" aria-live="polite"></p>
 
@@ -106,9 +139,13 @@
           <table>
             <thead>
               <tr>
-                <th>表示名</th>
-                <th>メール</th>
-                <th>許可状態</th>
+                <th>氏名</th>
+                <th>Googleアカウント</th>
+                <th>乗務員番号</th>
+                <th>営業所</th>
+                <th>組合員区分</th>
+                <th>テスター</th>
+                <th>利用状態</th>
                 <th>初回登録</th>
                 <th>操作</th>
               </tr>
@@ -139,7 +176,7 @@
     </section>
   </main>
 
-  <script src="firebase-config.js"></script>
-  <script src="admin.js" type="module"></script>
+  <script src="firebase-config.js?v=20260727-7"></script>
+  <script src="admin.js?v=20260727-7" type="module"></script>
 </body>
 </html>

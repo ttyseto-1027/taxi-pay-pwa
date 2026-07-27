@@ -24,7 +24,7 @@ import {
   where
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
-const DIAG_KEY = 'taxiPayAuthDiagnosticV5';
+const DIAG_KEY = 'taxiPayAuthDiagnosticV6';
 const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
 const MAX_STEPS = 60;
 
@@ -165,7 +165,7 @@ function createDiagnosticUI() {
 }
 
 export async function initializeTaxiPayAuth(){
-  const I=window.TaxiPayInlineDiagnostic; I?.add('V5-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
+  const I=window.TaxiPayInlineDiagnostic; I?.add('V6-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
   const D = window.TaxiPayDiagnostics;
   const diag = createDiagnosticUI();
   const config = window.TAXI_PAY_FIREBASE_CONFIG || {};
@@ -201,6 +201,10 @@ export async function initializeTaxiPayAuth(){
 
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({prompt:'select_account'});
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isMobile = isIOS || /Android|Mobile/i.test(ua);
   const emailOf = u => String(u?.email||'').trim().toLowerCase();
 
   async function adminInfo(uid){
@@ -287,21 +291,35 @@ export async function initializeTaxiPayAuth(){
   }
 
   login.addEventListener('click',async()=>{
-    I?.add('V5-LOGIN-CLICK','Googleログインボタンが押されました。');
+    I?.add('V6-LOGIN-CLICK','Googleログインボタンが押されました。');
     preservedFailure=false;
     login.disabled=true;
     setMessage('Googleログインを開始しています…','info');
     diag.step('AUTH-SIGNIN-START','Googleログインを開始しました。');
-    startAttempt('popup');
+    const method = isMobile ? 'redirect' : 'popup';
+    startAttempt(method);
+    diag.step('AUTH-DEVICE-METHOD', isMobile
+      ? 'スマートフォンのため画面遷移方式でログインします。'
+      : 'PCのためポップアップ方式でログインします。');
     diag.step('AUTH-ATTEMPT-SAVED','ログイン試行情報を端末に保存しました。','success');
+
     try {
-      diag.step('AUTH-PERSIST-START','認証情報の保存可否を確認しています。');
+      diag.step('AUTH-PERSIST-START','認証情報の保存方式を設定しています。');
       await setPersistence(auth,browserLocalPersistence);
-      diag.step('AUTH-PERSIST-OK','認証情報を保存できます。','success');
+      diag.step('AUTH-PERSIST-OK','認証情報の保存設定に成功しました。','success');
+
+      if(isMobile){
+        updateAttempt({method:'redirect',phase:'redirect-start',isIOS});
+        diag.step('AUTH-REDIRECT-START','Googleアカウント選択画面へ移動します。');
+        I?.add('V6-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
+        await signInWithRedirect(auth,provider);
+        return;
+      }
+
       diag.step('AUTH-POPUP-START','Googleアカウント選択画面を開いています。');
-      I?.add('V5-POPUP-CALL','signInWithPopup を呼び出します。');
+      I?.add('V6-POPUP-CALL','signInWithPopup を呼び出します。');
       const result=await signInWithPopup(auth,provider);
-      I?.add('V5-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
+      I?.add('V6-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
       updateAttempt({phase:'popup-resolved', email:maskEmail(result?.user?.email||'')});
       diag.setUserEmail(result?.user?.email||'');
       diag.step('AUTH-POPUP-OK','Googleアカウントの選択が完了しました。','success');
@@ -310,22 +328,47 @@ export async function initializeTaxiPayAuth(){
       await routeOnce(result.user);
     } catch(err) {
       const code=err?.code||'';
-      if(code==='auth/popup-blocked'||code==='auth/cancelled-popup-request'){
+      if(!isMobile && (code==='auth/popup-blocked'||code==='auth/cancelled-popup-request')){
         diag.step('AUTH-REDIRECT-FALLBACK','ポップアップを開けないため、画面遷移方式へ切り替えます。');
         updateAttempt({method:'redirect',phase:'redirect-start'});
-        try { await signInWithRedirect(auth,provider); return; }
-        catch(redirErr) {
+        try {
+          I?.add('V6-REDIRECT-FALLBACK-CALL','signInWithRedirect を呼び出します。');
+          await signInWithRedirect(auth,provider);
+          return;
+        } catch(redirErr) {
           clearAttempt();
-          const info=userFriendlyError('REDIRECT',redirErr); preservedFailure=true; setMessage(info.text); diag.fail(info,'REDIRECT'); D.notify(info.text,'error',info.displayCode,redirErr?.stack||redirErr);
+          const info=userFriendlyError('REDIRECT',redirErr);
+          preservedFailure=true;
+          setMessage(info.text);
+          diag.fail(info,'REDIRECT');
+          D.notify(info.text,'error',info.displayCode,redirErr?.stack||redirErr);
         }
       } else {
         clearAttempt();
-        const info=userFriendlyError('SIGNIN',err); preservedFailure=true; setMessage(info.text); diag.fail(info,'SIGNIN'); D.notify(info.text,'error',info.displayCode,err?.stack||err);
+        const info=userFriendlyError(isMobile?'REDIRECT':'SIGNIN',err);
+        preservedFailure=true;
+        setMessage(info.text);
+        diag.fail(info,isMobile?'REDIRECT':'SIGNIN');
+        D.notify(info.text,'error',info.displayCode,err?.stack||err);
       }
-    } finally { login.disabled=false; }
+    } finally {
+      login.disabled=false;
+    }
   });
 
   logout?.addEventListener('click',async()=>{ preservedFailure=false; await signOut(auth); diag.step('AUTH-SIGNOUT-OK','ログアウトしました。','success'); D.notify('ログアウトしました。','success','AUTH-SIGNOUT-OK'); });
+
+  try {
+    diag.step('AUTH-PERSIST-BOOT-START','起動時に認証情報の保存方式を設定しています。');
+    await setPersistence(auth,browserLocalPersistence);
+    diag.step('AUTH-PERSIST-BOOT-OK','起動時の認証情報保存設定に成功しました。','success');
+  } catch(err) {
+    const info=userFriendlyError('PERSIST',err);
+    preservedFailure=true;
+    setMessage(info.text);
+    diag.fail(info,'PERSIST-BOOT');
+    D.notify(info.text,'error',info.displayCode,err?.stack||err);
+  }
 
   try {
     diag.step('AUTH-REDIRECT-CHECK','画面遷移後の認証結果を確認しています。');
@@ -343,7 +386,7 @@ export async function initializeTaxiPayAuth(){
   }
 
   onAuthStateChanged(auth,async user=>{
-    I?.add('V5-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
+    I?.add('V6-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
     if(!user){
       showGate();
       if(!preservedFailure && !readAttempt()){
