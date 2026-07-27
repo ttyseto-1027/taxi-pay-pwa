@@ -315,7 +315,35 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       }
 
       if (editingAllowlistEmail) {
-        await updateDoc(doc(db, 'betaAllowlist', editingAllowlistEmail), {
+        const allowRef = doc(db, 'betaAllowlist', editingAllowlistEmail);
+        const currentAllow = await getDoc(allowRef);
+
+        let registeredUid = currentAllow.exists()
+          ? String(currentAllow.data().registeredUid || '')
+          : '';
+
+        if (!registeredUid) {
+          const matchingUsers = await getDocs(
+            query(
+              collection(db, 'users'),
+              where('email', '==', editingAllowlistEmail)
+            )
+          );
+
+          if (matchingUsers.size > 1) {
+            throw new Error(
+              `同じGoogleアカウントの利用者情報が${matchingUsers.size}件あります。重複を解消してから更新してください。`
+            );
+          }
+
+          if (matchingUsers.size === 1) {
+            registeredUid = matchingUsers.docs[0].id;
+          }
+        }
+
+        const batch = writeBatch(db);
+
+        batch.update(allowRef, {
           displayName,
           email,
           driverNumber,
@@ -323,10 +351,42 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
           unionStatus,
           tester,
           enabled,
+          ...(registeredUid
+            ? {
+                invitationUsed: true,
+                registeredUid,
+                registeredAt: currentAllow.data().registeredAt || serverTimestamp()
+              }
+            : {}),
           updatedAt: serverTimestamp()
         });
 
-        setStatus(status, `${displayName}さんの登録情報を更新しました。`, 'success');
+        if (registeredUid) {
+          batch.update(doc(db, 'users', registeredUid), {
+            name: displayName,
+            displayName,
+            email,
+            driverNumber,
+            office,
+            unionStatus,
+            tester,
+            status: enabled ? 'active' : 'locked',
+            plan: 'beta_v1_3',
+            version: 'v1.3-beta',
+            lastVersion: 'v1.3-beta',
+            profileUpdatedAt: serverTimestamp()
+          });
+        }
+
+        await batch.commit();
+
+        setStatus(
+          status,
+          registeredUid
+            ? `${displayName}さんの事前登録情報と利用者情報を同期し、紐付けを完了しました。`
+            : `${displayName}さんの事前登録情報を更新しました。利用者情報は初回ログイン時に作成されます。`,
+          'success'
+        );
       } else {
         const allowRef = doc(db, 'betaAllowlist', email);
         const existing = await getDoc(allowRef);

@@ -24,7 +24,7 @@ import {
   where
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
-const DIAG_KEY = 'taxiPayAuthDiagnosticV14';
+const DIAG_KEY = 'taxiPayAuthDiagnosticV17';
 const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
 const MAX_STEPS = 60;
 
@@ -177,7 +177,7 @@ function withTimeout(promise, timeoutMs, timeoutCode, timeoutMessage) {
 }
 
 export async function initializeTaxiPayAuth(){
-  const I=window.TaxiPayInlineDiagnostic; I?.add('V14-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
+  const I=window.TaxiPayInlineDiagnostic; I?.add('V17-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
   const D = window.TaxiPayDiagnostics;
   const diag = createDiagnosticUI();
   const config = window.TAXI_PAY_FIREBASE_CONFIG || {};
@@ -200,6 +200,9 @@ export async function initializeTaxiPayAuth(){
     userLabel.textContent=profile.name||profile.email||'';
     adminLink.hidden=profile.isAdmin!==true;
     window.TaxiPayCurrentProfile=profile;
+    try{
+      sessionStorage.setItem('taxiPayV13Profile',JSON.stringify(profile));
+    }catch{}
 
     const notifyProfile = () => {
       window.dispatchEvent(new CustomEvent('taxipay:profile',{detail:profile}));
@@ -295,17 +298,70 @@ export async function initializeTaxiPayAuth(){
 
     if(us.exists()){
       const p=us.data();
+      const a=allow.data;
+
       if(p.status!=='active') throw Object.assign(new Error(p.suspensionReason||'このアカウントは利用停止中です。'),{authStage:'STATUS'});
       if(String(p.email||'').toLowerCase()!==allow.email) throw Object.assign(new Error('登録済みメールアドレスとGoogleアカウントが一致しません。'),{authStage:'EMAIL'});
-      await updateDoc(uref,{lastLoginAt:serverTimestamp(),lastVersion:'v1.3-beta'}).catch(()=>{});
+
+      // betaAllowlistを現在の正本として扱い、管理画面で変更した
+      // 乗務員番号・営業所・組合員区分をログイン直後の画面へ反映する。
+      const mergedProfile={
+        ...p,
+        name:a.displayName||p.name||p.displayName||user.displayName||'',
+        displayName:a.displayName||p.displayName||user.displayName||'',
+        email:allow.email,
+        driverNumber:String(a.driverNumber||p.driverNumber||''),
+        office:a.office||p.office||'',
+        unionStatus:a.unionStatus||p.unionStatus||'nonmember',
+        tester:a.tester!==false,
+        isAdmin:admin!==null
+      };
+
+      await updateDoc(
+        uref,
+        {
+          lastLoginAt:serverTimestamp(),
+          lastVersion:'v1.3-beta'
+        }
+      ).catch(()=>{});
+
+      if(
+        allow.data.registeredUid == null
+        && allow.data.invitationUsed !== true
+      ){
+        try{
+          await updateDoc(
+            allow.ref,
+            {
+              invitationUsed:true,
+              registeredUid:user.uid,
+              registeredAt:serverTimestamp()
+            }
+          );
+          diag.step(
+            'AUTH-ALLOWLIST-LINK-OK',
+            '事前登録情報と既存利用者情報を紐付けました。',
+            'success'
+          );
+        }catch(linkErr){
+          diag.step(
+            'AUTH-ALLOWLIST-LINK-WARN',
+            '事前登録情報との紐付けを完了できませんでしたが、最新プロフィールで利用を続けます。',
+            'warning',
+            linkErr?.message || linkErr
+          );
+        }
+      }
+
       diag.step(
         'AUTH-USER-OK',
         admin
-          ? '管理者権限と利用者情報を確認しました。'
-          : '利用者情報を確認しました。',
+          ? '管理者権限と最新の利用者情報を確認しました。'
+          : '最新の利用者情報を確認しました。',
         'success'
       );
-      return {...p,isAdmin:admin!==null};
+
+      return mergedProfile;
     }
 
     const a=allow.data;
@@ -426,7 +482,7 @@ export async function initializeTaxiPayAuth(){
   }
 
   login.addEventListener('click',async()=>{
-    I?.add('V14-LOGIN-CLICK','Googleログインボタンが押されました。');
+    I?.add('V17-LOGIN-CLICK','Googleログインボタンが押されました。');
     preservedFailure=false;
     login.disabled=true;
     setMessage('Googleログインを開始しています…','info');
@@ -465,15 +521,15 @@ export async function initializeTaxiPayAuth(){
       if(isIOS){
         updateAttempt({method:'redirect',phase:'redirect-start',isIOS});
         diag.step('AUTH-REDIRECT-START','Googleアカウント選択画面へ移動します。');
-        I?.add('V14-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
+        I?.add('V17-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
         await signInWithRedirect(auth,provider);
         return;
       }
 
       diag.step('AUTH-POPUP-START','Googleアカウント選択画面を開いています。');
-      I?.add('V14-POPUP-CALL','signInWithPopup を呼び出します。');
+      I?.add('V17-POPUP-CALL','signInWithPopup を呼び出します。');
       const result=await signInWithPopup(auth,provider);
-      I?.add('V14-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
+      I?.add('V17-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
       updateAttempt({phase:'popup-resolved', email:maskEmail(result?.user?.email||'')});
       diag.setUserEmail(result?.user?.email||'');
       diag.step('AUTH-POPUP-OK','Googleアカウントの選択が完了しました。','success');
@@ -490,7 +546,7 @@ export async function initializeTaxiPayAuth(){
         diag.step('AUTH-REDIRECT-FALLBACK','ポップアップを開けないため、画面遷移方式へ切り替えます。');
         updateAttempt({method:'redirect',phase:'redirect-start'});
         try {
-          I?.add('V14-REDIRECT-FALLBACK-CALL','signInWithRedirect を呼び出します。');
+          I?.add('V17-REDIRECT-FALLBACK-CALL','signInWithRedirect を呼び出します。');
           await signInWithRedirect(auth,provider);
           return;
         } catch(redirErr) {
@@ -514,14 +570,21 @@ export async function initializeTaxiPayAuth(){
     }
   });
 
-  logout?.addEventListener('click',async()=>{ preservedFailure=false; await signOut(auth); diag.step('AUTH-SIGNOUT-OK','ログアウトしました。','success'); D.notify('ログアウトしました。','success','AUTH-SIGNOUT-OK'); });
+  logout?.addEventListener('click',async()=>{
+    preservedFailure=false;
+    window.TaxiPayCurrentProfile=null;
+    try{sessionStorage.removeItem('taxiPayV13Profile')}catch{}
+    await signOut(auth);
+    diag.step('AUTH-SIGNOUT-OK','ログアウトしました。','success');
+    D.notify('ログアウトしました。','success','AUTH-SIGNOUT-OK');
+  });
 
   // 認証状態監視は、PersistenceやRedirect結果の待機より先に開始する。
   // これにより補助処理が遅延してもログイン画面の準備を完了できる。
   diag.step('AUTH-STATE-LISTENER-START','認証状態の監視を開始しています。');
 
   onAuthStateChanged(auth,async user=>{
-    I?.add('V14-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
+    I?.add('V17-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
     if(!user){
       showGate();
       if(!preservedFailure && !readAttempt()){

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0f4c5c">
   <title>ユーザー管理 | タクシー給与シミュレーター</title>
-  <link href="styles.css?v=20260727-14" rel="stylesheet">
+  <link href="styles.css?v=20260727-17" rel="stylesheet">
 </head>
 
 <body class="admin-page auth-pending">
@@ -21,7 +21,7 @@
   <header class="app-header admin-app-header">
     <div>
       <h1 class="admin-page-title"><span aria-hidden="true">👥</span> ユーザー管理</h1>
-      <p>Version 1.3β / 管理画面 v14</p>
+      <p>Version 1.3β / 管理画面 v17</p>
     </div>
     <div class="header-controls">
       <a class="ghost admin-link" href="index.html">アプリへ戻る</a>
@@ -33,7 +33,7 @@
     <section class="card admin-dashboard-card">
       <div class="admin-action-guide" role="note">
         利用者情報の編集・利用停止・削除、管理者権限の付与・解除は、各一覧の操作ボタンから行えます。
-        管理者権限と組合員区分は別管理です。管理者へ組合員情報を登録すると、管理機能と組合員機能の両方を利用できます。
+        管理者権限と組合員区分は別管理です。管理者へ組合員情報を登録すると、管理機能と組合員機能の両方を利用できます。古い利用者情報でregisteredUidが未設定の場合も、Googleアカウントから自動的に紐付けて同期します。
         削除はFirestore内の利用者情報を対象とし、Firebase Authenticationのアカウント自体は削除しません。
       </div>
       <div class="admin-summary">
@@ -189,7 +189,7 @@
     </section>
   </main>
 
-  <script src="firebase-config.js?v=20260727-14"></script>
-  <script src="admin.js?v=20260727-14" type="module"></script>
+  <script src="firebase-config.js?v=20260727-17"></script>
+  <script src="admin.js?v=20260727-17" type="module"></script>
 </body>
 </html>
