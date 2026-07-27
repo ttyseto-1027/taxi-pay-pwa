@@ -501,3 +501,27 @@ async function importMasterCsv(){
 }
 document.getElementById('importMaster')?.addEventListener('click',()=>importMasterCsv().catch(e=>{document.getElementById('masterStatus').textContent=`取込失敗：${e.message}`}));
 setTimeout(refreshV13Status,1000);
+
+
+/* v8 編集機能 */
+async function editAllowlistUser(email){
+  const ref=doc(db,'betaAllowlist',email);
+  const snap=await getDoc(ref);
+  if(!snap.exists()) return;
+  const d=snap.data();
+  document.getElementById('allowDisplayName').value=d.displayName||'';
+  document.getElementById('allowEmail').value=d.email||email;
+  document.getElementById('allowEmail').readOnly=true;
+  document.getElementById('allowDriverNumber').value=d.driverNumber||'';
+  document.getElementById('allowOffice').value=d.office||'';
+  document.getElementById('allowUnionStatus').value=d.unionStatus||'';
+  document.getElementById('allowTester').value=String(d.tester!==false);
+  document.getElementById('allowEnabled').value=String(d.enabled!==false);
+  window.__editingAllowlist=email;
+}
+async function saveAllowlistUser(data){
+  const ref=doc(db,'betaAllowlist',window.__editingAllowlist);
+  await updateDoc(ref,{...data,updatedAt:serverTimestamp()});
+  window.__editingAllowlist=null;
+  document.getElementById('allowEmail').readOnly=false;
+}
