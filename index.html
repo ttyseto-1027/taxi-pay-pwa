@@ -57,14 +57,15 @@
 </section>
 <header class="app-header no-print">
 <div><h1>タクシー給与シミュレーター</h1><p id="headerShift">勤務区分未設定</p></div>
-<button aria-label="設定を開く" class="icon-button" id="openSettings">⚙️</button>
+<button aria-controls="appMenuDialog" aria-haspopup="dialog" aria-label="メニューを開く" class="menu-button" id="openAppMenu" type="button">☰ メニュー</button>
+<button aria-hidden="true" hidden id="openSettings" type="button"></button>
 <div class="header-controls"><span id="userEligibility" class="eligibility-badge"></span><span class="signed-in-user" id="signedInUser"></span><a class="ghost admin-link" hidden="" href="admin.html" id="adminPageLink">ユーザー管理</a><button class="ghost" id="logoutButton">ログアウト</button></div></header>
 <main class="app-layout">
 
 
 
 
-<section class="card no-print union-dashboard" data-union-only hidden><h2>組合員ダッシュボード</h2><div class="summary-grid"><div><span>目標手取り</span><input id="targetTakeHome" type="number" min="0" step="1000" placeholder="例 430000"></div><div><span>追加で必要な税込営収</span><strong id="neededRevenue">—</strong></div><div><span>実質還元率</span><strong id="effectiveReturn">—</strong></div><div><span>手取り還元率</span><strong id="takeHomeReturn">—</strong></div><div><span>時間あたり手取り</span><strong id="hourlyTakeHome">—</strong></div></div><h3>休憩管理</h3><p id="restStatus">連続運転：0分</p><div class="actions"><button id="startRest" type="button">休憩開始</button><button id="endRest" class="secondary" type="button">休憩終了</button></div></section><section class="card no-print layout-entry">
+<section class="card no-print union-dashboard" data-app-view="work" data-union-only hidden><h2>組合員ダッシュボード</h2><div class="summary-grid"><div><span>目標手取り</span><input id="targetTakeHome" type="number" min="0" step="1000" placeholder="例 430000"></div><div><span>追加で必要な税込営収</span><strong id="neededRevenue">—</strong></div><div><span>実質還元率</span><strong id="effectiveReturn">—</strong></div><div><span>手取り還元率</span><strong id="takeHomeReturn">—</strong></div><div><span>時間あたり手取り</span><strong id="hourlyTakeHome">—</strong></div></div><h3>休憩管理</h3><p id="restStatus">連続運転：0分</p><div class="actions"><button id="startRest" type="button">休憩開始</button><button id="endRest" class="secondary" type="button">休憩終了</button></div></section><section class="card no-print layout-entry" data-app-view="work">
 <h2>勤務実績を入力</h2>
 <form class="entry-form" id="entryForm">
 <label>勤務日<input id="date" required="" type="date"/></label>
@@ -91,7 +92,7 @@
 <input id="editingId" type="hidden"/>
 <div class="actions full"><button type="submit">勤務実績を保存</button><button class="ghost" id="resetForm" type="button">入力欄クリア</button></div>
 </form>
-</section><section class="card layout-daily"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>勤務・有給区分</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section><section class="card dashboard layout-simulation">
+</section><section class="card layout-daily" data-app-view="work"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>勤務・有給区分</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section><section class="card dashboard layout-simulation" data-app-view="work">
 <div class="month-row no-print"><button class="ghost" id="prevMonth">前給与月</button><input id="currentMonth" type="month"/><button class="ghost" id="nextMonth">翌給与月</button></div>
 <h2 id="reportTitle">給与サマリー</h2><p class="note" id="payPeriod"></p>
 <div class="summary-grid">
@@ -117,7 +118,36 @@
 <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
 <p class="version-line">Version 1.3β<br/>© Taxi Payroll Processing Simulator</p>
 </div>
-</section><section class="card no-print layout-history"><h2>給与締め履歴</h2><div id="historyList"></div></section></main>
+</section><section class="card no-print layout-history" data-app-view="work"><h2>給与締め履歴</h2><div id="historyList"></div></section>
+<section class="card no-print beta-feature-page" data-app-view="sales">
+  <div class="page-title-row"><h2>営業実績</h2><span class="beta-page-status status-development">🟡 β開発中</span></div>
+  <p>月別営業実績、手取り還元率、前年同月・過去平均との比較は、次の開発段階で追加します。</p>
+  <p class="note">この画面は現在、メニュー構成と画面遷移を確認するためのβ版表示です。</p>
+</section>
+<section class="card no-print beta-feature-page" data-app-view="leave">
+  <div class="page-title-row"><h2>有給管理</h2><span class="beta-page-status status-coming">🕒 近日公開</span></div>
+  <p>有給残日数、取得履歴、確認済みロック、監査ログなどを、営業実績機能の後に追加します。</p>
+  <p class="note">現在の有給設定は「控除額設定」から確認できます。</p>
+</section>
+</main>
+
+<dialog class="app-menu-dialog no-print" id="appMenuDialog">
+  <div class="app-menu-panel">
+    <div class="modal-title-row">
+      <div><h2>メニュー</h2><p class="menu-version">v1.3β 最終検証版</p></div>
+      <button aria-label="メニューを閉じる" class="icon-button" id="closeAppMenu" type="button">✕</button>
+    </div>
+    <nav aria-label="アプリメニュー" class="app-menu-nav">
+      <button class="app-menu-item is-current" data-menu-view="work" type="button"><span class="menu-label">勤務実績入力</span><small>✅ 利用できます</small></button>
+      <button class="app-menu-item" data-menu-view="sales" type="button"><span class="menu-label">営業実績</span><small>🟡 β開発中</small></button>
+      <button class="app-menu-item" data-menu-view="leave" type="button"><span class="menu-label">有給管理</span><small>🕒 近日公開</small></button>
+      <button class="app-menu-item" id="menuOpenSettings" type="button"><span class="menu-label">控除額設定</span><small>✅ 利用できます</small></button>
+      <a class="app-menu-item app-menu-admin" hidden href="admin.html" id="menuAdminLink"><span class="menu-label">ユーザー管理</span><small>🔧 調整中（管理者のみ）</small></a>
+    </nav>
+    <p class="menu-beta-note">一部機能は順次追加・改善予定です。</p>
+  </div>
+</dialog>
+
 <dialog class="modal" id="onboardingDialog"><form id="onboardingForm" method="dialog"><h2>最初に勤務区分を選択してください</h2><label>勤務区分<select id="onboardingShiftType" required=""></select></label><div class="rule-box" id="onboardingRule"></div><label class="agree"><input id="agreeDisclaimer" required="" type="checkbox"/>免責事項を確認しました</label><button id="completeOnboarding">利用を開始</button><div class="app-disclaimer" role="note">
 <p class="disclaimer-title">【免責事項】</p>
 <p>本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
@@ -125,7 +155,7 @@
 <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
 <p class="version-line">Version 1.3β<br/>© Taxi Payroll Processing Simulator</p>
 </div></form></dialog>
-<dialog class="modal settings-modal" id="settingsDialog"><form id="settingsForm" method="dialog"><div class="modal-title-row"><h2>設定</h2><button class="icon-button" value="cancel">✕</button></div>
+<dialog class="modal settings-modal" id="settingsDialog"><form id="settingsForm" method="dialog"><div class="modal-title-row"><h2>控除額設定</h2><button class="icon-button" value="cancel">✕</button></div>
 <label>勤務区分<select id="shiftType"></select></label><div class="rule-box" id="shiftRuleInfo"></div>
 <h3>控除・個人設定</h3><div class="form-grid">
 <label>健康保険<input id="healthInsurance" min="0" type="number"/></label><label>厚生年金<input id="pension" min="0" type="number"/></label><label>雇用保険<input id="employmentInsurance" min="0" type="number"/></label>
@@ -148,4 +178,4 @@
 <label>運賃改定係数<input id="fareRevisionCoefficient" step="0.0001" type="number"/></label><label>給与算定係数<input id="payRevenueCoefficient" step="0.0001" type="number"/></label><label>消費税率（%）<input id="taxRate" step="0.1" type="number"/></label>
 <label>模範勤務手当/月<input id="modelWorkAllowance" type="number"/></label><label>無事故手当/乗務<input id="accidentFreeAllowance" type="number"/></label><label>無違反手当/乗務<input id="violationFreeAllowance" type="number"/></label>
 <label>法定超 時間外割増（%）<input id="statutoryOvertimeRate" step="0.01" type="number"/></label><label>所定超 時間外割増（%）<input id="scheduledOvertimeRate" step="0.01" type="number"/></label><label>月60時間超 割増（%）<input id="over60Rate" step="0.01" type="number"/></label><label>法定休日割増（%）<input id="statutoryHolidayRate" step="0.01" type="number"/></label><label>法定外休日割増（%）<input id="nonStatutoryHolidayRate" step="0.01" type="number"/></label><label>深夜割増（%）<input id="nightRate" step="0.01" type="number"/></label></div><div class="actions"><button id="saveAdmin">開発者設定を保存</button></div></form></dialog>
-<script src="diagnostics.js?v=20260727-17"></script><script src="firebase-config.js?v=20260727-17"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20260727-17"></script><script src="v13-features.js?v=20260727-17"></script><script src="boot.js?v=20260727-17"></script></body></html>
+<script src="diagnostics.js?v=20260727-17"></script><script src="firebase-config.js?v=20260727-17"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20260727-17"></script><script src="v13-features.js?v=20260727-17"></script><script src="menu-v13beta.js?v=20260728-01"></script><script src="boot.js?v=20260727-17"></script></body></html>
