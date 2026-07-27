@@ -294,3 +294,64 @@ body.auth-pending,body.password-change-pending{min-height:100vh}
     white-space:nowrap;
   }
 }
+
+
+/* ============================================================
+   v13 管理者権限管理
+   ============================================================ */
+.admin-summary{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.admin-role-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:88px;
+  padding:5px 9px;
+  border-radius:999px;
+  font-weight:800;
+  font-size:.78rem;
+}
+
+.admin-role-badge.is-admin{
+  color:#704c00;
+  background:#fff0b8;
+  border:1px solid #f1cb48;
+}
+
+.admin-role-badge.not-admin{
+  color:#51616b;
+  background:#edf2f4;
+  border:1px solid #d8e1e5;
+}
+
+.admin-role-action{
+  background:#7552be;
+}
+
+.admin-role-action:hover{
+  background:#6543ae;
+  filter:none;
+}
+
+.admin-role-action:disabled,
+.table-action-button:disabled{
+  background:#aab5bb;
+  color:#f7f9fa;
+  cursor:not-allowed;
+  box-shadow:none;
+  opacity:.85;
+}
+
+@media(max-width:900px){
+  .admin-summary{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:520px){
+  .admin-summary{
+    grid-template-columns:1fr;
+  }
+}

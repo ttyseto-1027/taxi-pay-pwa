@@ -13,7 +13,7 @@
     return;
   }
   I?.add('V11-MODULE-START','firebase-auth.js の読み込みを開始します。');
-  import('./firebase-auth.js?v=20260727-12').then(mod=>{ I?.add('V11-MODULE-OK','firebase-auth.js を読み込みました。');
+  import('./firebase-auth.js?v=20260727-13').then(mod=>{ I?.add('V11-MODULE-OK','firebase-auth.js を読み込みました。');
     if(typeof mod.initializeTaxiPayAuth!=='function') throw new Error('initializeTaxiPayAuth が見つかりません。');
     return mod.initializeTaxiPayAuth();
   }).then(()=>{I?.add('V11-AUTH-READY','認証機能の準備が完了しました。'); return D.record('APP-READY','info','認証機能の準備完了');}).catch(err=>{ I?.add('V11-MODULE-FAIL','認証機能の読み込みに失敗しました。',err);

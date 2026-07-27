@@ -24,7 +24,7 @@ import {
   where
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
-const DIAG_KEY = 'taxiPayAuthDiagnosticV11';
+const DIAG_KEY = 'taxiPayAuthDiagnosticV13';
 const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
 const MAX_STEPS = 60;
 
@@ -177,7 +177,7 @@ function withTimeout(promise, timeoutMs, timeoutCode, timeoutMessage) {
 }
 
 export async function initializeTaxiPayAuth(){
-  const I=window.TaxiPayInlineDiagnostic; I?.add('V11-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
+  const I=window.TaxiPayInlineDiagnostic; I?.add('V13-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
   const D = window.TaxiPayDiagnostics;
   const diag = createDiagnosticUI();
   const config = window.TAXI_PAY_FIREBASE_CONFIG || {};
@@ -242,30 +242,99 @@ export async function initializeTaxiPayAuth(){
   async function ensureProfile(user){
     diag.setUserEmail(emailOf(user));
     const admin=await adminInfo(user.uid);
-    if(admin) return {name:user.displayName||admin.displayName||'',email:emailOf(user),status:'active',plan:'administrator',isAdmin:true,unionStatus:'admin'};
-    const allow=await prereg(user);
+    let allow;
+
+    try {
+      allow=await prereg(user);
+    } catch(err) {
+      // 管理者がまだ事前登録されていない場合だけ、管理者専用プロフィールへ退避する。
+      // 事前登録後は管理者でも通常利用者プロフィールを読み込み、組合員機能を利用できる。
+      if(admin){
+        diag.step(
+          'AUTH-ADMIN-PROFILE-FALLBACK',
+          '管理者の利用者情報が未登録のため、管理者専用プロフィールで起動します。',
+          'warning'
+        );
+        return {
+          name:user.displayName||admin.displayName||'',
+          email:emailOf(user),
+          status:'active',
+          plan:'administrator',
+          isAdmin:true,
+          unionStatus:'nonmember',
+          driverNumber:'',
+          office:''
+        };
+      }
+      throw err;
+    }
+
     const uref=doc(db,'users',user.uid);
     diag.step('AUTH-USER-START','利用者情報を確認しています。');
     let us;
     try { us=await getDoc(uref); } catch(err) { throw Object.assign(err,{authStage:'USER'}); }
+
     if(us.exists()){
       const p=us.data();
       if(p.status!=='active') throw Object.assign(new Error(p.suspensionReason||'このアカウントは利用停止中です。'),{authStage:'STATUS'});
       if(String(p.email||'').toLowerCase()!==allow.email) throw Object.assign(new Error('登録済みメールアドレスとGoogleアカウントが一致しません。'),{authStage:'EMAIL'});
       await updateDoc(uref,{lastLoginAt:serverTimestamp(),lastVersion:'v1.3-beta'}).catch(()=>{});
-      diag.step('AUTH-USER-OK','利用者情報を確認しました。','success');
-      return {...p,isAdmin:false};
+      diag.step(
+        'AUTH-USER-OK',
+        admin
+          ? '管理者権限と利用者情報を確認しました。'
+          : '利用者情報を確認しました。',
+        'success'
+      );
+      return {...p,isAdmin:admin!==null};
     }
+
     const a=allow.data;
     if(!a.driverNumber) throw Object.assign(new Error('事前登録情報に乗務員番号がありません。管理者へお問い合わせください。'),{authStage:'DRIVER'});
-    const profile={name:user.displayName||a.displayName||'',displayName:user.displayName||'',email:allow.email,status:'active',plan:'beta_v1_3',version:'v1.3-beta',driverNumber:String(a.driverNumber),office:a.office||'',unionStatus:a.unionStatus||'nonmember',tester:a.tester!==false,authProvider:'google.com',createdAt:serverTimestamp(),lastLoginAt:serverTimestamp(),termsAcceptedAt:serverTimestamp()};
+
+    const profile={
+      name:user.displayName||a.displayName||'',
+      displayName:user.displayName||'',
+      email:allow.email,
+      status:'active',
+      plan:'beta_v1_3',
+      version:'v1.3-beta',
+      driverNumber:String(a.driverNumber),
+      office:a.office||'',
+      unionStatus:a.unionStatus||'nonmember',
+      tester:a.tester!==false,
+      authProvider:'google.com',
+      createdAt:serverTimestamp(),
+      lastLoginAt:serverTimestamp(),
+      termsAcceptedAt:serverTimestamp()
+    };
+
     try {
-      diag.step('AUTH-USER-CREATE','初回利用者情報を作成しています。');
+      diag.step(
+        'AUTH-USER-CREATE',
+        admin
+          ? '管理者の利用者情報を作成しています。'
+          : '初回利用者情報を作成しています。'
+      );
       await setDoc(uref,profile);
-      await updateDoc(allow.ref,{registeredUid:user.uid,registeredAt:serverTimestamp()}).catch(()=>{});
-      diag.step('AUTH-USER-CREATE-OK','初回利用者情報を作成しました。','success');
+      await updateDoc(
+        allow.ref,
+        {
+          invitationUsed:true,
+          registeredUid:user.uid,
+          registeredAt:serverTimestamp()
+        }
+      ).catch(()=>{});
+      diag.step(
+        'AUTH-USER-CREATE-OK',
+        admin
+          ? '管理者の利用者情報を作成しました。'
+          : '初回利用者情報を作成しました。',
+        'success'
+      );
     } catch(err) { throw Object.assign(err,{authStage:'USERCREATE'}); }
-    return {...profile,isAdmin:false};
+
+    return {...profile,isAdmin:admin!==null};
   }
   async function recordSuccessfulLogin(user,profile){
     if(profile.isAdmin||profile.tester===false) return;
@@ -305,7 +374,7 @@ export async function initializeTaxiPayAuth(){
   }
 
   login.addEventListener('click',async()=>{
-    I?.add('V11-LOGIN-CLICK','Googleログインボタンが押されました。');
+    I?.add('V13-LOGIN-CLICK','Googleログインボタンが押されました。');
     preservedFailure=false;
     login.disabled=true;
     setMessage('Googleログインを開始しています…','info');
@@ -344,15 +413,15 @@ export async function initializeTaxiPayAuth(){
       if(isIOS){
         updateAttempt({method:'redirect',phase:'redirect-start',isIOS});
         diag.step('AUTH-REDIRECT-START','Googleアカウント選択画面へ移動します。');
-        I?.add('V11-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
+        I?.add('V13-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
         await signInWithRedirect(auth,provider);
         return;
       }
 
       diag.step('AUTH-POPUP-START','Googleアカウント選択画面を開いています。');
-      I?.add('V11-POPUP-CALL','signInWithPopup を呼び出します。');
+      I?.add('V13-POPUP-CALL','signInWithPopup を呼び出します。');
       const result=await signInWithPopup(auth,provider);
-      I?.add('V11-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
+      I?.add('V13-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
       updateAttempt({phase:'popup-resolved', email:maskEmail(result?.user?.email||'')});
       diag.setUserEmail(result?.user?.email||'');
       diag.step('AUTH-POPUP-OK','Googleアカウントの選択が完了しました。','success');
@@ -365,7 +434,7 @@ export async function initializeTaxiPayAuth(){
         diag.step('AUTH-REDIRECT-FALLBACK','ポップアップを開けないため、画面遷移方式へ切り替えます。');
         updateAttempt({method:'redirect',phase:'redirect-start'});
         try {
-          I?.add('V11-REDIRECT-FALLBACK-CALL','signInWithRedirect を呼び出します。');
+          I?.add('V13-REDIRECT-FALLBACK-CALL','signInWithRedirect を呼び出します。');
           await signInWithRedirect(auth,provider);
           return;
         } catch(redirErr) {
@@ -396,7 +465,7 @@ export async function initializeTaxiPayAuth(){
   diag.step('AUTH-STATE-LISTENER-START','認証状態の監視を開始しています。');
 
   onAuthStateChanged(auth,async user=>{
-    I?.add('V11-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
+    I?.add('V13-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
     if(!user){
       showGate();
       if(!preservedFailure && !readAttempt()){

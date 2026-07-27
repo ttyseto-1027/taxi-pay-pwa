@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0f4c5c">
   <title>ユーザー管理 | タクシー給与シミュレーター</title>
-  <link href="styles.css?v=20260727-12" rel="stylesheet">
+  <link href="styles.css?v=20260727-13" rel="stylesheet">
 </head>
 
 <body class="admin-page auth-pending">
@@ -21,7 +21,7 @@
   <header class="app-header admin-app-header">
     <div>
       <h1 class="admin-page-title"><span aria-hidden="true">👥</span> ユーザー管理</h1>
-      <p>Version 1.3β / 管理画面 v12</p>
+      <p>Version 1.3β / 管理画面 v13</p>
     </div>
     <div class="header-controls">
       <a class="ghost admin-link" href="index.html">アプリへ戻る</a>
@@ -32,7 +32,8 @@
   <main>
     <section class="card admin-dashboard-card">
       <div class="admin-action-guide" role="note">
-        利用者情報の編集・利用停止・削除は、各一覧の操作ボタンから行えます。
+        利用者情報の編集・利用停止・削除、管理者権限の付与・解除は、各一覧の操作ボタンから行えます。
+        管理者権限と組合員区分は別管理です。管理者へ組合員情報を登録すると、管理機能と組合員機能の両方を利用できます。
         削除はFirestore内の利用者情報を対象とし、Firebase Authenticationのアカウント自体は削除しません。
       </div>
       <div class="admin-summary">
@@ -47,6 +48,10 @@
         <div>
           <span>利用停止</span>
           <strong id="lockedCount">0人</strong>
+        </div>
+        <div>
+          <span>有効な管理者</span>
+          <strong id="adminCount">0人</strong>
         </div>
       </div><div><span>v1.3βログイン成功</span><strong id="v13LoginCount">0人</strong></div><div><span>14日猶予期間</span><strong id="graceStatus">未開始</strong></div>
 
@@ -172,6 +177,7 @@
               <th>メール</th>
               <th>プラン</th>
               <th>状態</th>
+              <th>管理者権限</th>
               <th>登録日時</th>
               <th>最終利用</th>
               <th>操作</th>
@@ -183,7 +189,7 @@
     </section>
   </main>
 
-  <script src="firebase-config.js?v=20260727-12"></script>
-  <script src="admin.js?v=20260727-12" type="module"></script>
+  <script src="firebase-config.js?v=20260727-13"></script>
+  <script src="admin.js?v=20260727-13" type="module"></script>
 </body>
 </html>

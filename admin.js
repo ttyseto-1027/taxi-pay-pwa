@@ -31,6 +31,9 @@ const message = document.getElementById('adminMessage');
 const usersBody = document.getElementById('usersBody');
 const allowlistBody = document.getElementById('allowlistBody');
 
+let currentAdminUid = '';
+let currentAdminEmail = '';
+
 function formatTimestamp(timestamp) {
   try {
     return timestamp?.toDate().toLocaleString('ja-JP') || '—';
@@ -520,14 +523,25 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
     setStatus(status, '読み込み中…', 'info');
 
     try {
-      const snapshot = await getDocs(
-        query(collection(db, 'users'), orderBy('createdAt', 'desc'))
-      );
+      const [userSnapshot, adminSnapshot] = await Promise.all([
+        getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'))),
+        getDocs(collection(db, 'admins'))
+      ]);
 
-      const users = snapshot.docs.map((item) => ({
+      const users = userSnapshot.docs.map((item) => ({
         id: item.id,
         ...item.data()
       }));
+
+      const adminMap = new Map(
+        adminSnapshot.docs.map((item) => [
+          item.id,
+          { id: item.id, ...item.data() }
+        ])
+      );
+
+      const activeAdmins = [...adminMap.values()]
+        .filter((admin) => admin.enabled !== false);
 
       usersBody.innerHTML = '';
 
@@ -538,6 +552,9 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         if (user.status === 'active') activeCount += 1;
         else lockedCount += 1;
 
+        const adminRecord = adminMap.get(user.id);
+        const hasAdminRole = Boolean(adminRecord && adminRecord.enabled !== false);
+        const isCurrentAdmin = user.id === currentAdminUid;
         const row = document.createElement('tr');
 
         row.innerHTML = `
@@ -545,10 +562,29 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
           <td>${escapeHtml(user.email || '—')}</td>
           <td>${escapeHtml(user.plan || '—')}</td>
           <td>${user.status === 'active' ? '利用中' : '利用停止'}</td>
+          <td>
+            <span class="admin-role-badge ${hasAdminRole ? 'is-admin' : 'not-admin'}">
+              ${hasAdminRole ? '管理者' : '一般利用者'}
+            </span>
+          </td>
           <td>${formatTimestamp(user.createdAt)}</td>
           <td>${formatTimestamp(user.lastLoginAt)}</td>
           <td>
             <div class="table-action-buttons">
+              <button
+                class="table-action-button admin-role-action"
+                type="button"
+                data-user-action="${hasAdminRole ? 'revoke-admin' : 'grant-admin'}"
+                data-user-id="${escapeHtml(user.id)}"
+                data-user-email="${escapeHtml(user.email || '')}"
+                data-user-name="${escapeHtml(user.name || user.displayName || '')}"
+                data-is-current-admin="${isCurrentAdmin}"
+                ${isCurrentAdmin && hasAdminRole ? 'disabled title="自分自身の管理者権限は解除できません"' : ''}
+              >
+                ${hasAdminRole
+                  ? (isCurrentAdmin ? '現在の管理者' : '管理者解除')
+                  : '管理者にする'}
+              </button>
               <button
                 class="table-action-button toggle-action"
                 type="button"
@@ -567,6 +603,8 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
                 data-user-id="${escapeHtml(user.id)}"
                 data-user-email="${escapeHtml(user.email || '')}"
                 data-user-name="${escapeHtml(user.name || user.displayName || '')}"
+                data-has-admin-role="${hasAdminRole}"
+                ${isCurrentAdmin ? 'disabled title="現在ログイン中の管理者は削除できません"' : ''}
               >
                 🗑 削除
               </button>
@@ -580,6 +618,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       document.getElementById('userCount').textContent = `${users.length}人`;
       document.getElementById('activeCount').textContent = `${activeCount}人`;
       document.getElementById('lockedCount').textContent = `${lockedCount}人`;
+      document.getElementById('adminCount').textContent = `${activeAdmins.length}人`;
       setStatus(status);
     } catch (error) {
       setStatus(status, errorText(error, '利用者一覧を読み込めませんでした。'), 'error');
@@ -594,6 +633,82 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
     const userEmail = (button.dataset.userEmail || '').trim().toLowerCase();
     const userName = button.dataset.userName || userEmail || userId;
     const actionType = button.dataset.userAction || 'toggle';
+
+    if (actionType === 'grant-admin' || actionType === 'revoke-admin') {
+      const granting = actionType === 'grant-admin';
+
+      if (!granting && userId === currentAdminUid) {
+        alert('現在ログイン中の自分自身から管理者権限を解除することはできません。');
+        return;
+      }
+
+      const confirmationText = granting
+        ? `${userName} に、このシステムの管理者権限を付与しますか？\n\n` +
+          `管理者は利用者情報、事前登録、無料コード、他の管理者権限を操作できます。`
+        : `${userName} の管理者権限を解除しますか？\n\n` +
+          `組合員・非組合員としての通常機能と利用者情報は残ります。`;
+
+      if (!confirm(confirmationText)) return;
+
+      const typed = prompt(
+        `確認のため、対象者のGoogleアカウントを入力してください。\n${userEmail}`
+      );
+
+      if (typed === null) return;
+      if (!userEmail || typed.trim().toLowerCase() !== userEmail) {
+        alert('入力されたGoogleアカウントが一致しないため、処理を中止しました。');
+        return;
+      }
+
+      try {
+        button.disabled = true;
+
+        await setDoc(
+          doc(db, 'admins', userId),
+          {
+            enabled: granting,
+            email: userEmail,
+            displayName: userName,
+            updatedAt: serverTimestamp(),
+            updatedByUid: currentAdminUid,
+            updatedByEmail: currentAdminEmail,
+            ...(granting
+              ? {
+                  grantedAt: serverTimestamp(),
+                  grantedByUid: currentAdminUid,
+                  grantedByEmail: currentAdminEmail
+                }
+              : {
+                  revokedAt: serverTimestamp(),
+                  revokedByUid: currentAdminUid,
+                  revokedByEmail: currentAdminEmail
+                })
+          },
+          { merge: true }
+        );
+
+        setStatus(
+          document.getElementById('adminStatus'),
+          granting
+            ? `${userName} に管理者権限を付与しました。`
+            : `${userName} の管理者権限を解除しました。`,
+          'success'
+        );
+
+        await loadUsers();
+      } catch (error) {
+        alert(
+          errorText(
+            error,
+            granting
+              ? '管理者権限を付与できませんでした。'
+              : '管理者権限を解除できませんでした。'
+          )
+        );
+        button.disabled = false;
+      }
+      return;
+    }
 
     if (actionType === 'delete') {
       const typed = prompt(
@@ -615,6 +730,10 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         const batch = writeBatch(db);
         batch.delete(doc(db, 'users', userId));
         batch.delete(doc(db, 'v13LoginSuccess', userId));
+
+        if (button.dataset.hasAdminRole === 'true') {
+          batch.delete(doc(db, 'admins', userId));
+        }
 
         const allowRef = doc(db, 'betaAllowlist', userEmail);
         const allowSnapshot = await getDoc(allowRef);
@@ -683,6 +802,9 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         showGate('このGoogleアカウントには管理者権限がありません。');
         return;
       }
+
+      currentAdminUid = user.uid;
+      currentAdminEmail = String(user.email || '').trim().toLowerCase();
 
       showPage();
       await Promise.all([loadAllowlist(), loadUsers()]);
