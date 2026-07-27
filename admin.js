@@ -103,6 +103,46 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
 
   provider.setCustomParameters({ prompt: 'select_account' });
 
+  let editingAllowlistEmail = null;
+  const allowlistForm = document.getElementById('allowlistForm');
+  const allowSubmitButton = document.getElementById('allowSubmitButton');
+  const allowCancelEdit = document.getElementById('allowCancelEdit');
+
+  function resetAllowlistForm() {
+    editingAllowlistEmail = null;
+    allowlistForm.reset();
+    document.getElementById('allowEmail').readOnly = false;
+    document.getElementById('allowTester').value = 'true';
+    document.getElementById('allowEnabled').value = 'true';
+    allowSubmitButton.textContent = 'テストユーザーを登録';
+    allowCancelEdit.hidden = true;
+  }
+
+  function startAllowlistEdit(entry) {
+    editingAllowlistEmail = entry.id;
+    document.getElementById('allowDisplayName').value = entry.displayName || '';
+    document.getElementById('allowEmail').value = entry.email || entry.id;
+    document.getElementById('allowEmail').readOnly = true;
+    document.getElementById('allowDriverNumber').value = entry.driverNumber || '';
+    document.getElementById('allowOffice').value = entry.office || '';
+    document.getElementById('allowUnionStatus').value = entry.unionStatus || '';
+    document.getElementById('allowTester').value = String(entry.tester !== false);
+    document.getElementById('allowEnabled').value = String(entry.enabled !== false);
+    allowSubmitButton.textContent = '登録情報を更新';
+    allowCancelEdit.hidden = false;
+    document.getElementById('allowDisplayName').focus();
+    setStatus(
+      document.getElementById('allowlistStatus'),
+      `${entry.displayName || entry.id} の登録情報を編集中です。`,
+      'info'
+    );
+  }
+
+  allowCancelEdit.addEventListener('click', () => {
+    resetAllowlistForm();
+    setStatus(document.getElementById('allowlistStatus'), '編集をキャンセルしました。', 'info');
+  });
+
   document.getElementById('adminGoogleLogin').addEventListener('click', async () => {
     setStatus(message, 'Googleアカウントを確認しています…', 'info');
 
@@ -233,14 +273,13 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
     }
   });
 
-  document.getElementById('allowlistForm').addEventListener('submit', async (event) => {
+  allowlistForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    const form = event.currentTarget;
     const status = document.getElementById('allowlistStatus');
 
     try {
-      setStatus(status, '登録しています…', 'info');
+      setStatus(status, editingAllowlistEmail ? '更新しています…' : '登録しています…', 'info');
 
       const displayName = document.getElementById('allowDisplayName').value.trim();
       const email = document.getElementById('allowEmail').value.trim().toLowerCase();
@@ -261,49 +300,68 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         throw new Error('組合員区分を選択してください。');
       }
 
-      const allowRef = doc(db, 'betaAllowlist', email);
-      const existing = await getDoc(allowRef);
-
-      if (existing.exists()) {
-        throw new Error('このGoogleアカウントは既に登録されています。');
-      }
-
       const allowSnapshot = await getDocs(collection(db, 'betaAllowlist'));
-      const duplicateDriver = allowSnapshot.docs.find(
-        (item) => String(item.data().driverNumber || '').trim() === driverNumber
-      );
+      const duplicateDriver = allowSnapshot.docs.find((item) => {
+        if (editingAllowlistEmail && item.id === editingAllowlistEmail) return false;
+        return String(item.data().driverNumber || '').trim() === driverNumber;
+      });
 
       if (duplicateDriver) {
         throw new Error(`乗務員番号 ${driverNumber} は既に登録されています。`);
       }
 
-      await setDoc(allowRef, {
-        displayName,
-        email,
-        driverNumber,
-        office,
-        unionStatus,
-        tester,
-        enabled,
-        invitationUsed: false,
-        registeredUid: null,
-        version: 'v1.3-beta',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      if (editingAllowlistEmail) {
+        await updateDoc(doc(db, 'betaAllowlist', editingAllowlistEmail), {
+          displayName,
+          email,
+          driverNumber,
+          office,
+          unionStatus,
+          tester,
+          enabled,
+          updatedAt: serverTimestamp()
+        });
 
-      setStatus(
-        status,
-        `${displayName}さんをテストユーザーとして登録しました。`,
-        'success'
-      );
+        setStatus(status, `${displayName}さんの登録情報を更新しました。`, 'success');
+      } else {
+        const allowRef = doc(db, 'betaAllowlist', email);
+        const existing = await getDoc(allowRef);
 
-      form.reset();
-      document.getElementById('allowTester').value = 'true';
-      document.getElementById('allowEnabled').value = 'true';
+        if (existing.exists()) {
+          throw new Error('このGoogleアカウントは既に登録されています。');
+        }
+
+        await setDoc(allowRef, {
+          displayName,
+          email,
+          driverNumber,
+          office,
+          unionStatus,
+          tester,
+          enabled,
+          invitationUsed: false,
+          registeredUid: null,
+          version: 'v1.3-beta',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        setStatus(status, `${displayName}さんをテストユーザーとして登録しました。`, 'success');
+      }
+
+      resetAllowlistForm();
       await loadAllowlist();
     } catch (error) {
-      setStatus(status, errorText(error, 'テストユーザーを登録できませんでした。'), 'error');
+      setStatus(
+        status,
+        errorText(
+          error,
+          editingAllowlistEmail
+            ? 'テストユーザー情報を更新できませんでした。'
+            : 'テストユーザーを登録できませんでした。'
+        ),
+        'error'
+      );
     }
   });
 
@@ -331,6 +389,14 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         <td>
           <button
             type="button"
+            data-action="edit"
+            data-allow-email="${escapeHtml(entry.id)}"
+          >
+            編集
+          </button>
+          <button
+            type="button"
+            data-action="toggle"
             data-allow-email="${escapeHtml(entry.id)}"
             data-enabled="${entry.enabled === true}"
           >
@@ -347,21 +413,39 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
     const button = event.target.closest('button[data-allow-email]');
     if (!button) return;
 
-    const nextEnabled = button.dataset.enabled !== 'true';
-    const action = nextEnabled ? '利用を再開' : '利用を停止';
+    const email = button.dataset.allowEmail;
+    const action = button.dataset.action;
 
-    if (!confirm(`${button.dataset.allowEmail} の${action}しますか？`)) return;
+    if (action === 'edit') {
+      try {
+        const snapshot = await getDoc(doc(db, 'betaAllowlist', email));
+        if (!snapshot.exists()) {
+          throw new Error('編集対象の登録情報が見つかりません。');
+        }
+        startAllowlistEdit({ id: snapshot.id, ...snapshot.data() });
+      } catch (error) {
+        alert(errorText(error, '登録情報を読み込めませんでした。'));
+      }
+      return;
+    }
+
+    if (action !== 'toggle') return;
+
+    const nextEnabled = button.dataset.enabled !== 'true';
+    const actionText = nextEnabled ? '利用を再開' : '利用を停止';
+
+    if (!confirm(`${email} の${actionText}しますか？`)) return;
 
     try {
       button.disabled = true;
+      await updateDoc(doc(db, 'betaAllowlist', email), {
+        enabled: nextEnabled,
+        updatedAt: serverTimestamp()
+      });
 
-      await updateDoc(
-        doc(db, 'betaAllowlist', button.dataset.allowEmail),
-        {
-          enabled: nextEnabled,
-          updatedAt: serverTimestamp()
-        }
-      );
+      if (editingAllowlistEmail === email) {
+        document.getElementById('allowEnabled').value = String(nextEnabled);
+      }
 
       await loadAllowlist();
     } catch (error) {
@@ -502,26 +586,3 @@ async function importMasterCsv(){
 document.getElementById('importMaster')?.addEventListener('click',()=>importMasterCsv().catch(e=>{document.getElementById('masterStatus').textContent=`取込失敗：${e.message}`}));
 setTimeout(refreshV13Status,1000);
 
-
-/* v8 編集機能 */
-async function editAllowlistUser(email){
-  const ref=doc(db,'betaAllowlist',email);
-  const snap=await getDoc(ref);
-  if(!snap.exists()) return;
-  const d=snap.data();
-  document.getElementById('allowDisplayName').value=d.displayName||'';
-  document.getElementById('allowEmail').value=d.email||email;
-  document.getElementById('allowEmail').readOnly=true;
-  document.getElementById('allowDriverNumber').value=d.driverNumber||'';
-  document.getElementById('allowOffice').value=d.office||'';
-  document.getElementById('allowUnionStatus').value=d.unionStatus||'';
-  document.getElementById('allowTester').value=String(d.tester!==false);
-  document.getElementById('allowEnabled').value=String(d.enabled!==false);
-  window.__editingAllowlist=email;
-}
-async function saveAllowlistUser(data){
-  const ref=doc(db,'betaAllowlist',window.__editingAllowlist);
-  await updateDoc(ref,{...data,updatedAt:serverTimestamp()});
-  window.__editingAllowlist=null;
-  document.getElementById('allowEmail').readOnly=false;
-}

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0f4c5c">
   <title>ユーザー管理 | タクシー給与シミュレーター</title>
-  <link href="styles.css?v=20260727-7" rel="stylesheet">
+  <link href="styles.css?v=20260727-10" rel="stylesheet">
 </head>
 
 <body class="admin-page auth-pending">
@@ -21,7 +21,7 @@
   <header class="app-header">
     <div>
       <h1>登録ユーザー管理</h1>
-      <p>Version 1.3β / 管理画面 v8</p>
+      <p>Version 1.3β / 管理画面 v10</p>
     </div>
     <div class="header-controls">
       <a class="ghost admin-link" href="index.html">アプリへ戻る</a>
@@ -131,7 +131,10 @@
               <option value="false">利用停止</option>
             </select>
           </label>
-          <button type="submit">テストユーザーを登録</button>
+          <div class="admin-form-actions">
+            <button id="allowSubmitButton" type="submit">テストユーザーを登録</button>
+            <button id="allowCancelEdit" type="button" hidden>編集をキャンセル</button>
+          </div>
         </form>
         <p class="note" id="allowlistStatus" aria-live="polite"></p>
 
@@ -176,7 +179,7 @@
     </section>
   </main>
 
-  <script src="firebase-config.js?v=20260727-7"></script>
-  <script src="admin.js?v=20260727-7" type="module"></script>
+  <script src="firebase-config.js?v=20260727-10"></script>
+  <script src="admin.js?v=20260727-10" type="module"></script>
 </body>
 </html>
