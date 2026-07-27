@@ -24,7 +24,7 @@ import {
   where
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
-const DIAG_KEY = 'taxiPayAuthDiagnosticV9';
+const DIAG_KEY = 'taxiPayAuthDiagnosticV11';
 const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
 const MAX_STEPS = 60;
 
@@ -164,8 +164,20 @@ function createDiagnosticUI() {
   return {step, fail, clear, report, setUserEmail(email){state.maskedEmail=maskEmail(email);persist();}};
 }
 
+function withTimeout(promise, timeoutMs, timeoutCode, timeoutMessage) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(timeoutMessage);
+      error.code = timeoutCode;
+      reject(error);
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export async function initializeTaxiPayAuth(){
-  const I=window.TaxiPayInlineDiagnostic; I?.add('V9-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
+  const I=window.TaxiPayInlineDiagnostic; I?.add('V11-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
   const D = window.TaxiPayDiagnostics;
   const diag = createDiagnosticUI();
   const config = window.TAXI_PAY_FIREBASE_CONFIG || {};
@@ -204,7 +216,9 @@ export async function initializeTaxiPayAuth(){
   const ua = navigator.userAgent || '';
   const isIOS = /iPad|iPhone|iPod/.test(ua) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const isMobile = isIOS || /Android|Mobile/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  const isMobile = isIOS || isAndroid || /Mobile/i.test(ua);
+  const loginMethod = isIOS ? 'redirect' : 'popup';
   const emailOf = u => String(u?.email||'').trim().toLowerCase();
 
   async function adminInfo(uid){
@@ -291,35 +305,54 @@ export async function initializeTaxiPayAuth(){
   }
 
   login.addEventListener('click',async()=>{
-    I?.add('V9-LOGIN-CLICK','Googleログインボタンが押されました。');
+    I?.add('V11-LOGIN-CLICK','Googleログインボタンが押されました。');
     preservedFailure=false;
     login.disabled=true;
     setMessage('Googleログインを開始しています…','info');
     diag.step('AUTH-SIGNIN-START','Googleログインを開始しました。');
-    const method = isMobile ? 'redirect' : 'popup';
+    const method = loginMethod;
     startAttempt(method);
-    diag.step('AUTH-DEVICE-METHOD', isMobile
-      ? 'スマートフォンのため画面遷移方式でログインします。'
-      : 'PCのためポップアップ方式でログインします。');
+    diag.step(
+      'AUTH-DEVICE-METHOD',
+      isIOS
+        ? 'iPhone・iPadのため画面遷移方式でログインします。'
+        : isAndroid
+          ? 'Android Chromeのためポップアップ方式でログインします。'
+          : 'PCのためポップアップ方式でログインします。'
+    );
     diag.step('AUTH-ATTEMPT-SAVED','ログイン試行情報を端末に保存しました。','success');
 
     try {
       diag.step('AUTH-PERSIST-START','認証情報の保存方式を設定しています。');
-      await setPersistence(auth,browserLocalPersistence);
-      diag.step('AUTH-PERSIST-OK','認証情報の保存設定に成功しました。','success');
+      try {
+        await withTimeout(
+          setPersistence(auth,browserLocalPersistence),
+          8000,
+          'auth/persistence-timeout',
+          '認証情報の保存設定が時間内に完了しませんでした。'
+        );
+        diag.step('AUTH-PERSIST-OK','認証情報の保存設定に成功しました。','success');
+      } catch (persistErr) {
+        diag.step(
+          'AUTH-PERSIST-WARN',
+          '認証情報の保存設定を完了できませんでしたが、ログイン処理を続行します。',
+          'warning',
+          persistErr?.message || persistErr
+        );
+      }
 
-      if(isMobile){
+      if(isIOS){
         updateAttempt({method:'redirect',phase:'redirect-start',isIOS});
         diag.step('AUTH-REDIRECT-START','Googleアカウント選択画面へ移動します。');
-        I?.add('V9-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
+        I?.add('V11-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
         await signInWithRedirect(auth,provider);
         return;
       }
 
       diag.step('AUTH-POPUP-START','Googleアカウント選択画面を開いています。');
-      I?.add('V9-POPUP-CALL','signInWithPopup を呼び出します。');
+      I?.add('V11-POPUP-CALL','signInWithPopup を呼び出します。');
       const result=await signInWithPopup(auth,provider);
-      I?.add('V9-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
+      I?.add('V11-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
       updateAttempt({phase:'popup-resolved', email:maskEmail(result?.user?.email||'')});
       diag.setUserEmail(result?.user?.email||'');
       diag.step('AUTH-POPUP-OK','Googleアカウントの選択が完了しました。','success');
@@ -328,11 +361,11 @@ export async function initializeTaxiPayAuth(){
       await routeOnce(result.user);
     } catch(err) {
       const code=err?.code||'';
-      if(!isMobile && (code==='auth/popup-blocked'||code==='auth/cancelled-popup-request')){
+      if(loginMethod === 'popup' && (code==='auth/popup-blocked'||code==='auth/cancelled-popup-request')){
         diag.step('AUTH-REDIRECT-FALLBACK','ポップアップを開けないため、画面遷移方式へ切り替えます。');
         updateAttempt({method:'redirect',phase:'redirect-start'});
         try {
-          I?.add('V9-REDIRECT-FALLBACK-CALL','signInWithRedirect を呼び出します。');
+          I?.add('V11-REDIRECT-FALLBACK-CALL','signInWithRedirect を呼び出します。');
           await signInWithRedirect(auth,provider);
           return;
         } catch(redirErr) {
@@ -345,10 +378,10 @@ export async function initializeTaxiPayAuth(){
         }
       } else {
         clearAttempt();
-        const info=userFriendlyError(isMobile?'REDIRECT':'SIGNIN',err);
+        const info=userFriendlyError(loginMethod === 'redirect' ? 'REDIRECT' : 'SIGNIN',err);
         preservedFailure=true;
         setMessage(info.text);
-        diag.fail(info,isMobile?'REDIRECT':'SIGNIN');
+        diag.fail(info,loginMethod === 'redirect' ? 'REDIRECT' : 'SIGNIN');
         D.notify(info.text,'error',info.displayCode,err?.stack||err);
       }
     } finally {
@@ -358,35 +391,12 @@ export async function initializeTaxiPayAuth(){
 
   logout?.addEventListener('click',async()=>{ preservedFailure=false; await signOut(auth); diag.step('AUTH-SIGNOUT-OK','ログアウトしました。','success'); D.notify('ログアウトしました。','success','AUTH-SIGNOUT-OK'); });
 
-  try {
-    diag.step('AUTH-PERSIST-BOOT-START','起動時に認証情報の保存方式を設定しています。');
-    await setPersistence(auth,browserLocalPersistence);
-    diag.step('AUTH-PERSIST-BOOT-OK','起動時の認証情報保存設定に成功しました。','success');
-  } catch(err) {
-    const info=userFriendlyError('PERSIST',err);
-    preservedFailure=true;
-    setMessage(info.text);
-    diag.fail(info,'PERSIST-BOOT');
-    D.notify(info.text,'error',info.displayCode,err?.stack||err);
-  }
-
-  try {
-    diag.step('AUTH-REDIRECT-CHECK','画面遷移後の認証結果を確認しています。');
-    const redirectResult=await getRedirectResult(auth);
-    if(redirectResult?.user){
-      diag.setUserEmail(redirectResult.user.email||'');
-      updateAttempt({phase:'redirect-resolved', email:maskEmail(redirectResult.user.email||'')});
-      diag.step('AUTH-REDIRECT-OK','画面遷移方式のGoogle認証に成功しました。','success');
-      await routeOnce(redirectResult.user);
-    } else {
-      diag.step('AUTH-REDIRECT-NONE','画面遷移後の認証結果はありません。','info');
-    }
-  } catch(err) {
-    const info=userFriendlyError('REDIRECT',err); preservedFailure=true; setMessage(info.text); diag.fail(info,'REDIRECT-RESULT'); D.notify(info.text,'error',info.displayCode,err?.stack||err);
-  }
+  // 認証状態監視は、PersistenceやRedirect結果の待機より先に開始する。
+  // これにより補助処理が遅延してもログイン画面の準備を完了できる。
+  diag.step('AUTH-STATE-LISTENER-START','認証状態の監視を開始しています。');
 
   onAuthStateChanged(auth,async user=>{
-    I?.add('V9-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
+    I?.add('V11-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
     if(!user){
       showGate();
       if(!preservedFailure && !readAttempt()){
@@ -408,6 +418,66 @@ export async function initializeTaxiPayAuth(){
       await signOut(auth).catch(()=>{});
     }
   });
+  diag.step('AUTH-STATE-LISTENER-OK','認証状態の監視を開始しました。','success');
+
+  try {
+    diag.step('AUTH-PERSIST-BOOT-START','起動時に認証情報の保存方式を設定しています。');
+    await withTimeout(
+      setPersistence(auth,browserLocalPersistence),
+      8000,
+      'auth/persistence-timeout',
+      '起動時の認証情報保存設定が時間内に完了しませんでした。'
+    );
+    diag.step('AUTH-PERSIST-BOOT-OK','起動時の認証情報保存設定に成功しました。','success');
+  } catch(err) {
+    // Persistenceの失敗だけで起動を停止しない。
+    diag.step(
+      'AUTH-PERSIST-BOOT-WARN',
+      '認証情報の保存設定を完了できませんでしたが、ログイン機能は利用できます。',
+      'warning',
+      err?.message || err
+    );
+  }
+
+  // Redirect結果の確認はiOSを中心に必要だが、全端末で安全に確認する。
+  // 10秒で打ち切り、結果待ちで画面が永久に停止しないようにする。
+  try {
+    diag.step('AUTH-REDIRECT-CHECK','画面遷移後の認証結果を確認しています。');
+    const redirectResult = await withTimeout(
+      getRedirectResult(auth),
+      10000,
+      'auth/redirect-result-timeout',
+      '画面遷移後の認証結果確認が時間内に完了しませんでした。'
+    );
+    if(redirectResult?.user){
+      diag.setUserEmail(redirectResult.user.email||'');
+      updateAttempt({phase:'redirect-resolved', email:maskEmail(redirectResult.user.email||'')});
+      diag.step('AUTH-REDIRECT-OK','画面遷移方式のGoogle認証に成功しました。','success');
+      await routeOnce(redirectResult.user);
+    } else {
+      diag.step('AUTH-REDIRECT-NONE','画面遷移後の認証結果はありません。','info');
+    }
+  } catch(err) {
+    if (err?.code === 'auth/redirect-result-timeout') {
+      diag.step(
+        'AUTH-REDIRECT-TIMEOUT',
+        '認証結果の確認を打ち切り、ログイン画面を利用可能にします。',
+        'warning',
+        err?.message || err
+      );
+    } else {
+      const info=userFriendlyError('REDIRECT',err);
+      preservedFailure=true;
+      setMessage(info.text);
+      diag.fail(info,'REDIRECT-RESULT');
+      D.notify(info.text,'error',info.displayCode,err?.stack||err);
+    }
+  }
+
   login.disabled=false;
+  if (!auth.currentUser && !preservedFailure) {
+    setMessage('Googleアカウントでログインしてください。','info');
+  }
+  diag.step('AUTH-READY-001','認証機能の準備が完了しました。','success');
   return true;
 }
