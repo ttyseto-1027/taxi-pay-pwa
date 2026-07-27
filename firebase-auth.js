@@ -24,7 +24,7 @@ import {
   where
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
-const DIAG_KEY = 'taxiPayAuthDiagnosticV6';
+const DIAG_KEY = 'taxiPayAuthDiagnosticV9';
 const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
 const MAX_STEPS = 60;
 
@@ -165,7 +165,7 @@ function createDiagnosticUI() {
 }
 
 export async function initializeTaxiPayAuth(){
-  const I=window.TaxiPayInlineDiagnostic; I?.add('V6-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
+  const I=window.TaxiPayInlineDiagnostic; I?.add('V9-AUTH-INIT','initializeTaxiPayAuth を開始しました。');
   const D = window.TaxiPayDiagnostics;
   const diag = createDiagnosticUI();
   const config = window.TAXI_PAY_FIREBASE_CONFIG || {};
@@ -291,7 +291,7 @@ export async function initializeTaxiPayAuth(){
   }
 
   login.addEventListener('click',async()=>{
-    I?.add('V6-LOGIN-CLICK','Googleログインボタンが押されました。');
+    I?.add('V9-LOGIN-CLICK','Googleログインボタンが押されました。');
     preservedFailure=false;
     login.disabled=true;
     setMessage('Googleログインを開始しています…','info');
@@ -311,15 +311,15 @@ export async function initializeTaxiPayAuth(){
       if(isMobile){
         updateAttempt({method:'redirect',phase:'redirect-start',isIOS});
         diag.step('AUTH-REDIRECT-START','Googleアカウント選択画面へ移動します。');
-        I?.add('V6-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
+        I?.add('V9-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
         await signInWithRedirect(auth,provider);
         return;
       }
 
       diag.step('AUTH-POPUP-START','Googleアカウント選択画面を開いています。');
-      I?.add('V6-POPUP-CALL','signInWithPopup を呼び出します。');
+      I?.add('V9-POPUP-CALL','signInWithPopup を呼び出します。');
       const result=await signInWithPopup(auth,provider);
-      I?.add('V6-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
+      I?.add('V9-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
       updateAttempt({phase:'popup-resolved', email:maskEmail(result?.user?.email||'')});
       diag.setUserEmail(result?.user?.email||'');
       diag.step('AUTH-POPUP-OK','Googleアカウントの選択が完了しました。','success');
@@ -332,7 +332,7 @@ export async function initializeTaxiPayAuth(){
         diag.step('AUTH-REDIRECT-FALLBACK','ポップアップを開けないため、画面遷移方式へ切り替えます。');
         updateAttempt({method:'redirect',phase:'redirect-start'});
         try {
-          I?.add('V6-REDIRECT-FALLBACK-CALL','signInWithRedirect を呼び出します。');
+          I?.add('V9-REDIRECT-FALLBACK-CALL','signInWithRedirect を呼び出します。');
           await signInWithRedirect(auth,provider);
           return;
         } catch(redirErr) {
@@ -386,7 +386,7 @@ export async function initializeTaxiPayAuth(){
   }
 
   onAuthStateChanged(auth,async user=>{
-    I?.add('V6-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
+    I?.add('V9-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
     if(!user){
       showGate();
       if(!preservedFailure && !readAttempt()){

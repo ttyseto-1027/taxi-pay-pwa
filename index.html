@@ -9,48 +9,27 @@
 <title>タクシー給与シミュレーター</title>
 <link href="manifest.json" rel="manifest"/>
 <link href="styles.css" rel="stylesheet"/>
-<style>
-#authBuildBadge{display:inline-block;margin:.35rem 0 .65rem;padding:.3rem .55rem;border-radius:.4rem;background:#fff3cd;color:#664d03;font-weight:700;font-size:.85rem}
-#inlineDiagnosticPanel{margin-top:1rem;padding:.75rem;border:2px solid #b02a37;border-radius:.5rem;background:#fff;color:#222;text-align:left}
-#inlineDiagnosticPanel h2{font-size:1rem;margin:0 0 .5rem}
-#inlineDiagnosticLog{max-height:18rem;overflow:auto;white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;background:#111;color:#f5f5f5;padding:.65rem;border-radius:.35rem}
-#inlineDiagnosticPanel button{margin-top:.55rem}
-</style>
 <script>
 (function(){
   'use strict';
-  var BUILD='20260725-v6';
-  var KEY='taxiPayInlineDiagnosticV6';
+  var BUILD='20260727-v9';
+  var KEY='taxiPayInlineDiagnosticV9';
   var lines=[];
   function ts(){try{return new Date().toLocaleTimeString('ja-JP',{hour12:false});}catch(e){return new Date().toISOString();}}
-  function safe(v){try{if(v instanceof Error)return (v.name+': '+v.message+'\n'+(v.stack||''));if(typeof v==='string')return v;return JSON.stringify(v);}catch(e){return String(v);}}
+  function safe(v){try{if(v instanceof Error)return (v.name+': '+v.message+'
+'+(v.stack||''));if(typeof v==='string')return v;return JSON.stringify(v);}catch(e){return String(v);}}
   function save(){try{sessionStorage.setItem(KEY,JSON.stringify(lines.slice(-160)));}catch(e){}}
-  function draw(){var el=document.getElementById('inlineDiagnosticLog');if(el){el.textContent=lines.join('\n');el.scrollTop=el.scrollHeight;}}
-  function add(code,msg,detail){var row=ts()+' '+code+' '+msg+(detail?' | '+safe(detail):'');lines.push(row);save();draw();}
+  function add(code,msg,detail){var row=ts()+' '+code+' '+msg+(detail?' | '+safe(detail):'');lines.push(row);save();}
   try{var old=JSON.parse(sessionStorage.getItem(KEY)||'[]');if(Array.isArray(old))lines=old.slice(-100);}catch(e){}
-  window.TaxiPayInlineDiagnostic={add:add,build:BUILD,report:function(){return ['Build: '+BUILD,'URL: '+location.href,'UA: '+navigator.userAgent].concat(lines).join('\n');}};
-  add('V5-HTML-001','インライン診断を開始しました。');
-  window.addEventListener('error',function(e){add('V5-JS-ERROR','JavaScriptエラー',String(e.message||'')+' @ '+String(e.filename||'')+':'+String(e.lineno||'')+':'+String(e.colno||''));});
-  window.addEventListener('unhandledrejection',function(e){add('V5-PROMISE-ERROR','未処理のPromiseエラー',e.reason);});
-  document.addEventListener('DOMContentLoaded',function(){
-    var card=document.querySelector('#authGate .auth-card');
-    if(card){
-      var badge=document.createElement('div');badge.id='authBuildBadge';badge.textContent='診断版 Build '+BUILD;var note=card.querySelector('.note');if(note)note.insertAdjacentElement('afterend',badge);else card.prepend(badge);
-      var panel=document.createElement('section');panel.id='inlineDiagnosticPanel';panel.innerHTML='<h2>端末内コンソール（診断版v6）</h2><div id="inlineDiagnosticLog"></div><button type="button" id="copyInlineDiagnostic">診断全文をコピー</button><button type="button" id="clearInlineDiagnostic">診断を消去</button>';card.appendChild(panel);
-      document.getElementById('copyInlineDiagnostic').addEventListener('click',async function(){var t=window.TaxiPayInlineDiagnostic.report();try{await navigator.clipboard.writeText(t);add('V5-COPY-OK','診断全文をコピーしました。');}catch(e){window.prompt('下の診断情報をコピーしてください。',t);}});
-      document.getElementById('clearInlineDiagnostic').addEventListener('click',function(){lines=[];save();add('V5-CLEAR','診断を消去しました。');});
-      draw();
-    }
-    add('V5-DOM-001','画面要素の読み込みが完了しました。');
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.getRegistrations().then(function(rs){add('V5-SW-FOUND','Service Worker登録数',rs.length);return Promise.all(rs.map(function(r){return r.unregister();}));}).then(function(){add('V5-SW-OFF','Service Workerを解除しました。');}).catch(function(e){add('V5-SW-ERROR','Service Worker解除失敗',e);});
-    }
-    if(window.caches&&caches.keys){caches.keys().then(function(keys){add('V5-CACHE-FOUND','キャッシュ数',keys.length);return Promise.all(keys.map(function(k){return caches.delete(k);}));}).then(function(){add('V5-CACHE-CLEAR','アプリキャッシュを削除しました。');}).catch(function(e){add('V5-CACHE-ERROR','キャッシュ削除失敗',e);});}
-  });
-  var rawLog=console.log,rawErr=console.error,rawWarn=console.warn;
-  console.log=function(){try{add('CONSOLE-LOG',Array.prototype.map.call(arguments,safe).join(' '));}catch(e){} return rawLog.apply(console,arguments);};
-  console.error=function(){try{add('CONSOLE-ERROR',Array.prototype.map.call(arguments,safe).join(' '));}catch(e){} return rawErr.apply(console,arguments);};
-  console.warn=function(){try{add('CONSOLE-WARN',Array.prototype.map.call(arguments,safe).join(' '));}catch(e){} return rawWarn.apply(console,arguments);};
+  window.TaxiPayInlineDiagnostic={
+    add:add,
+    build:BUILD,
+    report:function(){return ['Build: '+BUILD,'URL: '+location.href,'UA: '+navigator.userAgent].concat(lines).join('
+');}
+  };
+  add('V9-HTML-001','起動処理を開始しました。');
+  window.addEventListener('error',function(e){add('V9-JS-ERROR','JavaScriptエラー',String(e.message||'')+' @ '+String(e.filename||'')+':'+String(e.lineno||'')+':'+String(e.colno||''));});
+  window.addEventListener('unhandledrejection',function(e){add('V9-PROMISE-ERROR','未処理のPromiseエラー',e.reason);});
 })();
 </script>
 </head>
@@ -63,8 +42,8 @@
 <button class="google-login-button" id="googleLoginButton" type="button">Googleでログイン</button>
 <div class="setup-notice prereg-notice">初回利用前に、管理者による事前登録が必要です。登録済みのGoogleアカウントでログインしてください。</div>
 <p class="auth-footnote">利用できるのは、事前登録マスターに登録されたGoogleアカウントだけです。</p>
-<details class="auth-diagnostic" id="authDiagnostic" open>
-<summary>ログイン診断情報</summary>
+<details class="auth-diagnostic" id="authDiagnostic">
+<summary>ログインできない場合の詳細情報</summary>
 <p class="auth-diagnostic-help">ログインできない場合は、下の「現在の状態」とエラーコードをご確認ください。</p>
 <div class="auth-diagnostic-current" id="authDiagnosticCurrent">認証機能を準備しています…</div>
 <ol class="auth-diagnostic-steps" id="authDiagnosticSteps"></ol>
@@ -169,4 +148,4 @@
 <label>運賃改定係数<input id="fareRevisionCoefficient" step="0.0001" type="number"/></label><label>給与算定係数<input id="payRevenueCoefficient" step="0.0001" type="number"/></label><label>消費税率（%）<input id="taxRate" step="0.1" type="number"/></label>
 <label>模範勤務手当/月<input id="modelWorkAllowance" type="number"/></label><label>無事故手当/乗務<input id="accidentFreeAllowance" type="number"/></label><label>無違反手当/乗務<input id="violationFreeAllowance" type="number"/></label>
 <label>法定超 時間外割増（%）<input id="statutoryOvertimeRate" step="0.01" type="number"/></label><label>所定超 時間外割増（%）<input id="scheduledOvertimeRate" step="0.01" type="number"/></label><label>月60時間超 割増（%）<input id="over60Rate" step="0.01" type="number"/></label><label>法定休日割増（%）<input id="statutoryHolidayRate" step="0.01" type="number"/></label><label>法定外休日割増（%）<input id="nonStatutoryHolidayRate" step="0.01" type="number"/></label><label>深夜割増（%）<input id="nightRate" step="0.01" type="number"/></label></div><div class="actions"><button id="saveAdmin">開発者設定を保存</button></div></form></dialog>
-<script src="diagnostics.js?v=20260725-6"></script><script src="firebase-config.js"></script><script src="tax-table-2026.js"></script><script src="app.js"></script><script src="v13-features.js"></script><script src="boot.js?v=20260725-6"></script></body></html>
+<script src="diagnostics.js?v=20260727-9"></script><script src="firebase-config.js"></script><script src="tax-table-2026.js"></script><script src="app.js"></script><script src="v13-features.js"></script><script src="boot.js?v=20260727-9"></script></body></html>
