@@ -133,3 +133,164 @@ body.auth-pending,body.password-change-pending{min-height:100vh}
 .auth-diagnostic-error{margin-top:10px;padding:10px;border:1px solid #d99797;border-radius:8px;background:#fff0f0;color:#8f1111;font-weight:700;white-space:pre-wrap;overflow-wrap:anywhere}
 .auth-diagnostic-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .auth-diagnostic-actions button{font-size:.85rem;padding:8px 10px}
+
+
+/* ============================================================
+   v12 管理画面・ヘッダーデザイン
+   ============================================================ */
+:root{
+  --admin-navy:#073b55;
+  --admin-navy-deep:#052f45;
+  --admin-gold:#ffc533;
+  --admin-blue:#0969e8;
+  --admin-green:#10a866;
+  --admin-purple:#7841c6;
+  --admin-red:#e52e35;
+}
+
+.app-header{
+  background:linear-gradient(135deg,var(--admin-navy-deep),var(--admin-navy));
+}
+
+.eligibility-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:38px;
+  padding:7px 15px;
+  border-radius:999px;
+  background:#f7fbff;
+  color:#136dd8;
+  border:1px solid #d8eaff;
+  font-weight:800;
+  box-shadow:0 2px 8px #001a2b24;
+}
+
+.signed-in-user{
+  color:#fff;
+  font-weight:800;
+  max-width:190px;
+}
+
+.app-header .admin-link{
+  background:var(--admin-gold);
+  color:#173446;
+  border:1px solid #ffd867;
+  font-weight:900;
+  box-shadow:0 2px 8px #001a2b30;
+}
+
+.app-header .admin-link:hover{
+  background:#ffd357;
+  filter:none;
+}
+
+.app-header button.ghost{
+  background:#fff;
+  color:#173446;
+  border:1px solid #dce8ee;
+}
+
+.admin-app-header{
+  min-height:82px;
+  padding-block:16px;
+}
+
+.admin-page-title{
+  color:var(--admin-gold);
+  font-size:clamp(1.35rem,3vw,2rem)!important;
+  letter-spacing:.02em;
+  text-shadow:0 2px 10px #0005;
+}
+
+.admin-app-header p{
+  color:#d7e8ef;
+}
+
+.admin-dashboard-card{
+  border-color:#d9e5eb;
+  box-shadow:0 10px 30px #17313b14;
+}
+
+.admin-action-guide{
+  margin:0 0 18px;
+  padding:13px 16px;
+  border:1px solid #add3ff;
+  border-radius:10px;
+  background:#f1f8ff;
+  color:#1557a0;
+  font-weight:700;
+}
+
+.admin-button{
+  min-height:44px;
+  box-shadow:0 4px 12px #102b3a1f;
+}
+
+.admin-button-blue{background:var(--admin-blue)}
+.admin-button-green{background:var(--admin-green)}
+.admin-button-purple{background:var(--admin-purple)}
+.admin-button-neutral{background:#677683}
+
+.table-action-buttons{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:nowrap;
+}
+
+.table-action-button{
+  min-height:36px;
+  padding:7px 10px;
+  border-radius:7px;
+  white-space:nowrap;
+  font-size:.82rem;
+  box-shadow:0 2px 7px #102b3a20;
+}
+
+.edit-action{background:var(--admin-blue)}
+.toggle-action{background:#dd8b13}
+.delete-action{background:var(--admin-red)}
+
+.delete-action:hover{
+  background:#c91f27;
+  filter:none;
+}
+
+.admin-page th{
+  background:#f2f5f7;
+  color:#17212b;
+  font-weight:800;
+}
+
+.admin-page tbody tr:hover{
+  background:#f8fbfd;
+}
+
+.admin-page [data-kind="success"]{
+  color:#087944;
+  font-weight:800;
+}
+
+.admin-page [data-kind="error"]{
+  color:#c41f27;
+  font-weight:800;
+}
+
+@media(max-width:700px){
+  .admin-app-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .table-action-buttons{
+    flex-wrap:wrap;
+    min-width:150px;
+  }
+
+  .eligibility-badge{
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+}

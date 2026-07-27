@@ -18,6 +18,7 @@ import {
   collection,
   getDocs,
   updateDoc,
+  writeBatch,
   serverTimestamp,
   orderBy,
   query
@@ -387,21 +388,35 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         <td>${entry.enabled === true ? '利用中' : '利用停止'}</td>
         <td>${entry.invitationUsed === true ? '登録済み' : '未登録'}</td>
         <td>
-          <button
-            type="button"
-            data-action="edit"
-            data-allow-email="${escapeHtml(entry.id)}"
-          >
-            編集
-          </button>
-          <button
-            type="button"
-            data-action="toggle"
-            data-allow-email="${escapeHtml(entry.id)}"
-            data-enabled="${entry.enabled === true}"
-          >
-            ${entry.enabled === true ? '利用停止' : '利用再開'}
-          </button>
+          <div class="table-action-buttons">
+            <button
+              class="table-action-button edit-action"
+              type="button"
+              data-action="edit"
+              data-allow-email="${escapeHtml(entry.id)}"
+            >
+              ✎ 編集
+            </button>
+            <button
+              class="table-action-button toggle-action"
+              type="button"
+              data-action="toggle"
+              data-allow-email="${escapeHtml(entry.id)}"
+              data-enabled="${entry.enabled === true}"
+            >
+              ${entry.enabled === true ? '利用停止' : '利用再開'}
+            </button>
+            <button
+              class="table-action-button delete-action"
+              type="button"
+              data-action="delete-allowlist"
+              data-allow-email="${escapeHtml(entry.id)}"
+              data-allow-name="${escapeHtml(entry.displayName || '')}"
+              data-registered-uid="${escapeHtml(entry.registeredUid || '')}"
+            >
+              🗑 削除
+            </button>
+          </div>
         </td>
       `;
 
@@ -425,6 +440,52 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         startAllowlistEdit({ id: snapshot.id, ...snapshot.data() });
       } catch (error) {
         alert(errorText(error, '登録情報を読み込めませんでした。'));
+      }
+      return;
+    }
+
+    if (action === 'delete-allowlist') {
+      const displayName = button.dataset.allowName || email;
+      const registeredUid = button.dataset.registeredUid || '';
+      const typed = prompt(
+        `${displayName} の事前登録情報を削除します。\n` +
+        `関連するFirestoreの利用者情報も削除されます。\n\n` +
+        `確認のため、Googleアカウントを入力してください。\n${email}`
+      );
+
+      if (typed === null) return;
+      if (typed.trim().toLowerCase() !== email.toLowerCase()) {
+        alert('入力されたGoogleアカウントが一致しないため、削除を中止しました。');
+        return;
+      }
+
+      try {
+        button.disabled = true;
+        const batch = writeBatch(db);
+
+        batch.delete(doc(db, 'betaAllowlist', email));
+
+        if (registeredUid) {
+          batch.delete(doc(db, 'users', registeredUid));
+          batch.delete(doc(db, 'v13LoginSuccess', registeredUid));
+        }
+
+        await batch.commit();
+
+        if (editingAllowlistEmail === email) {
+          resetAllowlistForm();
+        }
+
+        setStatus(
+          document.getElementById('allowlistStatus'),
+          `${displayName} の事前登録情報${registeredUid ? 'と利用者情報' : ''}を削除しました。`,
+          'success'
+        );
+
+        await Promise.all([loadAllowlist(), loadUsers()]);
+      } catch (error) {
+        alert(errorText(error, '事前登録情報を削除できませんでした。'));
+        button.disabled = false;
       }
       return;
     }
@@ -487,13 +548,29 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
           <td>${formatTimestamp(user.createdAt)}</td>
           <td>${formatTimestamp(user.lastLoginAt)}</td>
           <td>
-            <button
-              type="button"
-              data-user-id="${escapeHtml(user.id)}"
-              data-status="${escapeHtml(user.status || '')}"
-            >
-              ${user.status === 'active' ? '利用停止' : '利用再開'}
-            </button>
+            <div class="table-action-buttons">
+              <button
+                class="table-action-button toggle-action"
+                type="button"
+                data-user-action="toggle"
+                data-user-id="${escapeHtml(user.id)}"
+                data-user-email="${escapeHtml(user.email || '')}"
+                data-user-name="${escapeHtml(user.name || user.displayName || '')}"
+                data-status="${escapeHtml(user.status || '')}"
+              >
+                ${user.status === 'active' ? '利用停止' : '利用再開'}
+              </button>
+              <button
+                class="table-action-button delete-action"
+                type="button"
+                data-user-action="delete"
+                data-user-id="${escapeHtml(user.id)}"
+                data-user-email="${escapeHtml(user.email || '')}"
+                data-user-name="${escapeHtml(user.name || user.displayName || '')}"
+              >
+                🗑 削除
+              </button>
+            </div>
           </td>
         `;
 
@@ -513,16 +590,68 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
     const button = event.target.closest('button[data-user-id]');
     if (!button) return;
 
-    const nextStatus = button.dataset.status === 'active' ? 'locked' : 'active';
-    const action = nextStatus === 'locked' ? '利用停止' : '利用再開';
+    const userId = button.dataset.userId;
+    const userEmail = (button.dataset.userEmail || '').trim().toLowerCase();
+    const userName = button.dataset.userName || userEmail || userId;
+    const actionType = button.dataset.userAction || 'toggle';
 
-    if (!confirm(`このユーザーを${action}にしますか？`)) return;
+    if (actionType === 'delete') {
+      const typed = prompt(
+        `${userName} の利用者情報を完全に削除します。\n` +
+        `対象：users・v13LoginSuccess・紐づくbetaAllowlist\n` +
+        `Firebase Authenticationのアカウント自体は削除されません。\n\n` +
+        `確認のため、Googleアカウントを入力してください。\n${userEmail}`
+      );
+
+      if (typed === null) return;
+      if (!userEmail || typed.trim().toLowerCase() !== userEmail) {
+        alert('入力されたGoogleアカウントが一致しないため、削除を中止しました。');
+        return;
+      }
+
+      try {
+        button.disabled = true;
+
+        const batch = writeBatch(db);
+        batch.delete(doc(db, 'users', userId));
+        batch.delete(doc(db, 'v13LoginSuccess', userId));
+
+        const allowRef = doc(db, 'betaAllowlist', userEmail);
+        const allowSnapshot = await getDoc(allowRef);
+
+        if (
+          allowSnapshot.exists() &&
+          String(allowSnapshot.data().registeredUid || '') === userId
+        ) {
+          batch.delete(allowRef);
+        }
+
+        await batch.commit();
+
+        setStatus(
+          document.getElementById('adminStatus'),
+          `${userName} のFirestore利用者情報を削除しました。`,
+          'success'
+        );
+
+        await Promise.all([loadUsers(), loadAllowlist()]);
+      } catch (error) {
+        alert(errorText(error, '利用者情報を削除できませんでした。'));
+        button.disabled = false;
+      }
+      return;
+    }
+
+    const nextStatus = button.dataset.status === 'active' ? 'locked' : 'active';
+    const statusAction = nextStatus === 'locked' ? '利用停止' : '利用再開';
+
+    if (!confirm(`${userName} を${statusAction}にしますか？`)) return;
 
     try {
       button.disabled = true;
 
       await updateDoc(
-        doc(db, 'users', button.dataset.userId),
+        doc(db, 'users', userId),
         {
           status: nextStatus,
           statusUpdatedAt: serverTimestamp()
