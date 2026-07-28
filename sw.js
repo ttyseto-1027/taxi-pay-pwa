@@ -1,4 +1,4 @@
-const CACHE = 'taxi-pay-v1.3-beta-20260728-phase0-06-ios-popup-fix';
+const CACHE = 'taxi-pay-v1.3-beta-20260728-phase0-07-firestore-user-fix';
 
 const FILES = [
   './',

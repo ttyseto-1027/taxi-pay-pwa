@@ -27,7 +27,7 @@ import {
 const DIAG_KEY = 'taxiPayAuthDiagnosticV17';
 const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
 const MAX_STEPS = 120;
-const DIAGNOSTIC_BUILD = 'phase0-06-ios-popup-fix';
+const DIAGNOSTIC_BUILD = 'phase0-07-firestore-user-fix';
 
 function safeStorageGet() {
   try { return JSON.parse(localStorage.getItem(DIAG_KEY) || '{}'); } catch { return {}; }
@@ -367,10 +367,23 @@ export async function initializeTaxiPayAuth(){
     });
   }).catch(err => captureEnvironment('service-worker-registration-error', {error:String(err?.message || err)}));
 
+  function firestoreWithTimeout(promise, milliseconds, stage){
+    let timer;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        reject(Object.assign(new Error(`Firestoreの確認が${Math.round(milliseconds/1000)}秒以内に完了しませんでした。`), {
+          code: 'app/firestore-timeout',
+          authStage: stage
+        }));
+      }, milliseconds);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+  }
+
   async function adminInfo(uid){
     diag.step('AUTH-ADMIN-START','管理者登録を確認しています。');
     try {
-      const s=await getDoc(doc(db,'admins',uid));
+      const s=await firestoreWithTimeout(getDoc(doc(db,'admins',uid)),10000,'ADMIN');
       diag.step('AUTH-ADMIN-OK',s.exists()?'管理者登録を確認しました。':'管理者登録はありません。','success');
       return s.exists()&&s.data().enabled!==false?s.data():null;
     } catch(err) { throw Object.assign(err,{authStage:'ADMIN'}); }
@@ -379,7 +392,7 @@ export async function initializeTaxiPayAuth(){
     const email=emailOf(user);
     diag.step('AUTH-ALLOWLIST-START','事前登録マスターを確認しています。');
     try {
-      const s=await getDoc(doc(db,'betaAllowlist',email));
+      const s=await firestoreWithTimeout(getDoc(doc(db,'betaAllowlist',email)),10000,'ALLOWLIST');
       if(!s.exists()||s.data().enabled!==true) throw new Error('このGoogleアカウントはv1.3βの事前登録マスターに登録されていません。');
       diag.step('AUTH-ALLOWLIST-OK','事前登録を確認しました。','success');
       return {ref:s.ref,data:s.data(),email};
@@ -418,7 +431,29 @@ export async function initializeTaxiPayAuth(){
     const uref=doc(db,'users',user.uid);
     diag.step('AUTH-USER-START','利用者情報を確認しています。');
     let us;
-    try { us=await getDoc(uref); } catch(err) { throw Object.assign(err,{authStage:'USER'}); }
+    try {
+      us=await firestoreWithTimeout(getDoc(uref),10000,'USER');
+      diag.step('AUTH-USER-READ-OK',us.exists()?'利用者情報を取得しました。':'利用者情報は未作成です。','success');
+    } catch(err) {
+      diag.step('AUTH-USER-READ-ERROR',String(err?.message||err),'error',JSON.stringify({code:err?.code||'',stage:'USER'}));
+      if(admin){
+        const a=allow.data;
+        diag.step('AUTH-ADMIN-USER-FALLBACK','利用者情報の取得が完了しないため、事前登録情報から管理者として起動します。','warning');
+        return {
+          name:a.displayName||user.displayName||admin.displayName||'',
+          displayName:a.displayName||user.displayName||'',
+          email:allow.email,
+          status:'active',
+          plan:'administrator',
+          isAdmin:true,
+          unionStatus:a.unionStatus||'nonmember',
+          driverNumber:String(a.driverNumber||''),
+          office:a.office||'',
+          tester:a.tester!==false
+        };
+      }
+      throw Object.assign(err,{authStage:'USER'});
+    }
 
     if(us.exists()){
       const p=us.data();
