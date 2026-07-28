@@ -1,4 +1,4 @@
-const CACHE = 'taxi-pay-v1.3-beta-20260728-phase1-pc-login-click-fix';
+const CACHE = 'taxi-pay-v1.3-beta-20260728-phase1-rebuild1';
 
 const FILES = [
   './',
@@ -11,9 +11,10 @@ const FILES = [
   './firebase-auth.js',
   './diagnostics.js',
   './boot.js',
+  './v13-features.js',
+  './phase1-ui.js',
   './admin.html',
-  './admin.js',
-  './menu.js'
+  './admin.js'
 ];
 
 self.addEventListener('install', (event) => {
