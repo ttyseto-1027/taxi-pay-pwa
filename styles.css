@@ -401,3 +401,29 @@ body.auth-pending .menu-backdrop{display:none!important}
 .common-menu[hidden] {
   display:none!important;
 }
+
+/* Phase 1 PC login click shield fix 2026-07-28
+   ログイン画面を常に最前面の独立レイヤーとして表示し、
+   ログアウト直後に残留したメニュー／背景がクリックを遮断しないようにする。 */
+body.auth-pending #authGate:not([hidden]){
+  position:fixed!important;
+  inset:0!important;
+  z-index:10000!important;
+  width:100%!important;
+  min-height:100dvh!important;
+  overflow:auto!important;
+  pointer-events:auto!important;
+}
+body.auth-pending #authGate:not([hidden]) .auth-card,
+body.auth-pending #authGate:not([hidden]) .google-login-button{
+  position:relative;
+  z-index:1;
+  pointer-events:auto!important;
+}
+body.auth-pending #commonMenu,
+body.auth-pending #menuBackdrop,
+body.auth-pending #openMenu{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}

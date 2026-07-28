@@ -1,4 +1,4 @@
-const CACHE = 'taxi-pay-v1.3-beta-20260728-phase1-logout-menu-force-close-v3';
+const CACHE = 'taxi-pay-v1.3-beta-20260728-phase1-pc-login-click-fix';
 
 const FILES = [
   './',
