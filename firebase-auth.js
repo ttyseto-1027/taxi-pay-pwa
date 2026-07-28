@@ -27,7 +27,7 @@ import {
 const DIAG_KEY = 'taxiPayAuthDiagnosticV17';
 const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
 const MAX_STEPS = 120;
-const DIAGNOSTIC_BUILD = 'phase0-05-diagnostic';
+const DIAGNOSTIC_BUILD = 'phase0-06-ios-popup-fix';
 
 function safeStorageGet() {
   try { return JSON.parse(localStorage.getItem(DIAG_KEY) || '{}'); } catch { return {}; }
@@ -322,7 +322,9 @@ export async function initializeTaxiPayAuth(){
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const isAndroid = /Android/i.test(ua);
   const isMobile = isIOS || isAndroid || /Mobile/i.test(ua);
-  const loginMethod = isIOS ? 'redirect' : 'popup';
+  // Phase 0⑥: iOS WebKitではRedirect結果が失われるためPopup方式を使用する。
+  // PC・Android側の既存方式は変更しない。
+  const loginMethod = 'popup';
   const emailOf = u => String(u?.email||'').trim().toLowerCase();
   let authStateEventCount = 0;
   const captureEnvironment = (checkpoint, extra = {}) => {
@@ -619,7 +621,7 @@ export async function initializeTaxiPayAuth(){
     diag.step(
       'AUTH-DEVICE-METHOD',
       isIOS
-        ? 'iPhone・iPadのため画面遷移方式でログインします。'
+        ? 'iPhone・iPadのためポップアップ方式でログインします。'
         : isAndroid
           ? 'Android Chromeのためポップアップ方式でログインします。'
           : 'PCのためポップアップ方式でログインします。'
@@ -646,12 +648,9 @@ export async function initializeTaxiPayAuth(){
       }
 
       if(isIOS){
-        updateAttempt({method:'redirect',phase:'redirect-start',isIOS});
-        captureEnvironment('before-signInWithRedirect');
-        diag.step('AUTH-REDIRECT-START','Googleアカウント選択画面へ移動します。');
-        I?.add('V17-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
-        await signInWithRedirect(auth,provider);
-        return;
+        updateAttempt({method:'popup',phase:'popup-start',isIOS});
+        captureEnvironment('before-signInWithPopup-ios');
+        diag.step('AUTH-IOS-POPUP-START','iPhone・iPad用のGoogleログイン画面を開いています。');
       }
 
       diag.step('AUTH-POPUP-START','Googleアカウント選択画面を開いています。');
@@ -670,7 +669,8 @@ export async function initializeTaxiPayAuth(){
       }
     } catch(err) {
       const code=err?.code||'';
-      if(loginMethod === 'popup' && (code==='auth/popup-blocked'||code==='auth/cancelled-popup-request')){
+      // iOSではRedirectへ戻すと既知のループが再発するため、フォールバックしない。
+      if(loginMethod === 'popup' && !isIOS && (code==='auth/popup-blocked'||code==='auth/cancelled-popup-request')){
         diag.step('AUTH-REDIRECT-FALLBACK','ポップアップを開けないため、画面遷移方式へ切り替えます。');
         updateAttempt({method:'redirect',phase:'redirect-start'});
         try {
@@ -687,10 +687,10 @@ export async function initializeTaxiPayAuth(){
         }
       } else {
         clearAttempt();
-        const info=userFriendlyError(loginMethod === 'redirect' ? 'REDIRECT' : 'SIGNIN',err);
+        const info=userFriendlyError(isIOS ? 'IOS-POPUP' : (loginMethod === 'redirect' ? 'REDIRECT' : 'SIGNIN'),err);
         preservedFailure=true;
         setMessage(info.text);
-        diag.fail(info,loginMethod === 'redirect' ? 'REDIRECT' : 'SIGNIN');
+        diag.fail(info,isIOS ? 'IOS-POPUP' : (loginMethod === 'redirect' ? 'REDIRECT' : 'SIGNIN'));
         D.notify(info.text,'error',info.displayCode,err?.stack||err);
       }
     } finally {
