@@ -112,6 +112,9 @@
   });
 
   document.getElementById('menuLogout')?.addEventListener('click', () => {
+    // スマホではサインアウト完了後もドロワーが前面に残らないよう、
+    // 認証処理を開始する前にメニュー状態を同期的に解除する。
+    setMenu(false);
     document.getElementById('logoutButton')?.click();
   });
 
