@@ -8,7 +8,7 @@
 <meta content="タクシー乗務員向け給与概算シミュレーター" name="description"/>
 <title>タクシー給与シミュレーター</title>
 <link href="manifest.json" rel="manifest"/>
-<link href="styles.css?v=20260728-phase1-ui-foundation" rel="stylesheet"/>
+<link href="styles.css?v=20260728-phase1-admin-preview" rel="stylesheet"/>
 <script>
 (function(){
   'use strict';
@@ -55,10 +55,9 @@
 </details>
 </div>
 </section>
-<header class="app-header no-print"><div><h1>タクシー給与シミュレーター</h1><p id="headerShift">勤務区分未設定</p></div><div class="header-controls"><span class="eligibility-badge" id="userEligibility"></span><span class="signed-in-user" id="signedInUser"></span><a class="ghost admin-link" hidden="" href="admin.html" id="adminPageLink">ユーザー管理</a><button class="ghost" id="logoutButton" type="button">ログアウト</button><button aria-controls="commonMenu" aria-expanded="false" aria-label="メニューを開く" class="icon-button menu-trigger" id="openMenu" type="button">☰</button></div><button aria-label="設定を開く" class="visually-hidden" id="openSettings" type="button">設定</button></header><div class="menu-backdrop no-print" hidden="" id="menuBackdrop"></div><aside aria-hidden="true" aria-label="共通メニュー" class="common-menu no-print" id="commonMenu"><div class="common-menu-header"><div><strong>メニュー</strong><span>Version 1.3β / Phase 1</span></div><button aria-label="メニューを閉じる" class="icon-button" id="closeMenu" type="button">✕</button></div>
+<header class="app-header no-print"><div><h1>タクシー給与シミュレーター</h1><p id="headerShift">勤務区分未設定</p></div><div class="header-controls"><span class="eligibility-badge" id="userEligibility"></span><span class="signed-in-user" id="signedInUser"></span><div class="admin-preview-controls" hidden id="adminPreviewControls"><label for="adminPreviewMode">表示確認</label><select id="adminPreviewMode"><option value="actual">実際の権限</option><option value="member">組合員UI</option><option value="nonmember">非組合員UI</option></select></div><a class="ghost admin-link" hidden="" href="admin.html" id="adminPageLink">ユーザー管理</a><button class="ghost" id="logoutButton" type="button">ログアウト</button><button aria-controls="commonMenu" aria-expanded="false" aria-label="メニューを開く" class="icon-button menu-trigger" id="openMenu" type="button">☰</button></div><button aria-label="設定を開く" class="visually-hidden" id="openSettings" type="button">設定</button></header><div class="menu-backdrop no-print" hidden="" id="menuBackdrop"></div><aside aria-hidden="true" aria-label="共通メニュー" class="common-menu no-print" id="commonMenu"><div class="common-menu-header"><div><strong>メニュー</strong><span>Version 1.3β / Phase 1</span></div><button aria-label="メニューを閉じる" class="icon-button" id="closeMenu" type="button">✕</button></div>
 <nav class="common-menu-nav">
-<button data-view="work" type="button">勤務実績</button>
-<button data-view="payroll" type="button">給与シミュレーター</button>
+<button data-view="work" type="button">勤務実績・給与試算</button>
 <button data-member-only="" data-view="monthly" type="button"><span>月次集計</span><small>組合員専用</small></button>
 <button data-member-only="" data-view="paid-leave" type="button"><span>有給管理</span><small>組合員専用</small></button>
 <button data-member-only="" data-view="deductions" type="button"><span>控除額設定</span><small>組合員専用</small></button>
@@ -67,7 +66,7 @@
 <button data-view="help" type="button">ヘルプ</button>
 </nav><div class="common-menu-footer"><button class="danger" id="menuLogout" type="button">ログアウト</button></div></aside>
 <main class="app-layout">
-<section class="app-view union-dashboard no-print card" data-app-view="dashboard" data-union-only="" hidden=""><h2>組合員ダッシュボード</h2><div class="summary-grid"><div><span>目標手取り</span><input id="targetTakeHome" min="0" placeholder="例 430000" step="1000" type="number"/></div><div><span>追加で必要な税込営収</span><strong id="neededRevenue">—</strong></div><div><span>実質還元率</span><strong id="effectiveReturn">—</strong></div><div><span>手取り還元率</span><strong id="takeHomeReturn">—</strong></div><div><span>時間あたり手取り</span><strong id="hourlyTakeHome">—</strong></div></div><h3>休憩管理</h3><p id="restStatus">連続運転：0分</p><div class="actions"><button id="startRest" type="button">休憩開始</button><button class="secondary" id="endRest" type="button">休憩終了</button></div></section><section class="layout-entry no-print app-view card" data-app-view="work" id="workEntrySection">
+<section class="app-view union-dashboard no-print card" data-app-view="work" data-union-only="" hidden=""><h2>組合員ダッシュボード</h2><div class="summary-grid"><div><span>目標手取り</span><input id="targetTakeHome" min="0" placeholder="例 430000" step="1000" type="number"/></div><div><span>追加で必要な税込営収</span><strong id="neededRevenue">—</strong></div><div><span>実質還元率</span><strong id="effectiveReturn">—</strong></div><div><span>手取り還元率</span><strong id="takeHomeReturn">—</strong></div><div><span>時間あたり手取り</span><strong id="hourlyTakeHome">—</strong></div></div><h3>休憩管理</h3><p id="restStatus">連続運転：0分</p><div class="actions"><button id="startRest" type="button">休憩開始</button><button class="secondary" id="endRest" type="button">休憩終了</button></div></section><section class="layout-entry no-print app-view card" data-app-view="work" id="workEntrySection">
 <h2>勤務実績を入力</h2>
 <form class="entry-form" id="entryForm">
 <label>勤務日<input id="date" required="" type="date"/></label>
@@ -94,7 +93,7 @@
 <input id="editingId" type="hidden"/>
 <div class="actions full"><button type="submit">勤務実績を保存</button><button class="ghost" id="resetForm" type="button">入力欄クリア</button></div>
 </form>
-</section><section class="app-view layout-daily card" data-app-view="work" id="dailySection"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>勤務・有給区分</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section><section class="dashboard layout-simulation app-view card" data-app-view="payroll" hidden="" id="payrollSection">
+</section><section class="app-view layout-daily card" data-app-view="work" id="dailySection"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>勤務・有給区分</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section><section class="dashboard layout-simulation app-view card" data-app-view="work" id="payrollSection">
 <div class="month-row no-print"><button class="ghost" id="prevMonth">前給与月</button><input id="currentMonth" type="month"/><button class="ghost" id="nextMonth">翌給与月</button></div>
 <h2 id="reportTitle">給与サマリー</h2><p class="note" id="payPeriod"></p>
 <div class="summary-grid">
@@ -121,12 +120,12 @@
 <p class="version-line">Version 1.3β<br/>© Taxi Payroll Processing Simulator</p>
 </div>
 </section><section class="card app-view phase1-placeholder" data-app-view="monthly" data-member-view="" hidden="" id="monthlyView">
-<h2>月次集計</h2><p>月ごとの勤務実績・営収・給与指標を確認する組合員専用画面です。</p><p class="phase-status">画面基盤を作成済みです。集計機能はPhase 4で実装します。</p></section><section class="card app-view phase1-placeholder" data-app-view="paid-leave" data-member-view="" hidden="" id="paidLeaveView">
+<h2>月次集計</h2><p>月ごとの勤務実績・営収・給与指標を確認する組合員専用画面です。</p><div class="summary-grid monthly-preview-grid"><div><span>対象年月</span><strong>未選択</strong></div><div><span>乗務回数</span><strong>—</strong></div><div><span>税込営収合計</span><strong>—</strong></div><div><span>総労働時間</span><strong>—</strong></div><div><span>概算総支給</span><strong>—</strong></div><div><span>概算手取り</span><strong>—</strong></div></div><p class="phase-status">画面基盤を作成済みです。集計機能はPhase 4で実装します。</p><section class="monthly-history"><h3>給与締め履歴</h3><div id="historyList"></div></section></section><section class="card app-view phase1-placeholder" data-app-view="paid-leave" data-member-view="" hidden="" id="paidLeaveView">
 <h2>有給管理</h2><p>有給残日数、取得履歴、標準日額を管理する組合員専用画面です。</p><div class="placeholder-field"><span>標準日額</span><strong>未設定</strong></div><p class="phase-status">画面基盤を作成済みです。保存・計算機能はPhase 3以降で実装します。</p></section><section class="card app-view phase1-placeholder" data-app-view="deductions" data-member-view="" hidden="" id="deductionsView">
 <h2>控除額設定</h2><p>住民税、組合費、共済費、その他控除を個別設定し、手取り額の精度を高める組合員専用画面です。</p><p class="phase-status">画面基盤を作成済みです。設定機能はPhase 3で実装します。</p></section><section class="card app-view phase1-placeholder" data-app-view="profile" hidden="" id="profileView">
 <h2>利用者情報</h2><dl class="profile-summary"><dt>Googleアカウント</dt><dd id="profileEmail">確認中</dd><dt>利用区分</dt><dd id="profileEligibility">確認中</dd><dt>勤務区分</dt><dd id="profileShift">未設定</dd></dl><p class="phase-status">詳細な利用者情報の登録・編集はPhase 2で実装します。</p></section><section class="card app-view phase1-placeholder" data-app-view="settings" hidden="" id="settingsView">
 <h2>設定</h2><p>アプリ全体の動作に関する設定画面です。</p><p class="phase-status">準備中</p></section><section class="card app-view phase1-placeholder" data-app-view="help" hidden="" id="helpView">
-<h2>ヘルプ</h2><p>勤務実績の入力、給与シミュレーター、各画面の使い方を掲載する予定です。</p><p class="phase-status">準備中</p></section><section class="card no-print layout-history"><h2>給与締め履歴</h2><div id="historyList"></div></section></main>
+<h2>ヘルプ</h2><p>勤務実績の入力、給与シミュレーター、各画面の使い方を掲載する予定です。</p><p class="phase-status">準備中</p></section></main>
 <dialog class="modal" id="onboardingDialog"><form id="onboardingForm" method="dialog"><h2>最初に勤務区分を選択してください</h2><label>勤務区分<select id="onboardingShiftType" required=""></select></label><div class="rule-box" id="onboardingRule"></div><label class="agree"><input id="agreeDisclaimer" required="" type="checkbox"/>免責事項を確認しました</label><button id="completeOnboarding">利用を開始</button><div class="app-disclaimer" role="note">
 <p class="disclaimer-title">【免責事項】</p>
 <p>本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
@@ -157,4 +156,4 @@
 <label>運賃改定係数<input id="fareRevisionCoefficient" step="0.0001" type="number"/></label><label>給与算定係数<input id="payRevenueCoefficient" step="0.0001" type="number"/></label><label>消費税率（%）<input id="taxRate" step="0.1" type="number"/></label>
 <label>模範勤務手当/月<input id="modelWorkAllowance" type="number"/></label><label>無事故手当/乗務<input id="accidentFreeAllowance" type="number"/></label><label>無違反手当/乗務<input id="violationFreeAllowance" type="number"/></label>
 <label>法定超 時間外割増（%）<input id="statutoryOvertimeRate" step="0.01" type="number"/></label><label>所定超 時間外割増（%）<input id="scheduledOvertimeRate" step="0.01" type="number"/></label><label>月60時間超 割増（%）<input id="over60Rate" step="0.01" type="number"/></label><label>法定休日割増（%）<input id="statutoryHolidayRate" step="0.01" type="number"/></label><label>法定外休日割増（%）<input id="nonStatutoryHolidayRate" step="0.01" type="number"/></label><label>深夜割増（%）<input id="nightRate" step="0.01" type="number"/></label></div><div class="actions"><button id="saveAdmin">開発者設定を保存</button></div></form></dialog>
-<script src="diagnostics.js?v=20260728-phase1-ui-foundation"></script><script src="firebase-config.js?v=20260728-phase1-ui-foundation"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20260728-phase1-ui-foundation"></script><script src="v13-features.js?v=20260728-phase1-ui-foundation"></script><script src="boot.js?v=20260728-phase1-ui-foundation"></script><script src="menu.js?v=20260728-phase1-ui-foundation"></script></body></html>
+<script src="diagnostics.js?v=20260728-phase1-admin-preview"></script><script src="firebase-config.js?v=20260728-phase1-admin-preview"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20260728-phase1-admin-preview"></script><script src="v13-features.js?v=20260728-phase1-admin-preview"></script><script src="boot.js?v=20260728-phase1-admin-preview"></script><script src="menu.js?v=20260728-phase1-admin-preview"></script></body></html>

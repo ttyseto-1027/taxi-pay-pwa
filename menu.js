@@ -7,12 +7,19 @@
   const closeButton = document.getElementById('closeMenu');
   const views = [...document.querySelectorAll('[data-app-view]')];
   const menuButtons = [...document.querySelectorAll('[data-view]')];
-  const publicViews = new Set(['work', 'payroll', 'profile', 'settings', 'help']);
+  const previewControls = document.getElementById('adminPreviewControls');
+  const previewMode = document.getElementById('adminPreviewMode');
+  const publicViews = new Set(['work', 'profile', 'settings', 'help']);
   const memberViews = new Set(['monthly', 'paid-leave', 'deductions']);
+  let actualMember = false;
+  let isAdmin = false;
 
   if (!menu || !backdrop || !openButton || !closeButton) return;
 
-  const isMember = () => document.body.dataset.unionStatus === 'member';
+  function effectiveMember() {
+    if (!isAdmin || !previewMode || previewMode.value === 'actual') return actualMember;
+    return previewMode.value === 'member';
+  }
 
   function setMenu(open) {
     menu.classList.toggle('is-open', open);
@@ -23,13 +30,20 @@
     if (open) closeButton.focus();
   }
 
-  function syncMemberAccess() {
-    const member = isMember();
+  function applyEffectiveAccess() {
+    const member = effectiveMember();
+    document.body.dataset.effectiveUnionStatus = member ? 'member' : 'nonmember';
+
+    document.querySelectorAll('[data-union-only]').forEach((node) => {
+      node.hidden = !member;
+    });
+
     document.querySelectorAll('[data-member-only]').forEach((button) => {
       button.classList.toggle('member-locked', !member);
       button.setAttribute('aria-disabled', String(!member));
       button.tabIndex = member ? 0 : -1;
     });
+
     const current = location.hash.replace(/^#\/?/, '');
     if (!member && memberViews.has(current)) showView('work', true);
   }
@@ -48,11 +62,11 @@
 
   function showView(requested, replaceHash = false) {
     let view = publicViews.has(requested) || memberViews.has(requested) ? requested : 'work';
-    if (memberViews.has(view) && !isMember()) view = 'work';
+    if (memberViews.has(view) && !effectiveMember()) view = 'work';
 
     views.forEach((section) => {
-      const active = section.dataset.appView === view;
-      section.hidden = !active;
+      const roleBlocked = section.hasAttribute('data-union-only') && !effectiveMember();
+      section.hidden = section.dataset.appView !== view || roleBlocked;
     });
     menuButtons.forEach((button) => {
       button.classList.toggle('is-active', button.dataset.view === view);
@@ -66,6 +80,17 @@
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
+  function acceptProfile(profile) {
+    if (!profile) return;
+    const unionStatus = String(profile.unionStatus || '').trim().toLowerCase();
+    actualMember = unionStatus === 'member' || unionStatus === 'union' || unionStatus === '組合員';
+    isAdmin = profile.isAdmin === true;
+    if (previewControls) previewControls.hidden = !isAdmin;
+    if (!isAdmin && previewMode) previewMode.value = 'actual';
+    document.body.dataset.actualUnionStatus = actualMember ? 'member' : 'nonmember';
+    applyEffectiveAccess();
+  }
+
   openButton.addEventListener('click', () => setMenu(true));
   closeButton.addEventListener('click', () => setMenu(false));
   backdrop.addEventListener('click', () => setMenu(false));
@@ -76,9 +101,14 @@
   menu.addEventListener('click', (event) => {
     const button = event.target.closest('[data-view]');
     if (!button) return;
-    if (button.hasAttribute('data-member-only') && !isMember()) return;
+    if (button.hasAttribute('data-member-only') && !effectiveMember()) return;
     setMenu(false);
     showView(button.dataset.view);
+  });
+
+  previewMode?.addEventListener('change', () => {
+    applyEffectiveAccess();
+    showView(location.hash.replace(/^#\/?/, '') || 'work', true);
   });
 
   document.getElementById('menuLogout')?.addEventListener('click', () => {
@@ -88,17 +118,18 @@
   window.addEventListener('hashchange', () => {
     showView(location.hash.replace(/^#\/?/, ''), true);
   });
-
-  new MutationObserver(() => {
-    syncMemberAccess();
-    refreshProfile();
-  }).observe(document.body, { attributes: true, attributeFilter: ['data-union-status'] });
+  window.addEventListener('taxipay:profile', (event) => acceptProfile(event.detail));
+  window.addEventListener('taxipay:app-ready', (event) => acceptProfile(event.detail));
 
   ['signedInUser', 'userEligibility', 'headerShift'].forEach((id) => {
     const node = document.getElementById(id);
     if (node) new MutationObserver(refreshProfile).observe(node, { childList: true, subtree: true, characterData: true });
   });
 
-  syncMemberAccess();
+  if (window.TaxiPayCurrentProfile) acceptProfile(window.TaxiPayCurrentProfile);
+  else {
+    actualMember = document.body.dataset.unionStatus === 'member';
+    applyEffectiveAccess();
+  }
   showView(location.hash.replace(/^#\/?/, '') || 'work', true);
 })();
