@@ -14,3 +14,9 @@
 - `phase1-ui.js` の `MutationObserver` が、認証画面表示中に `body.class` を無条件で再変更する構造を修正。
 - メニューが実際に開いている場合のみ閉鎖処理を実行し、`closeMenu()`自体も変更が必要な場合だけDOM属性を更新する冪等処理に変更。
 - 認証処理（`firebase-auth.js`）は変更していない。
+
+## 2026-07-28 PC認証停止修正
+- Phase 1 UIの初期化を `taxipay:profile` / `taxipay:app-ready` 受信後へ延期。
+- 認証準備中はPhase 1によるDOM変更、権限制御、URLハッシュ変更を行わない。
+- `MutationObserver` を完全撤去。
+- ログアウト押下時のメニュー閉鎖だけは認証状態に依存せず先に登録。
