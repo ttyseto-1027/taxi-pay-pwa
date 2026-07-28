@@ -8,7 +8,7 @@
 <meta content="タクシー乗務員向け給与概算シミュレーター" name="description"/>
 <title>タクシー給与シミュレーター</title>
 <link href="manifest.json" rel="manifest"/>
-<link href="styles.css?v=20260728-phase1-rebuild1" rel="stylesheet"/>
+<link href="styles.css?v=20260728-phase1-fix1" rel="stylesheet"/>
 <script>
 (function(){
   'use strict';
@@ -16,16 +16,14 @@
   var KEY='taxiPayInlineDiagnosticV9';
   var lines=[];
   function ts(){try{return new Date().toLocaleTimeString('ja-JP',{hour12:false});}catch(e){return new Date().toISOString();}}
-  function safe(v){try{if(v instanceof Error)return (v.name+': '+v.message+'
-'+(v.stack||''));if(typeof v==='string')return v;return JSON.stringify(v);}catch(e){return String(v);}}
+  function safe(v){try{if(v instanceof Error)return (v.name+': '+v.message+'\n'+(v.stack||''));if(typeof v==='string')return v;return JSON.stringify(v);}catch(e){return String(v);}}
   function save(){try{sessionStorage.setItem(KEY,JSON.stringify(lines.slice(-160)));}catch(e){}}
   function add(code,msg,detail){var row=ts()+' '+code+' '+msg+(detail?' | '+safe(detail):'');lines.push(row);save();}
   try{var old=JSON.parse(sessionStorage.getItem(KEY)||'[]');if(Array.isArray(old))lines=old.slice(-100);}catch(e){}
   window.TaxiPayInlineDiagnostic={
     add:add,
     build:BUILD,
-    report:function(){return ['Build: '+BUILD,'URL: '+location.href,'UA: '+navigator.userAgent].concat(lines).join('
-');}
+    report:function(){return ['Build: '+BUILD,'URL: '+location.href,'UA: '+navigator.userAgent].concat(lines).join('\n');}
   };
   add('V9-HTML-001','起動処理を開始しました。');
   window.addEventListener('error',function(e){add('V9-JS-ERROR','JavaScriptエラー',String(e.message||'')+' @ '+String(e.filename||'')+':'+String(e.lineno||'')+':'+String(e.colno||''));});
@@ -141,4 +139,4 @@
 <label>運賃改定係数<input id="fareRevisionCoefficient" step="0.0001" type="number"/></label><label>給与算定係数<input id="payRevenueCoefficient" step="0.0001" type="number"/></label><label>消費税率（%）<input id="taxRate" step="0.1" type="number"/></label>
 <label>模範勤務手当/月<input id="modelWorkAllowance" type="number"/></label><label>無事故手当/乗務<input id="accidentFreeAllowance" type="number"/></label><label>無違反手当/乗務<input id="violationFreeAllowance" type="number"/></label>
 <label>法定超 時間外割増（%）<input id="statutoryOvertimeRate" step="0.01" type="number"/></label><label>所定超 時間外割増（%）<input id="scheduledOvertimeRate" step="0.01" type="number"/></label><label>月60時間超 割増（%）<input id="over60Rate" step="0.01" type="number"/></label><label>法定休日割増（%）<input id="statutoryHolidayRate" step="0.01" type="number"/></label><label>法定外休日割増（%）<input id="nonStatutoryHolidayRate" step="0.01" type="number"/></label><label>深夜割増（%）<input id="nightRate" step="0.01" type="number"/></label></div><div class="actions"><button id="saveAdmin">開発者設定を保存</button></div></form></dialog>
-<script src="diagnostics.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="firebase-config.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="v13-features.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="boot.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="phase1-ui.js?v=20260728-phase1-rebuild1"></script></body></html>
+<script src="diagnostics.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="firebase-config.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="v13-features.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="boot.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="phase1-ui.js?v=20260728-phase1-fix1"></script></body></html>
