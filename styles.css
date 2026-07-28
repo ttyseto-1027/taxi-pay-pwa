@@ -355,3 +355,22 @@ body.auth-pending,body.password-change-pending{min-height:100vh}
     grid-template-columns:1fr;
   }
 }
+
+/* ============================================================
+   Phase 1-01 共通メニュー基盤
+   ============================================================ */
+.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.menu-trigger{font-size:1.35rem;line-height:1}
+.menu-backdrop{position:fixed;inset:0;background:rgba(14,31,38,.45);z-index:1200}
+.common-menu{position:fixed;top:0;right:0;width:min(88vw,360px);height:100dvh;background:#fff;z-index:1210;box-shadow:-10px 0 28px rgba(0,0,0,.18);transform:translateX(105%);transition:transform .2s ease;display:flex;flex-direction:column;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));box-sizing:border-box}
+.common-menu.is-open{transform:translateX(0)}
+.common-menu-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #dbe4e7;padding-bottom:12px}
+.common-menu-header strong{display:block;font-size:1.25rem}.common-menu-header span{display:block;color:#66777d;font-size:.8rem;margin-top:2px}
+.common-menu-nav{display:grid;gap:6px;padding:14px 0;overflow-y:auto}
+.common-menu-nav button{width:100%;text-align:left;background:transparent;color:#18343d;border:0;border-radius:10px;padding:13px 12px;font-weight:700;box-shadow:none}
+.common-menu-nav button:hover,.common-menu-nav button:focus-visible{background:#eaf3f5;filter:none}
+.common-menu-footer{margin-top:auto;padding-top:12px;border-top:1px solid #dbe4e7}.common-menu-footer button{width:100%}
+body.menu-open{overflow:hidden}
+.profile-summary{display:grid;grid-template-columns:max-content 1fr;gap:10px 16px;margin:0}.profile-summary dt{font-weight:700;color:#51666d}.profile-summary dd{margin:0;overflow-wrap:anywhere}
+.info-dialog #menuInfoBody{min-width:min(70vw,440px)}
+@media(max-width:700px){.app-header{gap:8px}.app-header .header-controls{width:100%;justify-content:flex-end}.signed-in-user{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.info-dialog #menuInfoBody{min-width:0}.profile-summary{grid-template-columns:1fr}.profile-summary dd{margin-bottom:6px}}

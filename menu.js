@@ -1,82 +1,75 @@
 (() => {
   'use strict';
-  const $ = id => document.getElementById(id);
-  const dialog = $('appMenuDialog');
-  const openButton = $('openAppMenu');
-  const closeButton = $('closeAppMenu');
-  const legacySettingsButton = $('openSettings');
-  const adminHeaderLink = $('adminPageLink');
-  const adminMenuLink = document.querySelector('.app-menu-admin');
-  const pageNodes = [...document.querySelectorAll('[data-app-page]')];
-  let currentPage = 'work';
 
-  function isAdminVisible() {
-    return Boolean(adminHeaderLink && !adminHeaderLink.hidden);
+  const menu = document.getElementById('commonMenu');
+  const backdrop = document.getElementById('menuBackdrop');
+  const openButton = document.getElementById('openMenu');
+  const closeButton = document.getElementById('closeMenu');
+  const infoDialog = document.getElementById('menuInfoDialog');
+  const infoTitle = document.getElementById('menuInfoTitle');
+  const infoBody = document.getElementById('menuInfoBody');
+
+  if (!menu || !backdrop || !openButton || !closeButton) return;
+
+  function setMenu(open) {
+    menu.classList.toggle('is-open', open);
+    menu.setAttribute('aria-hidden', String(!open));
+    openButton.setAttribute('aria-expanded', String(open));
+    backdrop.hidden = !open;
+    document.body.classList.toggle('menu-open', open);
+    if (open) closeButton.focus();
   }
-  function syncAdminVisibility() {
-    if (adminMenuLink) adminMenuLink.hidden = !isAdminVisible();
+
+  function closeMenu() { setMenu(false); }
+  function scrollToSection(id) {
+    const target = document.getElementById(id);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-  function openMenu() {
-    syncAdminVisibility();
-    if (!dialog) return;
-    if (typeof dialog.showModal === 'function') dialog.showModal();
-    else dialog.setAttribute('open', '');
+  function openSettings(focusId) {
+    const trigger = document.getElementById('openSettings');
+    if (trigger) trigger.click();
+    window.setTimeout(() => {
+      const target = focusId ? document.getElementById(focusId) : null;
+      if (target) target.focus({ preventScroll: false });
+    }, 80);
   }
-  function closeMenu() {
-    if (!dialog) return;
-    if (typeof dialog.close === 'function' && dialog.open) dialog.close();
-    else dialog.removeAttribute('open');
+  function showInfo(title, html) {
+    if (!infoDialog || !infoTitle || !infoBody) return;
+    infoTitle.textContent = title;
+    infoBody.innerHTML = html;
+    infoDialog.showModal();
   }
-  function setPage(page) {
-    currentPage = page;
-    pageNodes.forEach(node => {
-      const shouldShow = node.dataset.appPage === page;
-      // data-union-only elements remain governed by the existing profile logic.
-      if (node.hasAttribute('data-union-only') && shouldShow) {
-        const profile = window.TaxiPayCurrentProfile;
-        node.hidden = profile?.unionStatus !== 'member';
-      } else {
-        node.hidden = !shouldShow;
-      }
-    });
-    document.querySelectorAll('[data-menu-page]').forEach(item => {
-      const active = item.dataset.menuPage === page;
-      item.classList.toggle('is-active', active);
-      item.setAttribute('aria-current', active ? 'page' : 'false');
-    });
+
+  openButton.addEventListener('click', () => setMenu(true));
+  closeButton.addEventListener('click', closeMenu);
+  backdrop.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && menu.classList.contains('is-open')) closeMenu();
+  });
+
+  menu.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-menu-action]');
+    if (!button) return;
+    const action = button.dataset.menuAction;
     closeMenu();
-    window.scrollTo({top: 0, behavior: 'instant'});
+
+    if (action === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (action === 'work') scrollToSection('workSection');
+    if (action === 'monthly') scrollToSection('monthlySection');
+    if (action === 'paidLeave') openSettings('paidLeaveOpeningBalance');
+    if (action === 'deductions') openSettings('healthInsurance');
+    if (action === 'settings') openSettings('shiftType');
+    if (action === 'profile') {
+      const email = document.getElementById('signedInUser')?.textContent?.trim() || 'ログイン中のGoogleアカウント';
+      const eligibility = document.getElementById('userEligibility')?.textContent?.trim() || '利用区分を確認中';
+      showInfo('利用者情報', `<dl class="profile-summary"><dt>Googleアカウント</dt><dd>${escapeHtml(email)}</dd><dt>利用区分</dt><dd>${escapeHtml(eligibility)}</dd><dt>勤務区分</dt><dd>${escapeHtml(document.getElementById('headerShift')?.textContent || '未設定')}</dd></dl>`);
+    }
+    if (action === 'notice') showInfo('お知らせ', '<p>現在、新しいお知らせはありません。</p>');
+    if (action === 'help') showInfo('ヘルプ', '<p>勤務実績を入力して保存すると、日別明細と給与サマリーへ反映されます。</p><p>控除額や有給残日数は、メニューの「控除額設定」「有給管理」から変更できます。</p>');
+    if (action === 'logout') document.getElementById('logoutButton')?.click();
+  });
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
   }
-
-  openButton?.addEventListener('click', openMenu);
-  closeButton?.addEventListener('click', closeMenu);
-  dialog?.addEventListener('click', event => {
-    if (event.target === dialog) closeMenu();
-  });
-  dialog?.addEventListener('cancel', event => {
-    event.preventDefault();
-    closeMenu();
-  });
-  document.querySelectorAll('[data-menu-page]').forEach(button => {
-    button.addEventListener('click', () => setPage(button.dataset.menuPage));
-  });
-  document.querySelector('[data-menu-action="settings"]')?.addEventListener('click', () => {
-    closeMenu();
-    legacySettingsButton?.click();
-  });
-
-  window.addEventListener('taxipay:profile', () => {
-    syncAdminVisibility();
-    setPage(currentPage);
-  });
-  window.addEventListener('taxipay:app-ready', () => {
-    syncAdminVisibility();
-    setPage('work');
-  });
-
-  // MutationObserver ensures the administrator item follows auth visibility changes.
-  if (adminHeaderLink) {
-    new MutationObserver(syncAdminVisibility).observe(adminHeaderLink, {attributes:true, attributeFilter:['hidden']});
-  }
-  setPage('work');
 })();
