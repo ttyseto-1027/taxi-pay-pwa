@@ -391,3 +391,13 @@ body.menu-open{overflow:hidden}
 /* ログアウト後は認証画面よりメニューを必ず背面化・非表示にする */
 body.auth-pending .common-menu{transform:translateX(105%)!important;pointer-events:none!important}
 body.auth-pending .menu-backdrop{display:none!important}
+
+/* ログイン画面表示中はPC・スマホ共通メニューを必ず除去する。
+   bodyクラスの更新順に依存せず、authGate自体の表示状態を基準にする。 */
+#authGate:not([hidden]) ~ .common-menu,
+#authGate:not([hidden]) ~ .menu-backdrop {
+  display:none!important;
+}
+.common-menu[hidden] {
+  display:none!important;
+}

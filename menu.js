@@ -22,6 +22,7 @@
   }
 
   function setMenu(open) {
+    menu.hidden = !open;
     menu.classList.toggle('is-open', open);
     menu.setAttribute('aria-hidden', String(!open));
     openButton.setAttribute('aria-expanded', String(open));
@@ -114,6 +115,7 @@
   const forceCloseMenu = () => {
     setMenu(false);
     // hidden属性やクラスの反映順に左右されないよう、残留状態も明示的に解除する。
+    menu.hidden = true;
     menu.classList.remove('is-open');
     menu.setAttribute('aria-hidden', 'true');
     backdrop.hidden = true;
@@ -134,8 +136,17 @@
   // Firebase側がログイン画面へ戻した時にも強制的に閉じる。
   // 通信速度やsignOut完了タイミングによるスマホ固有の残留を防ぐ。
   new MutationObserver(() => {
-    if (document.body.classList.contains('auth-pending')) forceCloseMenu();
+    if (document.body.classList.contains('auth-pending') || !document.getElementById('authGate')?.hidden) {
+      forceCloseMenu();
+    }
   }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+  const authGate = document.getElementById('authGate');
+  if (authGate) {
+    new MutationObserver(() => {
+      if (!authGate.hidden) forceCloseMenu();
+    }).observe(authGate, { attributes: true, attributeFilter: ['hidden', 'aria-hidden'] });
+  }
 
   window.addEventListener('hashchange', () => {
     showView(location.hash.replace(/^#\/?/, ''), true);
