@@ -355,24 +355,3 @@ body.auth-pending,body.password-change-pending{min-height:100vh}
     grid-template-columns:1fr;
   }
 }
-
-
-/* v1.3β Phase 3①: beta navigation menu */
-.visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.menu-trigger{min-height:44px;padding:.65rem .9rem;border:0;border-radius:10px;background:#fff;color:#0f4c5c;font:inherit;font-weight:800;cursor:pointer;white-space:nowrap}
-.app-menu-dialog{width:min(92vw,390px);max-height:88vh;margin:auto;border:0;border-radius:16px;padding:0;background:transparent;box-shadow:0 20px 60px rgba(0,0,0,.28)}
-.app-menu-dialog::backdrop{background:rgba(3,22,29,.55)}
-.app-menu-panel{background:#fff;border-radius:16px;padding:18px}
-.app-menu-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--border)}
-.app-menu-heading h2{margin:0;font-size:1.2rem}
-.app-menu-nav{display:grid;gap:8px;margin-top:14px}
-.app-menu-item{display:grid;width:100%;gap:2px;padding:13px 14px;border:1px solid var(--border);border-radius:11px;background:#fff;color:inherit;text-align:left;text-decoration:none;font:inherit;cursor:pointer}
-.app-menu-item:hover,.app-menu-item.is-active{background:#edf6f7;border-color:#6f9ba5}
-.app-menu-item span{font-weight:800}
-.app-menu-item small{font-size:.72rem;color:#65757a;font-weight:600}
-.app-menu-version{margin:16px 2px 0;font-size:.72rem;line-height:1.55;color:#68777c}
-.page-title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.page-title-row h2{margin:0}
-.beta-status{font-size:.72rem;color:#65757a;font-weight:700}
-.beta-page-intro{grid-column:1/-1}
-@media(max-width:700px){.menu-trigger{order:2}.app-header{align-items:flex-start}.app-menu-dialog{width:calc(100vw - 24px)}}
