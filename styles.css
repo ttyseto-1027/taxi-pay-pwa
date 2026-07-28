@@ -368,3 +368,13 @@ body.menu-open{overflow:hidden}
 
 /* Phase 2: 利用者基本設定 */
 .profile-card-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.profile-card-title h2{margin:0}.phase2-editor label small{display:block;margin-top:5px;font-size:.75rem;font-weight:400;color:var(--muted)}.phase2-message{min-height:1.5em;margin-top:12px;font-size:.9rem;font-weight:700}.phase2-message[data-kind="success"]{color:#176b45}.phase2-message[data-kind="error"]{color:var(--danger)}.phase2-message[data-kind="info"]{color:var(--primary2)}.phase2-editor button:disabled{opacity:.6;cursor:wait}@media(max-width:700px){.profile-card-title{align-items:stretch;flex-direction:column}.profile-card-title button{width:100%}}
+
+/* Phase 3: 個人設定 */
+.phase3-settings-card .form-grid { align-items: end; }
+.phase3-balance { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin:1rem 0; padding:1rem; border-radius:12px; background:var(--surface-subtle, #f5f7fa); }
+.phase3-balance strong { font-size:1.35rem; }
+.phase3-history-row { display:flex; justify-content:space-between; gap:1rem; padding:.75rem 0; border-bottom:1px solid rgba(0,0,0,.08); }
+.button-like { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:.65rem 1rem; border-radius:10px; cursor:pointer; font-weight:700; }
+.phase2-message[data-kind="success"] { color:#146c43; }
+.phase2-message[data-kind="error"] { color:#b42318; }
+@media (max-width: 640px) { .phase3-settings-card .form-grid { grid-template-columns:1fr; } .phase3-balance { align-items:flex-start; } }

@@ -185,3 +185,70 @@ function showOnboardingAfterLogin(){const dialog=$('onboardingDialog');if(!dialo
 window.addEventListener('taxipay:profile',showOnboardingAfterLogin);
 showOnboardingAfterLogin();
 render();
+
+// Phase 3: 個人設定画面と既存給与計算を安全に連携する公開API。
+// 認証処理には関与せず、端末内の既存state.settingsだけを更新する。
+(() => {
+  const PERSONAL_SETTING_KEYS = [
+    'dependentCount', 'residentTax', 'unionFee', 'mutualAidFee', 'otherDeduction',
+    'paidLeaveDailyRate', 'paidLeaveOpeningBalance', 'paidLeaveNextGrantDate',
+    'paidLeaveNextGrantDays', 'paidLeaveAppliedGrants', 'paidLeaveUsageHistory'
+  ];
+  const numericKeys = new Set([
+    'dependentCount', 'residentTax', 'unionFee', 'mutualAidFee', 'otherDeduction',
+    'paidLeaveDailyRate', 'paidLeaveOpeningBalance', 'paidLeaveNextGrantDays'
+  ]);
+  function cleanPersonalSettings(input) {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('設定データの形式が正しくありません。');
+    const source = input.settings && typeof input.settings === 'object' ? input.settings : input;
+    const output = {};
+    for (const key of PERSONAL_SETTING_KEYS) {
+      if (!(key in source)) continue;
+      if (numericKeys.has(key)) {
+        const value = Number(source[key]);
+        if (!Number.isFinite(value) || value < 0) throw new Error(`${key}の値が正しくありません。`);
+        output[key] = value;
+      } else if (key === 'paidLeaveNextGrantDate') {
+        const value = String(source[key] || '');
+        if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('次回有給付与日の形式が正しくありません。');
+        output[key] = value;
+      } else if (Array.isArray(source[key])) {
+        output[key] = clone(source[key]);
+      }
+    }
+    if ('dependentCount' in output && (!Number.isInteger(output.dependentCount) || output.dependentCount > 20)) {
+      throw new Error('扶養人数は0～20人の整数で入力してください。');
+    }
+    return output;
+  }
+  window.TaxiPayAppSettings = Object.freeze({
+    get() { return clone(state.settings); },
+    update(values) {
+      const cleaned = cleanPersonalSettings(values);
+      Object.assign(state.settings, cleaned);
+      saveState();
+      applyDuePaidLeaveGrant();
+      render();
+      window.dispatchEvent(new CustomEvent('taxipay:personal-settings-updated', { detail: clone(state.settings) }));
+      return clone(state.settings);
+    },
+    getPaidLeaveBalance() { return paidLeaveBalance(); },
+    exportPersonalSettings() {
+      const settings = {};
+      for (const key of PERSONAL_SETTING_KEYS) settings[key] = clone(state.settings[key]);
+      return { format: 'taxi-pay-personal-settings', version: 1, exportedAt: new Date().toISOString(), settings };
+    },
+    importPersonalSettings(payload) {
+      if (!payload || payload.format !== 'taxi-pay-personal-settings' || Number(payload.version) !== 1) {
+        throw new Error('このアプリの設定ファイルではありません。');
+      }
+      const cleaned = cleanPersonalSettings(payload.settings);
+      Object.assign(state.settings, cleaned);
+      saveState();
+      applyDuePaidLeaveGrant();
+      render();
+      window.dispatchEvent(new CustomEvent('taxipay:personal-settings-updated', { detail: clone(state.settings) }));
+      return clone(state.settings);
+    }
+  });
+})();
