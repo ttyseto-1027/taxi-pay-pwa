@@ -5,11 +5,14 @@
   const backdrop = document.getElementById('menuBackdrop');
   const openButton = document.getElementById('openMenu');
   const closeButton = document.getElementById('closeMenu');
-  const infoDialog = document.getElementById('menuInfoDialog');
-  const infoTitle = document.getElementById('menuInfoTitle');
-  const infoBody = document.getElementById('menuInfoBody');
+  const views = [...document.querySelectorAll('[data-app-view]')];
+  const menuButtons = [...document.querySelectorAll('[data-view]')];
+  const publicViews = new Set(['work', 'payroll', 'profile', 'settings', 'help']);
+  const memberViews = new Set(['monthly', 'paid-leave', 'deductions']);
 
   if (!menu || !backdrop || !openButton || !closeButton) return;
+
+  const isMember = () => document.body.dataset.unionStatus === 'member';
 
   function setMenu(open) {
     menu.classList.toggle('is-open', open);
@@ -20,56 +23,82 @@
     if (open) closeButton.focus();
   }
 
-  function closeMenu() { setMenu(false); }
-  function scrollToSection(id) {
-    const target = document.getElementById(id);
-    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  function syncMemberAccess() {
+    const member = isMember();
+    document.querySelectorAll('[data-member-only]').forEach((button) => {
+      button.classList.toggle('member-locked', !member);
+      button.setAttribute('aria-disabled', String(!member));
+      button.tabIndex = member ? 0 : -1;
+    });
+    const current = location.hash.replace(/^#\/?/, '');
+    if (!member && memberViews.has(current)) showView('work', true);
   }
-  function openSettings(focusId) {
-    const trigger = document.getElementById('openSettings');
-    if (trigger) trigger.click();
-    window.setTimeout(() => {
-      const target = focusId ? document.getElementById(focusId) : null;
-      if (target) target.focus({ preventScroll: false });
-    }, 80);
+
+  function refreshProfile() {
+    const email = document.getElementById('signedInUser')?.textContent?.trim() || '確認中';
+    const eligibility = document.getElementById('userEligibility')?.textContent?.trim() || '確認中';
+    const shift = document.getElementById('headerShift')?.textContent?.trim() || '未設定';
+    const profileEmail = document.getElementById('profileEmail');
+    const profileEligibility = document.getElementById('profileEligibility');
+    const profileShift = document.getElementById('profileShift');
+    if (profileEmail) profileEmail.textContent = email;
+    if (profileEligibility) profileEligibility.textContent = eligibility;
+    if (profileShift) profileShift.textContent = shift;
   }
-  function showInfo(title, html) {
-    if (!infoDialog || !infoTitle || !infoBody) return;
-    infoTitle.textContent = title;
-    infoBody.innerHTML = html;
-    infoDialog.showModal();
+
+  function showView(requested, replaceHash = false) {
+    let view = publicViews.has(requested) || memberViews.has(requested) ? requested : 'work';
+    if (memberViews.has(view) && !isMember()) view = 'work';
+
+    views.forEach((section) => {
+      const active = section.dataset.appView === view;
+      section.hidden = !active;
+    });
+    menuButtons.forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.view === view);
+    });
+    refreshProfile();
+    const nextHash = `#/${view}`;
+    if (location.hash !== nextHash) {
+      if (replaceHash) history.replaceState(null, '', nextHash);
+      else history.pushState(null, '', nextHash);
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
   openButton.addEventListener('click', () => setMenu(true));
-  closeButton.addEventListener('click', closeMenu);
-  backdrop.addEventListener('click', closeMenu);
+  closeButton.addEventListener('click', () => setMenu(false));
+  backdrop.addEventListener('click', () => setMenu(false));
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && menu.classList.contains('is-open')) closeMenu();
+    if (event.key === 'Escape') setMenu(false);
   });
 
   menu.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-menu-action]');
+    const button = event.target.closest('[data-view]');
     if (!button) return;
-    const action = button.dataset.menuAction;
-    closeMenu();
-
-    if (action === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (action === 'work') scrollToSection('workSection');
-    if (action === 'monthly') scrollToSection('monthlySection');
-    if (action === 'paidLeave') openSettings('paidLeaveOpeningBalance');
-    if (action === 'deductions') openSettings('healthInsurance');
-    if (action === 'settings') openSettings('shiftType');
-    if (action === 'profile') {
-      const email = document.getElementById('signedInUser')?.textContent?.trim() || 'ログイン中のGoogleアカウント';
-      const eligibility = document.getElementById('userEligibility')?.textContent?.trim() || '利用区分を確認中';
-      showInfo('利用者情報', `<dl class="profile-summary"><dt>Googleアカウント</dt><dd>${escapeHtml(email)}</dd><dt>利用区分</dt><dd>${escapeHtml(eligibility)}</dd><dt>勤務区分</dt><dd>${escapeHtml(document.getElementById('headerShift')?.textContent || '未設定')}</dd></dl>`);
-    }
-    if (action === 'notice') showInfo('お知らせ', '<p>現在、新しいお知らせはありません。</p>');
-    if (action === 'help') showInfo('ヘルプ', '<p>勤務実績を入力して保存すると、日別明細と給与サマリーへ反映されます。</p><p>控除額や有給残日数は、メニューの「控除額設定」「有給管理」から変更できます。</p>');
-    if (action === 'logout') document.getElementById('logoutButton')?.click();
+    if (button.hasAttribute('data-member-only') && !isMember()) return;
+    setMenu(false);
+    showView(button.dataset.view);
   });
 
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>'"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
-  }
+  document.getElementById('menuLogout')?.addEventListener('click', () => {
+    document.getElementById('logoutButton')?.click();
+  });
+
+  window.addEventListener('hashchange', () => {
+    showView(location.hash.replace(/^#\/?/, ''), true);
+  });
+
+  new MutationObserver(() => {
+    syncMemberAccess();
+    refreshProfile();
+  }).observe(document.body, { attributes: true, attributeFilter: ['data-union-status'] });
+
+  ['signedInUser', 'userEligibility', 'headerShift'].forEach((id) => {
+    const node = document.getElementById(id);
+    if (node) new MutationObserver(refreshProfile).observe(node, { childList: true, subtree: true, characterData: true });
+  });
+
+  syncMemberAccess();
+  showView(location.hash.replace(/^#\/?/, '') || 'work', true);
 })();
