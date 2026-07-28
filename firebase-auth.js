@@ -26,7 +26,8 @@ import {
 
 const DIAG_KEY = 'taxiPayAuthDiagnosticV17';
 const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
-const MAX_STEPS = 60;
+const MAX_STEPS = 120;
+const DIAGNOSTIC_BUILD = 'phase0-05-diagnostic';
 
 function safeStorageGet() {
   try { return JSON.parse(localStorage.getItem(DIAG_KEY) || '{}'); } catch { return {}; }
@@ -43,6 +44,62 @@ function writeAttempt(value) {
 }
 function clearAttempt() {
   try { localStorage.removeItem(ATTEMPT_KEY); } catch {}
+}
+
+function safeStorageSummary(storage) {
+  try {
+    const keys = [];
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (key) keys.push(key);
+    }
+    return { available: true, length: storage.length, keys: keys.sort() };
+  } catch (err) {
+    return { available: false, error: String(err?.message || err) };
+  }
+}
+
+function currentEnvironment(auth = null, extra = {}) {
+  const attempt = readAttempt();
+  const sw = navigator.serviceWorker;
+  return {
+    build: DIAGNOSTIC_BUILD,
+    capturedAt: new Date().toISOString(),
+    href: location.href,
+    origin: location.origin,
+    pathname: location.pathname,
+    search: location.search,
+    hash: location.hash,
+    referrer: document.referrer || '',
+    visibilityState: document.visibilityState,
+    cookieEnabled: navigator.cookieEnabled,
+    online: navigator.onLine,
+    standalone: window.matchMedia?.('(display-mode: standalone)')?.matches === true,
+    navigatorStandalone: navigator.standalone === true,
+    localStorage: safeStorageSummary(localStorage),
+    sessionStorage: safeStorageSummary(sessionStorage),
+    attempt: attempt ? {
+      id: attempt.id || '',
+      method: attempt.method || '',
+      phase: attempt.phase || '',
+      startedAt: attempt.startedAt || null,
+      updatedAt: attempt.updatedAt || null,
+      pageUrl: attempt.pageUrl || ''
+    } : null,
+    authCurrentUser: auth?.currentUser ? {
+      uidPresent: Boolean(auth.currentUser.uid),
+      emailMasked: maskEmail(auth.currentUser.email || ''),
+      providerIds: Array.isArray(auth.currentUser.providerData)
+        ? auth.currentUser.providerData.map(x => x?.providerId).filter(Boolean)
+        : []
+    } : null,
+    serviceWorker: {
+      supported: Boolean(sw),
+      controllerScriptURL: sw?.controller?.scriptURL || '',
+      controllerState: sw?.controller?.state || ''
+    },
+    ...extra
+  };
 }
 function startAttempt(method='popup') {
   const value = {
@@ -139,12 +196,30 @@ function createDiagnosticUI() {
   }
   function report() {
     const ua = navigator.userAgent;
+    const env = state.environment || {};
     const lines = [
       'タクシー給与シミュレーター ログイン診断',
+      `診断版: ${DIAGNOSTIC_BUILD}`,
       `URL: ${location.origin}${location.pathname}`,
       `端末情報: ${ua}`,
       `現在の状態: ${state.current || ''}`,
       state.error ? `エラー: ${state.error.replace(/\n/g,' / ')}` : 'エラー: なし',
+      '--- 環境情報 ---',
+      `href: ${env.href || location.href}`,
+      `search: ${env.search || ''}`,
+      `hash: ${env.hash || ''}`,
+      `referrer: ${env.referrer || ''}`,
+      `visibilityState: ${env.visibilityState || document.visibilityState}`,
+      `cookieEnabled: ${String(env.cookieEnabled ?? navigator.cookieEnabled)}`,
+      `online: ${String(env.online ?? navigator.onLine)}`,
+      `standalone: ${String(env.standalone ?? false)}`,
+      `navigatorStandalone: ${String(env.navigatorStandalone ?? false)}`,
+      `auth.currentUser: ${env.authCurrentUser ? JSON.stringify(env.authCurrentUser) : 'null'}`,
+      `ログイン試行: ${env.attempt ? JSON.stringify(env.attempt) : 'null'}`,
+      `localStorage: ${env.localStorage ? JSON.stringify(env.localStorage) : '未取得'}`,
+      `sessionStorage: ${env.sessionStorage ? JSON.stringify(env.sessionStorage) : '未取得'}`,
+      `Service Worker: ${env.serviceWorker ? JSON.stringify(env.serviceWorker) : '未取得'}`,
+      `追加情報: ${env.extra ? JSON.stringify(env.extra) : 'なし'}`,
       '--- 処理履歴 ---',
       ...state.steps.slice(-MAX_STEPS).map(x => `${x.time} ${x.code} ${x.message}${x.detail ? ` [${x.detail}]` : ''}`)
     ];
@@ -161,7 +236,14 @@ function createDiagnosticUI() {
   });
   clearBtn?.addEventListener('click', clear);
   render();
-  return {step, fail, clear, report, setUserEmail(email){state.maskedEmail=maskEmail(email);persist();}};
+  return {
+    step,
+    fail,
+    clear,
+    report,
+    setUserEmail(email){state.maskedEmail=maskEmail(email);persist();},
+    setEnvironment(environment){state.environment=environment;persist();render();}
+  };
 }
 
 function withTimeout(promise, timeoutMs, timeoutCode, timeoutMessage) {
@@ -242,6 +324,46 @@ export async function initializeTaxiPayAuth(){
   const isMobile = isIOS || isAndroid || /Mobile/i.test(ua);
   const loginMethod = isIOS ? 'redirect' : 'popup';
   const emailOf = u => String(u?.email||'').trim().toLowerCase();
+  let authStateEventCount = 0;
+  const captureEnvironment = (checkpoint, extra = {}) => {
+    const environment = currentEnvironment(auth, {
+      extra: {
+        checkpoint,
+        authStateEventCount,
+        loginMethod,
+        isIOS,
+        isAndroid,
+        isMobile,
+        ...extra
+      }
+    });
+    diag.setEnvironment(environment);
+    diag.step(
+      'AUTH-DIAG-SNAPSHOT',
+      `診断情報を取得しました（${checkpoint}）。`,
+      'info',
+      JSON.stringify({
+        authCurrentUser: environment.authCurrentUser,
+        attempt: environment.attempt,
+        visibilityState: environment.visibilityState,
+        serviceWorker: environment.serviceWorker,
+        extra: environment.extra
+      })
+    );
+  };
+
+  captureEnvironment('firebase-initialized');
+  navigator.serviceWorker?.getRegistration?.().then(registration => {
+    captureEnvironment('service-worker-registration', {
+      swRegistration: registration ? {
+        scope: registration.scope || '',
+        activeScriptURL: registration.active?.scriptURL || '',
+        activeState: registration.active?.state || '',
+        waitingScriptURL: registration.waiting?.scriptURL || '',
+        installingScriptURL: registration.installing?.scriptURL || ''
+      } : null
+    });
+  }).catch(err => captureEnvironment('service-worker-registration-error', {error:String(err?.message || err)}));
 
   async function adminInfo(uid){
     diag.step('AUTH-ADMIN-START','管理者登録を確認しています。');
@@ -525,6 +647,7 @@ export async function initializeTaxiPayAuth(){
 
       if(isIOS){
         updateAttempt({method:'redirect',phase:'redirect-start',isIOS});
+        captureEnvironment('before-signInWithRedirect');
         diag.step('AUTH-REDIRECT-START','Googleアカウント選択画面へ移動します。');
         I?.add('V17-REDIRECT-CALL','signInWithRedirect を呼び出します。', isIOS ? 'iOS' : 'mobile');
         await signInWithRedirect(auth,provider);
@@ -592,7 +715,13 @@ export async function initializeTaxiPayAuth(){
   diag.step('AUTH-STATE-LISTENER-START','認証状態の監視を開始しています。');
 
   onAuthStateChanged(auth,async user=>{
+    authStateEventCount += 1;
     I?.add('V17-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
+    captureEnvironment('onAuthStateChanged', {
+      eventNumber: authStateEventCount,
+      signedIn: Boolean(user),
+      eventUserEmailMasked: maskEmail(user?.email || '')
+    });
     if(!user){
       // 次回ログイン時に同一UIDでも利用者確認と画面表示を再実行する。
       completedUid='';
@@ -629,6 +758,7 @@ export async function initializeTaxiPayAuth(){
       '起動時の認証情報保存設定が時間内に完了しませんでした。'
     );
     diag.step('AUTH-PERSIST-BOOT-OK','起動時の認証情報保存設定に成功しました。','success');
+    captureEnvironment('after-persistence-boot');
   } catch(err) {
     // Persistenceの失敗だけで起動を停止しない。
     diag.step(
@@ -642,12 +772,35 @@ export async function initializeTaxiPayAuth(){
   // Redirect結果の確認はiOSを中心に必要だが、全端末で安全に確認する。
   // 10秒で打ち切り、結果待ちで画面が永久に停止しないようにする。
   try {
+    captureEnvironment('before-getRedirectResult');
     diag.step('AUTH-REDIRECT-CHECK','画面遷移後の認証結果を確認しています。');
+    const redirectStartedAt = performance.now();
     const redirectResult = await withTimeout(
       getRedirectResult(auth),
       10000,
       'auth/redirect-result-timeout',
       '画面遷移後の認証結果確認が時間内に完了しませんでした。'
+    );
+    const redirectElapsedMs = Math.round(performance.now() - redirectStartedAt);
+    captureEnvironment('after-getRedirectResult', {
+      redirectElapsedMs,
+      redirectResultPresent: Boolean(redirectResult),
+      redirectUserPresent: Boolean(redirectResult?.user),
+      redirectOperationType: redirectResult?.operationType || '',
+      redirectProviderId: redirectResult?.providerId || ''
+    });
+    diag.step(
+      'AUTH-REDIRECT-RESULT-DETAIL',
+      '画面遷移後の認証結果の詳細を記録しました。',
+      'info',
+      JSON.stringify({
+        elapsedMs: redirectElapsedMs,
+        resultPresent: Boolean(redirectResult),
+        userPresent: Boolean(redirectResult?.user),
+        operationType: redirectResult?.operationType || '',
+        providerId: redirectResult?.providerId || '',
+        authCurrentUserPresent: Boolean(auth.currentUser)
+      })
     );
     if(redirectResult?.user){
       diag.setUserEmail(redirectResult.user.email||'');
@@ -678,6 +831,7 @@ export async function initializeTaxiPayAuth(){
   if (!auth.currentUser && !preservedFailure) {
     setMessage('Googleアカウントでログインしてください。','info');
   }
+  captureEnvironment('auth-ready');
   diag.step('AUTH-READY-001','認証機能の準備が完了しました。','success');
   return true;
 }
