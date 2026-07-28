@@ -365,3 +365,6 @@ body.auth-pending,body.password-change-pending{min-height:100vh}
 body.menu-open{overflow:hidden}
 /* Crucial: because menu lives inside main, Phase 0⑦ auth-pending rule hides it with main. */
 @media(max-width:700px){.header-controls{width:auto;margin-left:auto}.eligibility-badge,.signed-in-user,.admin-link{display:none!important}.app-header{flex-wrap:nowrap}.profile-list>div{grid-template-columns:1fr;gap:3px}.menu-head{padding-top:max(20px,env(safe-area-inset-top))}}
+
+/* Phase 2: 利用者基本設定 */
+.profile-card-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.profile-card-title h2{margin:0}.phase2-editor label small{display:block;margin-top:5px;font-size:.75rem;font-weight:400;color:var(--muted)}.phase2-message{min-height:1.5em;margin-top:12px;font-size:.9rem;font-weight:700}.phase2-message[data-kind="success"]{color:#176b45}.phase2-message[data-kind="error"]{color:var(--danger)}.phase2-message[data-kind="info"]{color:var(--primary2)}.phase2-editor button:disabled{opacity:.6;cursor:wait}@media(max-width:700px){.profile-card-title{align-items:stretch;flex-direction:column}.profile-card-title button{width:100%}}
