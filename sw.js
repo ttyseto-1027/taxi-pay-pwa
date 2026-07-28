@@ -1,4 +1,4 @@
-const CACHE = 'taxi-pay-v1.3-beta-20260728-phase0-07-firestore-user-fix';
+const CACHE = 'taxi-pay-v1.3-beta-20260728-phase1-rebuild-login-safe';
 
 const FILES = [
   './',
@@ -12,7 +12,8 @@ const FILES = [
   './diagnostics.js',
   './boot.js',
   './admin.html',
-  './admin.js'
+  './admin.js',
+  './menu.js'
 ];
 
 self.addEventListener('install', (event) => {
