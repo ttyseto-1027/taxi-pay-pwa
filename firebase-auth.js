@@ -432,7 +432,12 @@ export async function initializeTaxiPayAuth(){
     if(!user) return null;
 
     if(completedUid === user.uid){
-      return window.TaxiPayCurrentProfile || null;
+      const cachedProfile = window.TaxiPayCurrentProfile || null;
+      if(cachedProfile){
+        return cachedProfile;
+      }
+      // ログアウト後はプロフィールが破棄されるため、同一UIDでも再確認する。
+      completedUid = '';
     }
 
     if(routingUid === user.uid && routingPromise){
@@ -572,6 +577,9 @@ export async function initializeTaxiPayAuth(){
 
   logout?.addEventListener('click',async()=>{
     preservedFailure=false;
+    completedUid='';
+    routingUid='';
+    routingPromise=null;
     window.TaxiPayCurrentProfile=null;
     try{sessionStorage.removeItem('taxiPayV13Profile')}catch{}
     await signOut(auth);
@@ -579,102 +587,17 @@ export async function initializeTaxiPayAuth(){
     D.notify('ログアウトしました。','success','AUTH-SIGNOUT-OK');
   });
 
-  // Phase 0: 起動時の認証状態確定前に未ログイン表示へ戻る競合を防ぐ。
-  // Persistence設定とRedirect結果の復元を先に完了し、その後に初期利用者を1回だけ処理する。
-  // 最後に認証状態監視を開始し、以後のログイン・ログアウトだけを追跡する。
-  try {
-    diag.step('AUTH-PERSIST-BOOT-START','起動時に認証情報の保存方式を設定しています。');
-    await withTimeout(
-      setPersistence(auth,browserLocalPersistence),
-      8000,
-      'auth/persistence-timeout',
-      '起動時の認証情報保存設定が時間内に完了しませんでした。'
-    );
-    diag.step('AUTH-PERSIST-BOOT-OK','起動時の認証情報保存設定に成功しました。','success');
-  } catch(err) {
-    diag.step(
-      'AUTH-PERSIST-BOOT-WARN',
-      '認証情報の保存設定を完了できませんでしたが、ログイン機能は利用できます。',
-      'warning',
-      err?.message || err
-    );
-  }
-
-  let redirectUser = null;
-  try {
-    diag.step('AUTH-REDIRECT-CHECK','画面遷移後の認証結果を確認しています。');
-    const redirectResult = await withTimeout(
-      getRedirectResult(auth),
-      10000,
-      'auth/redirect-result-timeout',
-      '画面遷移後の認証結果確認が時間内に完了しませんでした。'
-    );
-    if(redirectResult?.user){
-      redirectUser = redirectResult.user;
-      diag.setUserEmail(redirectUser.email||'');
-      updateAttempt({phase:'redirect-resolved', email:maskEmail(redirectUser.email||'')});
-      diag.step('AUTH-REDIRECT-OK','画面遷移方式のGoogle認証に成功しました。','success');
-    } else {
-      diag.step('AUTH-REDIRECT-NONE','画面遷移後の認証結果はありません。','info');
-    }
-  } catch(err) {
-    if (err?.code === 'auth/redirect-result-timeout') {
-      diag.step(
-        'AUTH-REDIRECT-TIMEOUT',
-        '認証結果の確認を打ち切り、保存済みの認証状態を確認します。',
-        'warning',
-        err?.message || err
-      );
-    } else {
-      const info=userFriendlyError('REDIRECT',err);
-      preservedFailure=true;
-      setMessage(info.text);
-      diag.fail(info,'REDIRECT-RESULT');
-      D.notify(info.text,'error',info.displayCode,err?.stack||err);
-    }
-  }
-
-  // Firebaseが保存済み認証状態の復元を終えるまで待つ。
-  // authStateReadyが利用できない環境ではcurrentUserをそのまま確認する。
-  try {
-    if(typeof auth.authStateReady === 'function'){
-      await withTimeout(
-        auth.authStateReady(),
-        10000,
-        'auth/state-ready-timeout',
-        '保存済みの認証状態確認が時間内に完了しませんでした。'
-      );
-    }
-  } catch(err) {
-    diag.step('AUTH-STATE-READY-WARN','保存済み認証状態の確認を完了できませんでした。','warning',err?.message||err);
-  }
-
-  const initialUser = redirectUser || auth.currentUser;
-  if(initialUser){
-    try {
-      await routeOnce(initialUser);
-    } catch(err) {
-      const stage=err?.authStage||'USER';
-      const info=userFriendlyError(stage,err);
-      preservedFailure=true;
-      showGate();
-      setMessage(info.text);
-      diag.fail(info,stage);
-      D.notify(info.text,'error',info.displayCode,err?.stack||err);
-      clearAttempt();
-      await signOut(auth).catch(()=>{});
-    }
-  } else if(!preservedFailure) {
-    showGate();
-    setMessage('Googleアカウントでログインしてください。','info');
-    diag.step('AUTH-STATE-SIGNED-OUT','現在は未ログインです。');
-  }
-
+  // 認証状態監視は、PersistenceやRedirect結果の待機より先に開始する。
+  // これにより補助処理が遅延してもログイン画面の準備を完了できる。
   diag.step('AUTH-STATE-LISTENER-START','認証状態の監視を開始しています。');
+
   onAuthStateChanged(auth,async user=>{
     I?.add('V17-AUTH-STATE','onAuthStateChanged',user ? ('SIGNED_IN '+(user.email||'')) : 'SIGNED_OUT');
     if(!user){
+      // 次回ログイン時に同一UIDでも利用者確認と画面表示を再実行する。
       completedUid='';
+      routingUid='';
+      routingPromise=null;
       showGate();
       if(!preservedFailure && !readAttempt()){
         setMessage('Googleアカウントでログインしてください。','info');
@@ -696,6 +619,60 @@ export async function initializeTaxiPayAuth(){
     }
   });
   diag.step('AUTH-STATE-LISTENER-OK','認証状態の監視を開始しました。','success');
+
+  try {
+    diag.step('AUTH-PERSIST-BOOT-START','起動時に認証情報の保存方式を設定しています。');
+    await withTimeout(
+      setPersistence(auth,browserLocalPersistence),
+      8000,
+      'auth/persistence-timeout',
+      '起動時の認証情報保存設定が時間内に完了しませんでした。'
+    );
+    diag.step('AUTH-PERSIST-BOOT-OK','起動時の認証情報保存設定に成功しました。','success');
+  } catch(err) {
+    // Persistenceの失敗だけで起動を停止しない。
+    diag.step(
+      'AUTH-PERSIST-BOOT-WARN',
+      '認証情報の保存設定を完了できませんでしたが、ログイン機能は利用できます。',
+      'warning',
+      err?.message || err
+    );
+  }
+
+  // Redirect結果の確認はiOSを中心に必要だが、全端末で安全に確認する。
+  // 10秒で打ち切り、結果待ちで画面が永久に停止しないようにする。
+  try {
+    diag.step('AUTH-REDIRECT-CHECK','画面遷移後の認証結果を確認しています。');
+    const redirectResult = await withTimeout(
+      getRedirectResult(auth),
+      10000,
+      'auth/redirect-result-timeout',
+      '画面遷移後の認証結果確認が時間内に完了しませんでした。'
+    );
+    if(redirectResult?.user){
+      diag.setUserEmail(redirectResult.user.email||'');
+      updateAttempt({phase:'redirect-resolved', email:maskEmail(redirectResult.user.email||'')});
+      diag.step('AUTH-REDIRECT-OK','画面遷移方式のGoogle認証に成功しました。','success');
+      await routeOnce(redirectResult.user);
+    } else {
+      diag.step('AUTH-REDIRECT-NONE','画面遷移後の認証結果はありません。','info');
+    }
+  } catch(err) {
+    if (err?.code === 'auth/redirect-result-timeout') {
+      diag.step(
+        'AUTH-REDIRECT-TIMEOUT',
+        '認証結果の確認を打ち切り、ログイン画面を利用可能にします。',
+        'warning',
+        err?.message || err
+      );
+    } else {
+      const info=userFriendlyError('REDIRECT',err);
+      preservedFailure=true;
+      setMessage(info.text);
+      diag.fail(info,'REDIRECT-RESULT');
+      D.notify(info.text,'error',info.displayCode,err?.stack||err);
+    }
+  }
 
   login.disabled=false;
   if (!auth.currentUser && !preservedFailure) {
