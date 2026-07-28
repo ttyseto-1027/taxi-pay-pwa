@@ -111,12 +111,31 @@
     showView(location.hash.replace(/^#\/?/, '') || 'work', true);
   });
 
-  document.getElementById('menuLogout')?.addEventListener('click', () => {
-    // スマホではサインアウト完了後もドロワーが前面に残らないよう、
-    // 認証処理を開始する前にメニュー状態を同期的に解除する。
+  const forceCloseMenu = () => {
     setMenu(false);
-    document.getElementById('logoutButton')?.click();
+    // hidden属性やクラスの反映順に左右されないよう、残留状態も明示的に解除する。
+    menu.classList.remove('is-open');
+    menu.setAttribute('aria-hidden', 'true');
+    backdrop.hidden = true;
+    document.body.classList.remove('menu-open');
+    openButton.setAttribute('aria-expanded', 'false');
+  };
+
+  const headerLogout = document.getElementById('logoutButton');
+  const menuLogout = document.getElementById('menuLogout');
+
+  // capture段階で先に閉じ、他のログアウト処理の完了を待たない。
+  headerLogout?.addEventListener('click', forceCloseMenu, true);
+  menuLogout?.addEventListener('click', () => {
+    forceCloseMenu();
+    headerLogout?.click();
   });
+
+  // Firebase側がログイン画面へ戻した時にも強制的に閉じる。
+  // 通信速度やsignOut完了タイミングによるスマホ固有の残留を防ぐ。
+  new MutationObserver(() => {
+    if (document.body.classList.contains('auth-pending')) forceCloseMenu();
+  }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
   window.addEventListener('hashchange', () => {
     showView(location.hash.replace(/^#\/?/, ''), true);
