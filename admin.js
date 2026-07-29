@@ -21,7 +21,8 @@ import {
   writeBatch,
   serverTimestamp,
   orderBy,
-  query
+  query,
+  where
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
 const config = window.TAXI_PAY_FIREBASE_CONFIG || {};
