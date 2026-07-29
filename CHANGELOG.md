@@ -107,3 +107,10 @@
 - 前月設定の初期値コピー、締め日の例外、勤務実績保存後の再計算を実装。
 - 固定還元率による推定を廃止し、勤務実績がない場合は算出不可表示へ変更。
 - 利用者を不安にさせない表示ルールを反映。
+
+## 2026-07-29 管理画面のユーザー更新エラー修正
+
+- Firestore の `where` importを確認・維持。
+- `admin.js` のキャッシュ識別子を更新し、旧版JavaScriptが残る問題を回避。
+- `admin.html` の `admin.js` 読込バージョンを更新。
+- CSV取込・v1.3β状態表示処理をFirebase初期化スコープ内へ移動し、`db is not defined` / `loadAllowlist is not defined` を防止。
