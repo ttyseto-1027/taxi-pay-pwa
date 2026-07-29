@@ -378,3 +378,10 @@ body.menu-open{overflow:hidden}
 .phase2-message[data-kind="success"] { color:#146c43; }
 .phase2-message[data-kind="error"] { color:#b42318; }
 @media (max-width: 640px) { .phase3-settings-card .form-grid { grid-template-columns:1fr; } .phase3-balance { align-items:flex-start; } }
+
+/* Phase 4: 組合員向け売上目標管理 */
+.sales-target-settings{margin:1rem 0 1.25rem;padding:1rem;border:1px solid var(--border,#d9dee7);border-radius:12px;background:var(--surface-subtle,#f8fafc)}
+.sales-target-settings .form-grid{align-items:end}
+.sales-target-settings .actions{margin-top:.75rem}
+.union-dashboard .summary-grid strong{overflow-wrap:anywhere}
+@media (max-width:640px){.sales-target-settings{padding:.85rem}.union-dashboard .summary-grid{grid-template-columns:1fr}}

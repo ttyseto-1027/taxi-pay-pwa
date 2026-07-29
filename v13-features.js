@@ -62,10 +62,10 @@ function applyRole(){
     `権限表示を反映しました: driverNumber=${driverNumber||'未登録'}, unionStatus=${unionStatus||'未設定'}, member=${member}`
   );
 }
+function closeDay(year,month){return month===2?14:month===3?16:15;}
 function payrollMonthOf(dateStr){
   const d=new Date(`${dateStr}T00:00:00`);if(Number.isNaN(d.getTime()))return '';
   const y=d.getFullYear(),m=d.getMonth()+1,day=d.getDate();
-  const closeDay=(y,m)=>new Date(y,m,0).getDate()<15?new Date(y,m,0).getDate():15;
   if(day<=closeDay(y,m))return `${y}-${String(m).padStart(2,'0')}`;
   const nx=new Date(y,m,1);return `${nx.getFullYear()}-${String(nx.getMonth()+1).padStart(2,'0')}`;
 }
@@ -73,25 +73,92 @@ function currentMonthEntries(){const ym=$('currentMonth')?.value||'';return (sta
 function totalWorkMinutes(entries){return (entries||[]).reduce((a,e)=>{if(e.paidLeaveUnits)return a;const [ih,im]=(e.clockIn||'0:0').split(':').map(Number),[oh,om]=(e.clockOut||'0:0').split(':').map(Number);let x=oh*60+om-(ih*60+im);if(x<=0)x+=1440;return a+Math.max(0,x-Number(e.normalBreakMinutes||0)-Number(e.nightBreakMinutes||0));},0)}
 const yen=v=>`${Math.max(0,Math.round(Number(v)||0)).toLocaleString('ja-JP')}円`;
 const textNumber=id=>Number(($(id)?.textContent||'0').replace(/[^0-9-]/g,''))||0;
-const targetKey=()=>`taxiPayTargetTakeHome:${$('currentMonth')?.value||'current'}`;
-function loadTarget(){const el=$('targetTakeHome');if(el)el.value=localStorage.getItem(targetKey())||'';}
+const SALES_TARGET_PREFIX='taxiPaySalesTarget:v1:';
+const selectedPayrollMonth=()=>String($('currentMonth')?.value||'');
+const salesTargetKey=ym=>`${SALES_TARGET_PREFIX}${ym}`;
+function previousPayrollMonth(ym){const [y,m]=String(ym||'').split('-').map(Number);if(!y||!m)return '';const d=new Date(y,m-2,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
+function sanitizeSalesTarget(input){
+  const targetTakeHome=Math.max(0,Math.round(Number(input?.targetTakeHome)||0));
+  const rawShifts=input?.remainingShifts;
+  const remainingShifts=rawShifts===''||rawShifts===null||rawShifts===undefined?'':Math.max(0,Math.floor(Number(rawShifts)||0));
+  const rounding=[1,100,1000].includes(Number(input?.rounding))?Number(input.rounding):1000;
+  return {targetTakeHome,remainingShifts,rounding};
+}
+function readSalesTarget(ym){try{const x=JSON.parse(localStorage.getItem(salesTargetKey(ym))||'null');return x?sanitizeSalesTarget(x):null}catch{return null}}
+function initialSalesTarget(ym){
+  const saved=readSalesTarget(ym);if(saved)return {...saved,source:'saved'};
+  const legacy=localStorage.getItem(`taxiPayTargetTakeHome:${ym}`);
+  const previous=readSalesTarget(previousPayrollMonth(ym));
+  if(previous)return {...previous,source:'previous'};
+  if(legacy!==null)return {...sanitizeSalesTarget({targetTakeHome:legacy,remainingShifts:'',rounding:1000}),source:'legacy'};
+  return {...sanitizeSalesTarget({targetTakeHome:0,remainingShifts:'',rounding:1000}),source:'empty'};
+}
+function setSalesTargetMessage(text='',kind='info'){
+  const box=$('salesTargetMessage');if(!box)return;box.textContent=text;box.dataset.kind=kind;
+}
+function loadSalesTarget(){
+  const ym=selectedPayrollMonth(),data=initialSalesTarget(ym);
+  if($('targetTakeHome'))$('targetTakeHome').value=data.targetTakeHome||'';
+  if($('remainingShiftCountInput'))$('remainingShiftCountInput').value=data.remainingShifts;
+  if($('salesTargetRounding'))$('salesTargetRounding').value=String(data.rounding);
+  if($('salesTargetPayrollMonth'))$('salesTargetPayrollMonth').textContent=ym?`${ym.replace('-','年')}月給与の目標と現在の状況です。`:'表示中の給与月について、目標と現在の状況を確認できます。';
+  setSalesTargetMessage(data.source==='previous'?'前月の設定を初期値として表示しています。必要に応じて変更して保存してください。':'');
+  updateKpi();
+}
+function roundUp(value,unit){const n=Math.max(0,Number(value)||0),u=[1,100,1000].includes(Number(unit))?Number(unit):1000;return Math.ceil(n/u)*u;}
+function setCalculatedUnavailable(){
+  for(const id of ['currentExpectedTakeHome','targetAchievementRate','remainingTakeHome','neededRevenue','neededRevenuePerShift','effectiveReturn','takeHomeReturn','hourlyTakeHome'])if($(id))$(id).textContent='算出できません';
+}
 function updateKpi(){
-  const s=state(),entries=currentMonthEntries(),gross=entries.reduce((a,e)=>a+Number(e.grossRevenue||0),0),take=textNumber('takeHome'),pay=textNumber('grossPay'),mins=totalWorkMinutes(entries);
-  if($('effectiveReturn'))$('effectiveReturn').textContent=gross?`${(pay/gross*100).toFixed(1)}%`:'—';
-  if($('takeHomeReturn'))$('takeHomeReturn').textContent=gross?`${(take/gross*100).toFixed(1)}%`:'—';
-  if($('hourlyTakeHome'))$('hourlyTakeHome').textContent=mins?yen(take/(mins/60)):'—';
-  const target=Number($('targetTakeHome')?.value||0),remaining=Math.max(0,target-take),rate=gross&&take>0?take/gross:0.43;
-  const planned=Number(s.settings?.shiftType?.startsWith('定隔')?s.settings.shiftType.replace(/\D/g,''):(s.settings?.shiftType==='隔日勤務'?12:(s.settings?.shiftType==='昼日勤'||s.settings?.shiftType==='夜日勤'?22:0)))||0;
-  const worked=entries.filter(e=>!Number(e.paidLeaveUnits||0)).length,remainingShifts=Math.max(0,planned-worked),needed=target?Math.ceil((remaining/rate)/1000)*1000:0;
+  const entries=currentMonthEntries();
+  if(!entries.length){setCalculatedUnavailable();return;}
+  const gross=entries.reduce((a,e)=>a+Number(e.grossRevenue||0),0),take=textNumber('takeHome'),pay=textNumber('grossPay'),mins=totalWorkMinutes(entries);
   if($('currentExpectedTakeHome'))$('currentExpectedTakeHome').textContent=yen(take);
-  if($('targetAchievementRate'))$('targetAchievementRate').textContent=target?`${Math.min(999,(take/target)*100).toFixed(1)}%`:'—';
-  if($('remainingTakeHome'))$('remainingTakeHome').textContent=target?yen(remaining):'—';
-  if($('neededRevenue'))$('neededRevenue').textContent=target?yen(needed):'—';
-  if($('remainingShiftCount'))$('remainingShiftCount').textContent=planned?`${remainingShifts}出番`:'—';
-  if($('neededRevenuePerShift'))$('neededRevenuePerShift').textContent=target&&remainingShifts?yen(Math.ceil(needed/remainingShifts/1000)*1000):(target&&remaining===0?'達成済み':'—');
+  if($('effectiveReturn'))$('effectiveReturn').textContent=gross?`${(pay/gross*100).toFixed(1)}%`:'算出できません';
+  if($('takeHomeReturn'))$('takeHomeReturn').textContent=gross?`${(take/gross*100).toFixed(1)}%`:'算出できません';
+  if($('hourlyTakeHome'))$('hourlyTakeHome').textContent=mins?yen(take/(mins/60)):'算出できません';
+  const target=Number($('targetTakeHome')?.value||0);
+  const shiftsRaw=$('remainingShiftCountInput')?.value??'';
+  const shiftsEntered=String(shiftsRaw).trim()!=='';
+  const remainingShifts=shiftsEntered?Math.max(0,Math.floor(Number(shiftsRaw)||0)):null;
+  const rounding=Number($('salesTargetRounding')?.value||1000);
+  if(!target){
+    for(const id of ['targetAchievementRate','remainingTakeHome','neededRevenue'])if($(id))$(id).textContent='—';
+    if($('neededRevenuePerShift'))$('neededRevenuePerShift').textContent=shiftsEntered?'—':'残り出番数を入力してください';
+    return;
+  }
+  const remaining=Math.max(0,target-take);
+  if($('targetAchievementRate'))$('targetAchievementRate').textContent=`${(take/target*100).toFixed(1)}%`;
+  if($('remainingTakeHome'))$('remainingTakeHome').textContent=yen(remaining);
+  if(remaining===0){
+    if($('neededRevenue'))$('neededRevenue').textContent='0円';
+    if($('neededRevenuePerShift'))$('neededRevenuePerShift').textContent='残り出番あたりの必要営収はありません';
+    return;
+  }
+  const rate=gross>0&&take>0?take/gross:0;
+  if(rate<=0){
+    if($('neededRevenue'))$('neededRevenue').textContent='算出できません';
+    if($('neededRevenuePerShift'))$('neededRevenuePerShift').textContent='算出できません';
+    return;
+  }
+  const needed=roundUp(remaining/rate,rounding);
+  if($('neededRevenue'))$('neededRevenue').textContent=yen(needed);
+  if(!shiftsEntered){if($('neededRevenuePerShift'))$('neededRevenuePerShift').textContent='残り出番数を入力してください';return;}
+  if(remainingShifts===0){if($('neededRevenuePerShift'))$('neededRevenuePerShift').textContent='—';return;}
+  if($('neededRevenuePerShift'))$('neededRevenuePerShift').textContent=yen(roundUp((remaining/rate)/remainingShifts,rounding));
+}
+function saveSalesTarget(){
+  const ym=selectedPayrollMonth();if(!ym)return;
+  const shiftValue=$('remainingShiftCountInput')?.value??'';
+  const data=sanitizeSalesTarget({targetTakeHome:$('targetTakeHome')?.value||0,remainingShifts:shiftValue,rounding:$('salesTargetRounding')?.value||1000});
+  try{localStorage.setItem(salesTargetKey(ym),JSON.stringify({...data,savedAt:new Date().toISOString()}));setSalesTargetMessage('売上目標を保存しました。','success');updateKpi();}
+  catch(e){setSalesTargetMessage('売上目標を保存できませんでした。入力内容は画面に残っています。','error');D?.record?.('SALES-TARGET-SAVE-ERROR','error',e.message);}
 }
 const mo=new MutationObserver(updateKpi);if($('takeHome'))mo.observe($('takeHome'),{childList:true,subtree:true});
-$('targetTakeHome')?.addEventListener('input',()=>{localStorage.setItem(targetKey(),$('targetTakeHome').value||'');updateKpi();});
-$('currentMonth')?.addEventListener('change',()=>{loadTarget();setTimeout(updateKpi,0);});
-setTimeout(()=>{if(window.TaxiPayCurrentProfile)acceptProfile(window.TaxiPayCurrentProfile);restoreDraft();applyRole();loadTarget();updateKpi();},500);
+for(const id of ['targetTakeHome','remainingShiftCountInput','salesTargetRounding'])$(id)?.addEventListener('input',updateKpi);
+$('salesTargetRounding')?.addEventListener('change',updateKpi);
+$('saveSalesTarget')?.addEventListener('click',saveSalesTarget);
+$('currentMonth')?.addEventListener('change',()=>setTimeout(loadSalesTarget,0));
+for(const id of ['prevMonth','nextMonth'])$(id)?.addEventListener('click',()=>setTimeout(loadSalesTarget,0));
+setTimeout(()=>{if(window.TaxiPayCurrentProfile)acceptProfile(window.TaxiPayCurrentProfile);restoreDraft();applyRole();loadSalesTarget();updateKpi();},500);
 })();
