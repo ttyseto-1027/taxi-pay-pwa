@@ -28,6 +28,7 @@
   const appApi = () => window.TaxiPayAppSettings;
 
   function fillDeductionForm() {
+    if (!$('phase3DeductionForm')) return;
     const settings = appApi()?.get?.();
     if (!settings) return;
     $('phase3DependentCount').value = Number(settings.dependentCount || 0);

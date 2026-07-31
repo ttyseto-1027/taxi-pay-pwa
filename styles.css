@@ -385,3 +385,7 @@ body.menu-open{overflow:hidden}
 .sales-target-settings .actions{margin-top:.75rem}
 .union-dashboard .summary-grid strong{overflow-wrap:anywhere}
 @media (max-width:640px){.sales-target-settings{padding:.85rem}.union-dashboard .summary-grid{grid-template-columns:1fr}}
+
+/* Phase 4: 控除額設定・給与計算精度向上 */
+.phase4-card fieldset{margin:1rem 0;padding:1rem;border:1px solid var(--border,#d9dee7);border-radius:12px}.phase4-card legend{padding:0 .45rem;font-weight:900}.phase4-month-label{display:block;max-width:280px}.phase4-other-row{display:grid;grid-template-columns:2fr 1fr auto;gap:.75rem;align-items:end;margin-bottom:.75rem}.phase4-preview{margin:.75rem 0;padding:.85rem 1rem;border-radius:10px;background:#f3f7fa;font-weight:800}.phase4-payment-row{display:flex;justify-content:space-between;gap:1rem;align-items:center;padding:.85rem 0;border-bottom:1px solid var(--border,#d9dee7)}.phase4-payment-row div{display:grid;gap:.25rem}.phase4-payment-row span{color:var(--muted)}
+@media(max-width:640px){.phase4-other-row{grid-template-columns:1fr}.phase4-payment-row{align-items:flex-start;flex-direction:column}.phase4-payment-row button{width:100%}}

@@ -1,4 +1,4 @@
-const CACHE = 'taxi-pay-v1.3-beta-20260729-admin-fix-01';
+const CACHE = 'taxi-pay-v1.4-beta-20260731-phase4-01';
 
 const FILES = [
   './',
@@ -13,6 +13,9 @@ const FILES = [
   './boot.js',
   './v13-features.js',
   './phase1-ui.js',
+  './phase2-user-settings.js',
+  './phase3-personal-settings.js',
+  './phase4-payroll-adjustments.js',
   './admin.html',
   './admin.js'
 ];
