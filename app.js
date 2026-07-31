@@ -305,6 +305,7 @@ render();
   window.TaxiPayPhase4=Object.freeze({
     getSnapshot(ym){return {deduction:clone(effectiveDeductionSettings(ym)),deductionHistory:clone(state.settings.deductionHistory||[]),additionalPayments:clone(state.settings.additionalPayments||[]),minimumWageHistory:clone(state.settings.minimumWageHistory||[])};},
     getMinimumWage(date){return clone(minimumWageForDate(date));},
+    getPaymentsForMonth(ym){return clone((state.settings.additionalPayments||[]).filter(x=>x&&x.date&&payrollMonthOf(x.date)===ym));},
     saveDeduction(values){
       const month=String(values.effectiveMonth||'');if(!/^\d{4}-\d{2}$/.test(month))throw new Error('適用年月を確認してください。');
       const row={effectiveMonth:month,dependentCount:Number(values.dependentCount||0),healthInsurance:cleanMoney(values.healthInsurance),pension:cleanMoney(values.pension),employmentInsurance:cleanMoney(values.employmentInsurance),residentTax:cleanMoney(values.residentTax),unionFee:cleanMoney(values.unionFee),mutualAidFee:cleanMoney(values.mutualAidFee),otherItems:(Array.isArray(values.otherItems)?values.otherItems:[]).map(x=>({id:String(x.id||id()),name:String(x.name||'').trim()||'その他控除',amount:cleanMoney(x.amount)})),updatedAt:new Date().toISOString()};
