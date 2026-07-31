@@ -33,10 +33,10 @@ window.addEventListener('taxipay:app-ready',e=>acceptProfile(e.detail));
 
 if(window.TaxiPayCurrentProfile)acceptProfile(window.TaxiPayCurrentProfile);
 function state(){try{return JSON.parse(localStorage.getItem(LS)||'{}')}catch{return {}}}
-function draftData(){return {date:$('date')?.value||'',paidLeaveType:document.querySelector('input[name="paidLeaveType"]:checked')?.value||'0',grossRevenue:$('grossRevenue')?.value||'',clockIn:$('clockIn')?.value||'',clockOut:$('clockOut')?.value||'',normalBreakHours:$('normalBreakHours')?.value||'0',normalBreakMinutes:$('normalBreakMinutes')?.value||'0',nightBreakHours:$('nightBreakHours')?.value||'0',nightBreakMinutes:$('nightBreakMinutes')?.value||'0',holidayType:$('holidayType')?.value||'normal',hadAccident:!!$('hadAccident')?.checked,hadViolation:!!$('hadViolation')?.checked,editingId:$('editingId')?.value||'',savedAt:new Date().toISOString()};}
+function draftData(){return {date:$('date')?.value||'',paidLeaveType:document.querySelector('input[name="paidLeaveType"]:checked')?.value||'0',grossRevenue:$('grossRevenue')?.value||'',clockIn:$('clockIn')?.value||'',clockOut:$('clockOut')?.value||'',normalBreakHours:$('normalBreakHours')?.value||'0',normalBreakMinutes:$('normalBreakMinutes')?.value||'0',nightBreakHours:$('nightBreakHours')?.value||'0',nightBreakMinutes:$('nightBreakMinutes')?.value||'0',holidayType:$('holidayType')?.value||'normal',hadAccident:!!$('hadAccident')?.checked,hadViolation:!!$('hadViolation')?.checked,editingId:$('editingId')?.value||'',savedAt:(window.TaxiPayJstNow?.()||new Date().toISOString())};}
 let draftTimer;
 function saveDraft(){clearTimeout(draftTimer);draftTimer=setTimeout(()=>{try{localStorage.setItem(DRAFT,JSON.stringify(draftData()));D.record('DATA-DRAFT-SAVED','info','入力中データを一時保存');}catch(e){D.notify('入力中データを一時保存できませんでした。','warning','DATA-DRAFT-01',e.message)}},250);}
-function restoreDraft(){let x;try{x=JSON.parse(localStorage.getItem(DRAFT)||'null')}catch{} if(!x||!x.date)return; const current=$('date')?.value; if(current&&current!==new Date().toISOString().slice(0,10))return; for(const k of ['date','grossRevenue','clockIn','clockOut','normalBreakHours','normalBreakMinutes','nightBreakHours','nightBreakMinutes','holidayType','editingId'])if($(k)&&x[k]!=null)$(k).value=x[k]; const r=document.querySelector(`input[name="paidLeaveType"][value="${x.paidLeaveType}"]`);if(r)r.checked=true;if($('hadAccident'))$('hadAccident').checked=!!x.hadAccident;if($('hadViolation'))$('hadViolation').checked=!!x.hadViolation;$('grossRevenue')?.dispatchEvent(new Event('input'));D.notify('前回の未保存入力を復元しました。','info','DATA-DRAFT-RESTORED');}
+function restoreDraft(){let x;try{x=JSON.parse(localStorage.getItem(DRAFT)||'null')}catch{} if(!x||!x.date)return; const current=$('date')?.value; if(current&&current!==(window.TaxiPayJstNow?.()||new Date().toISOString()).slice(0,10))return; for(const k of ['date','grossRevenue','clockIn','clockOut','normalBreakHours','normalBreakMinutes','nightBreakHours','nightBreakMinutes','holidayType','editingId'])if($(k)&&x[k]!=null)$(k).value=x[k]; const r=document.querySelector(`input[name="paidLeaveType"][value="${x.paidLeaveType}"]`);if(r)r.checked=true;if($('hadAccident'))$('hadAccident').checked=!!x.hadAccident;if($('hadViolation'))$('hadViolation').checked=!!x.hadViolation;$('grossRevenue')?.dispatchEvent(new Event('input'));D.notify('前回の未保存入力を復元しました。','info','DATA-DRAFT-RESTORED');}
 const form=$('entryForm'); form?.addEventListener('input',saveDraft);form?.addEventListener('change',saveDraft);form?.addEventListener('submit',()=>{const submitted=draftData();setTimeout(()=>{const s=state();const paidLeaveUnits=Number(submitted.paidLeaveType||0);const ok=(s.entries||[]).some(e=>submitted.editingId?e.id===submitted.editingId:(e.date===submitted.date&&Number(e.paidLeaveUnits||0)===paidLeaveUnits&&(paidLeaveUnits>0||Number(e.grossRevenue||0)===Number(submitted.grossRevenue||0))));if(ok){localStorage.removeItem(DRAFT);D.notify('勤務実績を保存しました。','success','DATA-SAVE-OK');}else D.notify('保存結果を確認できませんでした。入力内容は保持されています。','error','DATA-SAVE-VERIFY-01');},150);},true);
 $('resetForm')?.addEventListener('click',()=>{localStorage.removeItem(DRAFT);D.notify('入力欄をクリアしました。','info','DATA-DRAFT-CLEAR');});
 function applyRole(){
@@ -81,7 +81,7 @@ function sanitizeSalesTarget(input){
   const targetTakeHome=Math.max(0,Math.round(Number(input?.targetTakeHome)||0));
   const rawShifts=input?.remainingShifts;
   const remainingShifts=rawShifts===''||rawShifts===null||rawShifts===undefined?'':Math.max(0,Math.floor(Number(rawShifts)||0));
-  const rounding=[1,100,1000].includes(Number(input?.rounding))?Number(input.rounding):1000;
+  const rounding=1000;
   return {targetTakeHome,remainingShifts,rounding};
 }
 function readSalesTarget(ym){try{const x=JSON.parse(localStorage.getItem(salesTargetKey(ym))||'null');return x?sanitizeSalesTarget(x):null}catch{return null}}
@@ -100,7 +100,7 @@ function loadSalesTarget(){
   const ym=selectedPayrollMonth(),data=initialSalesTarget(ym);
   if($('targetTakeHome'))$('targetTakeHome').value=data.targetTakeHome||'';
   if($('remainingShiftCountInput'))$('remainingShiftCountInput').value=data.remainingShifts;
-  if($('salesTargetRounding'))$('salesTargetRounding').value=String(data.rounding);
+  
   if($('salesTargetPayrollMonth'))$('salesTargetPayrollMonth').textContent=ym?`${ym.replace('-','年')}月給与の目標と現在の状況です。`:'表示中の給与月について、目標と現在の状況を確認できます。';
   setSalesTargetMessage(data.source==='previous'?'前月の設定を初期値として表示しています。必要に応じて変更して保存してください。':'');
   updateKpi();
@@ -121,7 +121,7 @@ function updateKpi(){
   const shiftsRaw=$('remainingShiftCountInput')?.value??'';
   const shiftsEntered=String(shiftsRaw).trim()!=='';
   const remainingShifts=shiftsEntered?Math.max(0,Math.floor(Number(shiftsRaw)||0)):null;
-  const rounding=Number($('salesTargetRounding')?.value||1000);
+  const rounding=1000;
   if(!target){
     for(const id of ['targetAchievementRate','remainingTakeHome','neededRevenue'])if($(id))$(id).textContent='—';
     if($('neededRevenuePerShift'))$('neededRevenuePerShift').textContent=shiftsEntered?'—':'残り出番数を入力してください';
@@ -150,13 +150,13 @@ function updateKpi(){
 function saveSalesTarget(){
   const ym=selectedPayrollMonth();if(!ym)return;
   const shiftValue=$('remainingShiftCountInput')?.value??'';
-  const data=sanitizeSalesTarget({targetTakeHome:$('targetTakeHome')?.value||0,remainingShifts:shiftValue,rounding:$('salesTargetRounding')?.value||1000});
-  try{localStorage.setItem(salesTargetKey(ym),JSON.stringify({...data,savedAt:new Date().toISOString()}));setSalesTargetMessage('売上目標を保存しました。','success');updateKpi();}
+  const data=sanitizeSalesTarget({targetTakeHome:$('targetTakeHome')?.value||0,remainingShifts:shiftValue,rounding:1000});
+  try{localStorage.setItem(salesTargetKey(ym),JSON.stringify({...data,savedAt:(window.TaxiPayJstNow?.()||new Date().toISOString())}));setSalesTargetMessage('売上目標を保存しました。','success');updateKpi();}
   catch(e){setSalesTargetMessage('売上目標を保存できませんでした。入力内容は画面に残っています。','error');D?.record?.('SALES-TARGET-SAVE-ERROR','error',e.message);}
 }
 const mo=new MutationObserver(updateKpi);if($('takeHome'))mo.observe($('takeHome'),{childList:true,subtree:true});
-for(const id of ['targetTakeHome','remainingShiftCountInput','salesTargetRounding'])$(id)?.addEventListener('input',updateKpi);
-$('salesTargetRounding')?.addEventListener('change',updateKpi);
+for(const id of ['targetTakeHome','remainingShiftCountInput'])$(id)?.addEventListener('input',updateKpi);
+
 $('saveSalesTarget')?.addEventListener('click',saveSalesTarget);
 $('currentMonth')?.addEventListener('change',()=>setTimeout(loadSalesTarget,0));
 for(const id of ['prevMonth','nextMonth'])$(id)?.addEventListener('click',()=>setTimeout(loadSalesTarget,0));
