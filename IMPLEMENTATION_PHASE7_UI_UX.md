@@ -11,3 +11,10 @@
 ## データ保護
 localStorageキー、Firestoreコレクション、入力要素ID、保存データ構造は変更していません。
 アコーディオンの開閉状態はsessionStorageの別キーにのみ保存されます。
+
+
+## 2026-08-04 修正 r1
+- アコーディオン化で欠落した `reportTitle` を給与シミュレーション結果内へ復元。
+- `app.js` が参照するDOM IDと `index.html` を再照合し、欠落がないことを確認。
+- Service Workerのキャッシュ名とPhase7関連のクエリ文字列を更新。
+- 認証・Firestore・既存保存データ構造は変更していない。
