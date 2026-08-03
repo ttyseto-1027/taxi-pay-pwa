@@ -466,3 +466,37 @@ tr[hidden] { display: none !important; }
   .admin-header-links{width:100%}
   .admin-header-links .admin-link,.admin-header-links button{flex:1 1 auto;justify-content:center}
 }
+
+/* Phase7 r5: mobile checkbox readability in announcement management */
+.announcement-form .checkbox-row{
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr);
+  align-items:start;
+  column-gap:10px;
+  row-gap:0;
+  width:100%;
+  line-height:1.55;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.announcement-form .checkbox-row input[type="checkbox"]{
+  width:22px;
+  height:22px;
+  min-width:22px;
+  margin:2px 0 0;
+  padding:0;
+  justify-self:start;
+}
+@media(max-width:700px){
+  .announcement-form .checkbox-row{
+    grid-template-columns:26px minmax(0,1fr);
+    column-gap:12px;
+    padding:10px 0;
+    font-size:.95rem;
+  }
+  .announcement-form .checkbox-row input[type="checkbox"]{
+    width:24px;
+    height:24px;
+    min-width:24px;
+  }
+}
