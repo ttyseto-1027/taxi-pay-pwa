@@ -30,8 +30,6 @@ const yen=n=>`${Math.round(Number(n||0)).toLocaleString('ja-JP')}円`;
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`};
 const minutesText=m=>`${Math.floor(Math.max(0,m)/60)}時間${pad(Math.round(Math.max(0,m)%60))}分`;
 const round10=n=>Math.max(0,Math.round(Number(n||0)/10)*10);
-const jstNow=()=>{const q=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return `${q.year}-${q.month}-${q.day}T${q.hour}:${q.minute}:${q.second}+09:00`;};
-window.TaxiPayJstNow=jstNow;
 function clone(x){return JSON.parse(JSON.stringify(x));}
 function mergeDeep(base,obj){const out=clone(base);if(obj&&typeof obj==='object'){for(const [k,v] of Object.entries(obj)){if(v&&typeof v==='object'&&!Array.isArray(v)&&out[k]&&typeof out[k]==='object')out[k]=mergeDeep(out[k],v);else out[k]=v;}}return out;}
 function loadState(){
@@ -40,14 +38,14 @@ function loadState(){
   try{const s=mergeDeep(DEFAULT_STATE,raw?JSON.parse(raw):{});s.entries=(s.entries||[]).map(e=>({...e,clockIn:e.clockIn||'',clockOut:e.clockOut||'',normalBreakMinutes:Number(e.normalBreakMinutes||0),nightBreakMinutes:Number(e.nightBreakMinutes||0),holidayType:e.holidayType||'normal',hadAccident:!!e.hadAccident,hadViolation:!!e.hadViolation,paidLeaveUnits:Number(e.paidLeaveUnits||0)}));return s;}catch{return clone(DEFAULT_STATE);}
 }
 let state=loadState();
-function saveState(){localStorage.setItem(LS_KEY,JSON.stringify(state));window.dispatchEvent(new CustomEvent('taxipay:state-saved',{detail:{savedAt:window.TaxiPayJstNow?.()||jstNow()}}));}
+function saveState(){localStorage.setItem(LS_KEY,JSON.stringify(state));}
 function leaveUnits(e){return Number(e?.paidLeaveUnits||0);}
 function leaveLabel(n){return Number(n)===1?'1有給':Number(n)===2?'2有給':'通常勤務';}
 function isKakuShift(){const t=state.settings.shiftType||'';return t==='隔日勤務'||t.startsWith('定隔');}
 function paidLeaveMinutes(n){n=Number(n||0);if(!n)return 0;return isKakuShift()?(n===1?450:855):450*n;}
 function paidLeaveShiftCredit(e){const n=leaveUnits(e);return n?(isKakuShift()?n/2:n):0;}
 function addOneYearISO(s){if(!s)return '';const [y,m,d]=s.split('-').map(Number),x=new Date(y+1,m-1,d);return fmtDate(x);}
-function applyDuePaidLeaveGrant(){const st=state.settings,date=st.paidLeaveNextGrantDate,days=Number(st.paidLeaveNextGrantDays||0);if(!date||days<=0||date>today())return false;st.paidLeaveAppliedGrants=Array.isArray(st.paidLeaveAppliedGrants)?st.paidLeaveAppliedGrants:[];if(!st.paidLeaveAppliedGrants.some(x=>x.date===date))st.paidLeaveAppliedGrants.push({date,days,appliedAt:jstNow()});st.paidLeaveNextGrantDate=addOneYearISO(date);saveState();return true;}
+function applyDuePaidLeaveGrant(){const st=state.settings,date=st.paidLeaveNextGrantDate,days=Number(st.paidLeaveNextGrantDays||0);if(!date||days<=0||date>today())return false;st.paidLeaveAppliedGrants=Array.isArray(st.paidLeaveAppliedGrants)?st.paidLeaveAppliedGrants:[];if(!st.paidLeaveAppliedGrants.some(x=>x.date===date))st.paidLeaveAppliedGrants.push({date,days,appliedAt:new Date().toISOString()});st.paidLeaveNextGrantDate=addOneYearISO(date);saveState();return true;}
 function paidLeaveBalance(excludeId=''){const st=state.settings,grants=(st.paidLeaveAppliedGrants||[]).reduce((a,x)=>a+Number(x.days||0),0),closed=(st.paidLeaveUsageHistory||[]).reduce((a,x)=>a+Number(x.days||0),0),open=(state.entries||[]).filter(e=>e.id!==excludeId).reduce((a,e)=>a+leaveUnits(e),0);return Math.max(0,Number(st.paidLeaveOpeningBalance||0)+grants-closed-open);}
 function setPaidLeaveMode(){const n=Number(document.querySelector('input[name="paidLeaveType"]:checked')?.value||0),leave=n>0;for(const id of ['grossRevenue','clockIn','clockOut','holidayType','normalBreakHours','normalBreakMinutes','nightBreakHours','nightBreakMinutes','hadAccident','hadViolation']){const el=$(id);if(!el)continue;el.disabled=leave;if(leave){if(el.type==='checkbox')el.checked=false;else if(el.tagName==='SELECT')el.selectedIndex=0;else el.value='';}}$('netRevenue').value='';const editingId=$('editingId').value||'';$('paidLeaveEntryNote').textContent=leave?`${leaveLabel(n)}を使用します。保存後の残数：${Math.max(0,paidLeaveBalance(editingId)-n)}日`:`通常勤務です。有給残数：${paidLeaveBalance(editingId)}日`;}
 function renderPaidLeaveHistory(){const box=$('paidLeaveHistoryList');if(!box)return;const grants=(state.settings.paidLeaveAppliedGrants||[]).map(x=>({date:x.date,text:`${x.days}日付与`})),uses=(state.settings.paidLeaveUsageHistory||[]).map(x=>({date:x.periodEnd||x.closedAt?.slice(0,10)||'',text:`${x.days}日使用（${x.month}給与）`})),rows=[...grants,...uses].sort((a,b)=>b.date.localeCompare(a.date));box.innerHTML=rows.length?'<strong>付与・使用履歴</strong>'+rows.map(x=>`<div>${x.date}　${x.text}</div>`).join(''):'<span class="note">付与・使用履歴はまだありません。</span>';}
@@ -220,7 +218,7 @@ $('resetForm').onclick=clearEntry;
 $('entriesTable').addEventListener('click',ev=>{const edit=ev.target.dataset.edit,del=ev.target.dataset.del;if(edit){const e=state.entries.find(x=>x.id===edit);$('date').value=e.date;$('editingId').value=e.id;const radio=document.querySelector(`input[name="paidLeaveType"][value="${leaveUnits(e)}"]`);if(radio)radio.checked=true;if(leaveUnits(e)===0){$('grossRevenue').value=e.grossRevenue;$('clockIn').value=e.clockIn;$('clockOut').value=e.clockOut;setBreak('normalBreak',e.normalBreakMinutes);setBreak('nightBreak',e.nightBreakMinutes);$('holidayType').value=e.holidayType;$('hadAccident').checked=e.hadAccident;$('hadViolation').checked=e.hadViolation;updateNet();}setPaidLeaveMode();scrollTo({top:0,behavior:'smooth'});}if(del&&confirm('この勤務データを削除しますか？')){state.entries=state.entries.filter(x=>x.id!==del);saveState();render();}});
 $('prevMonth').onclick=()=>{$('currentMonth').value=addMonths($('currentMonth').value,-1);render();};$('nextMonth').onclick=()=>{$('currentMonth').value=addMonths($('currentMonth').value,1);render();};$('currentMonth').onchange=render;$('printReport').onclick=()=>window.print();
 $('exportCsv').onclick=()=>{const rows=[['勤務日','勤務区分','勤務・有給区分','有給日数','税込営収','税抜営収','出勤時刻（アルコール）','退勤時刻（アルコール）','通常休憩分','深夜休憩分','実働分','深夜労働分','休日区分'],...currentEntries().map(e=>{const t=entryTimeInfo(e),leave=leaveUnits(e);return[e.date,state.settings.shiftType,leaveLabel(leave),leave,leave?0:e.grossRevenue,leave?0:calcNet(e.grossRevenue),leave?'':e.clockIn,leave?'':e.clockOut,leave?0:e.normalBreakMinutes,leave?0:e.nightBreakMinutes,t.work,t.night,leave?'':holidayLabel(e.holidayType)]})];const csv=rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download=`taxi-pay-${$('currentMonth').value}.csv`;a.click();};
-$('closeMonth').onclick=()=>{const entries=currentEntries();if(!entries.length)return alert('給与締めするデータがありません。');const ym=$('currentMonth').value,pp=payrollPeriod(ym);if(!confirm(`${ym}給与を締めます。履歴保存後、この期間の勤務データは削除されます。`))return;const t=totals(entries);state.settings.paidLeaveUsageHistory=Array.isArray(state.settings.paidLeaveUsageHistory)?state.settings.paidLeaveUsageHistory:[];if(t.paidLeaveDays>0&&!state.settings.paidLeaveUsageHistory.some(x=>x.month===ym))state.settings.paidLeaveUsageHistory.push({month:ym,days:t.paidLeaveDays,periodStart:pp.start,periodEnd:pp.end,closedAt:jstNow()});state.history.push({month:ym,shiftType:state.settings.shiftType,periodStart:pp.start,periodEnd:pp.end,gross:t.gross,commission:t.c.total,takeHome:t.takeHome,count:entries.filter(e=>leaveUnits(e)===0).length,paidLeaveDays:t.paidLeaveDays,closedAt:jstNow()});state.entries=state.entries.filter(e=>payrollMonthOf(e.date)!==ym);saveState();render();};
+$('closeMonth').onclick=()=>{const entries=currentEntries();if(!entries.length)return alert('給与締めするデータがありません。');const ym=$('currentMonth').value,pp=payrollPeriod(ym);if(!confirm(`${ym}給与を締めます。履歴保存後、この期間の勤務データは削除されます。`))return;const t=totals(entries);state.settings.paidLeaveUsageHistory=Array.isArray(state.settings.paidLeaveUsageHistory)?state.settings.paidLeaveUsageHistory:[];if(t.paidLeaveDays>0&&!state.settings.paidLeaveUsageHistory.some(x=>x.month===ym))state.settings.paidLeaveUsageHistory.push({month:ym,days:t.paidLeaveDays,periodStart:pp.start,periodEnd:pp.end,closedAt:new Date().toISOString()});state.history.push({month:ym,shiftType:state.settings.shiftType,periodStart:pp.start,periodEnd:pp.end,gross:t.gross,commission:t.c.total,takeHome:t.takeHome,count:entries.filter(e=>leaveUnits(e)===0).length,paidLeaveDays:t.paidLeaveDays,closedAt:new Date().toISOString()});state.entries=state.entries.filter(e=>payrollMonthOf(e.date)!==ym);saveState();render();};
 $('openSettings').onclick=()=>{loadSettingsForm();$('settingsDialog').showModal();};$('shiftType').onchange=()=>{$('shiftRuleInfo').innerHTML=ruleDescription($('shiftType').value);const r=SHIFT_RULES[$('shiftType').value];$('standardShiftHoursDisplay').value=minutesText(r.shiftMinutes);$('standardHoursDisplay').value=minutesText(r.monthlyMinutes);};$('saveSettings').onclick=e=>{e.preventDefault();saveSettingsForm();$('settingsDialog').close();};
 $('openAdmin').onclick=()=>{const p=prompt('開発者パスワードを入力してください。');if(p!==ADMIN_PASSWORD)return alert('パスワードが違います。');loadAdminForm();$('adminDialog').showModal();};$('saveAdmin').onclick=e=>{e.preventDefault();saveAdminForm();$('adminDialog').close();alert('開発者設定を保存しました。');};
 $('onboardingShiftType').onchange=()=>{$('onboardingRule').innerHTML=ruleDescription($('onboardingShiftType').value);};$('completeOnboarding').onclick=e=>{e.preventDefault();if(!$('agreeDisclaimer').checked)return alert('確認欄にチェックしてください。');state.settings.shiftType=$('onboardingShiftType').value;state.initialized=true;saveState();$('onboardingDialog').close();render();};
@@ -283,7 +281,7 @@ render();
     exportPersonalSettings() {
       const settings = {};
       for (const key of PERSONAL_SETTING_KEYS) settings[key] = clone(state.settings[key]);
-      return { format: 'taxi-pay-personal-settings', version: 1, exportedAt: jstNow(), settings };
+      return { format: 'taxi-pay-personal-settings', version: 1, exportedAt: new Date().toISOString(), settings };
     },
     importPersonalSettings(payload) {
       if (!payload || payload.format !== 'taxi-pay-personal-settings' || Number(payload.version) !== 1) {
@@ -310,13 +308,13 @@ render();
     getPaymentsForMonth(ym){return clone((state.settings.additionalPayments||[]).filter(x=>x&&x.date&&payrollMonthOf(x.date)===ym));},
     saveDeduction(values){
       const month=String(values.effectiveMonth||'');if(!/^\d{4}-\d{2}$/.test(month))throw new Error('適用年月を確認してください。');
-      const row={effectiveMonth:month,dependentCount:Number(values.dependentCount||0),healthInsurance:cleanMoney(values.healthInsurance),pension:cleanMoney(values.pension),employmentInsurance:cleanMoney(values.employmentInsurance),residentTax:cleanMoney(values.residentTax),unionFee:cleanMoney(values.unionFee),mutualAidFee:cleanMoney(values.mutualAidFee),otherItems:(Array.isArray(values.otherItems)?values.otherItems:[]).map(x=>({id:String(x.id||id()),name:String(x.name||'').trim()||'その他控除',amount:cleanMoney(x.amount)})),updatedAt:jstNow()};
+      const row={effectiveMonth:month,dependentCount:Number(values.dependentCount||0),healthInsurance:cleanMoney(values.healthInsurance),pension:cleanMoney(values.pension),employmentInsurance:cleanMoney(values.employmentInsurance),residentTax:cleanMoney(values.residentTax),unionFee:cleanMoney(values.unionFee),mutualAidFee:cleanMoney(values.mutualAidFee),otherItems:(Array.isArray(values.otherItems)?values.otherItems:[]).map(x=>({id:String(x.id||id()),name:String(x.name||'').trim()||'その他控除',amount:cleanMoney(x.amount)})),updatedAt:new Date().toISOString()};
       if(!Number.isInteger(row.dependentCount)||row.dependentCount<0||row.dependentCount>20)throw new Error('扶養人数は0～20人の整数で入力してください。');
       const rows=Array.isArray(state.settings.deductionHistory)?state.settings.deductionHistory.slice():[];const i=rows.findIndex(x=>x.effectiveMonth===month);if(i>=0)rows[i]=row;else rows.push(row);state.settings.deductionHistory=rows;saveState();render();window.dispatchEvent(new CustomEvent('taxipay:phase4-updated'));return clone(row);
     },
     addPayment(values){
       const type=String(values.type||'hourly'),date=String(values.date||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(date))throw new Error('対象日を確認してください。');
-      let row={id:id(),type,date,category:String(values.category||''),memo:String(values.memo||'').trim(),createdAt:jstNow()};
+      let row={id:id(),type,date,category:String(values.category||''),memo:String(values.memo||'').trim(),createdAt:new Date().toISOString()};
       if(type==='other'){row.amount=cleanMoney(values.amount);row.name=String(values.name||'その他支給').trim()||'その他支給';}
       else{row.startAt=String(values.startAt||'');row.endAt=String(values.endAt||'');row.hourlyRate=cleanMoney(values.hourlyRate);const c=calculateAdditionalPayment(row);if(!c.totalMinutes)throw new Error('開始日時と終了日時を確認してください。');}
       const rows=Array.isArray(state.settings.additionalPayments)?state.settings.additionalPayments.slice():[];rows.push(row);state.settings.additionalPayments=rows;saveState();render();window.dispatchEvent(new CustomEvent('taxipay:phase4-updated'));return clone(row);
@@ -325,24 +323,4 @@ render();
     calculatePayment(values){return clone(calculateAdditionalPayment(values));}
   });
 })();
-
-// Phase 5・6: 全データの安全な書き出し・復元API（後方互換、破壊的初期化なし）
-window.TaxiPayDataPort=Object.freeze({
-  exportAll(){
-    return {format:'taxi-pay-full-data',version:1,exportedAt:window.TaxiPayJstNow?.()||jstNow(),state:clone(state)};
-  },
-  importAll(payload){
-    if(!payload||payload.format!=='taxi-pay-full-data'||Number(payload.version)!==1||!payload.state||typeof payload.state!=='object')throw new Error('このアプリのバックアップデータではありません。');
-    const restored=mergeDeep(DEFAULT_STATE,payload.state);
-    if(!Array.isArray(restored.entries)||!Array.isArray(restored.history)||!restored.settings||typeof restored.settings!=='object')throw new Error('バックアップデータの形式が正しくありません。');
-    state=restored;
-    saveState();
-    applyDuePaidLeaveGrant();
-    render();
-    loadSettingsForm();
-    window.dispatchEvent(new CustomEvent('taxipay:data-restored',{detail:{restoredAt:window.TaxiPayJstNow?.()||jstNow()}}));
-    return clone(state);
-  }
-});
-
 })();

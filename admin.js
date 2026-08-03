@@ -32,6 +32,50 @@ const message = document.getElementById('adminMessage');
 const usersBody = document.getElementById('usersBody');
 const allowlistBody = document.getElementById('allowlistBody');
 
+
+function normalizeSearchText(value) {
+  return String(value || '').normalize('NFKC').toLowerCase().trim();
+}
+
+function applyAllowlistFilters() {
+  const queryText = normalizeSearchText(document.getElementById('allowlistSearch')?.value);
+  const registration = document.getElementById('allowlistRegistrationFilter')?.value || '';
+  let visible = 0;
+  for (const row of allowlistBody?.querySelectorAll('tr') || []) {
+    const matchesText = !queryText || normalizeSearchText(row.textContent).includes(queryText);
+    const matchesRegistration = !registration || row.dataset.registrationState === registration;
+    row.hidden = !(matchesText && matchesRegistration);
+    if (!row.hidden) visible += 1;
+  }
+  const count = document.getElementById('allowlistVisibleCount');
+  if (count) count.textContent = `表示 ${visible}件`;
+}
+
+function applyRegisteredUserFilters() {
+  const queryText = normalizeSearchText(document.getElementById('registeredUserSearch')?.value);
+  const status = document.getElementById('registeredStatusFilter')?.value || '';
+  const role = document.getElementById('registeredRoleFilter')?.value || '';
+  let visible = 0;
+  for (const row of usersBody?.querySelectorAll('tr') || []) {
+    const matchesText = !queryText || normalizeSearchText(row.textContent).includes(queryText);
+    const matchesStatus = !status || row.dataset.userStatus === status;
+    const matchesRole = !role || row.dataset.userRole === role;
+    row.hidden = !(matchesText && matchesStatus && matchesRole);
+    if (!row.hidden) visible += 1;
+  }
+  const count = document.getElementById('registeredVisibleCount');
+  if (count) count.textContent = `表示 ${visible}件`;
+}
+
+['allowlistSearch', 'allowlistRegistrationFilter'].forEach((id) => {
+  document.getElementById(id)?.addEventListener('input', applyAllowlistFilters);
+  document.getElementById(id)?.addEventListener('change', applyAllowlistFilters);
+});
+['registeredUserSearch', 'registeredStatusFilter', 'registeredRoleFilter'].forEach((id) => {
+  document.getElementById(id)?.addEventListener('input', applyRegisteredUserFilters);
+  document.getElementById(id)?.addEventListener('change', applyRegisteredUserFilters);
+});
+
 let currentAdminUid = '';
 let currentAdminEmail = '';
 
@@ -441,6 +485,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
 
     for (const entry of entries) {
       const row = document.createElement('tr');
+      row.dataset.registrationState = entry.invitationUsed === true || entry.registeredUid ? 'registered' : 'pending';
 
       row.innerHTML = `
         <td>${escapeHtml(entry.displayName || '—')}</td>
@@ -486,6 +531,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
 
       allowlistBody.appendChild(row);
     }
+    applyAllowlistFilters();
   }
 
   allowlistBody.addEventListener('click', async (event) => {
@@ -617,6 +663,8 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
         const hasAdminRole = Boolean(adminRecord && adminRecord.enabled !== false);
         const isCurrentAdmin = user.id === currentAdminUid;
         const row = document.createElement('tr');
+        row.dataset.userStatus = user.status === 'active' ? 'active' : 'locked';
+        row.dataset.userRole = hasAdminRole ? 'admin' : 'user';
 
         row.innerHTML = `
           <td>${escapeHtml(user.name || user.displayName || '—')}</td>
@@ -675,6 +723,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
 
         usersBody.appendChild(row);
       }
+      applyRegisteredUserFilters();
 
       document.getElementById('userCount').textContent = `${users.length}人`;
       document.getElementById('activeCount').textContent = `${activeCount}人`;

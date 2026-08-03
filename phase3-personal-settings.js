@@ -107,7 +107,7 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `taxi-pay-personal-settings-${(window.TaxiPayJstNow?.()||new Date().toISOString()).slice(0, 10)}.json`;
+      link.download = `taxi-pay-personal-settings-${new Date().toISOString().slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
       setMessage('phase3BackupMessage', '設定ファイルを保存しました。', 'success');
