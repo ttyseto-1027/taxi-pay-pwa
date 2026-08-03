@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#0f4c5c"/>
+<title>お知らせ管理 | タクシー給与シミュレーター</title>
+<link href="styles.css?v=20260804-phase7-r4" rel="stylesheet"/>
+</head>
+<body class="admin-page auth-pending">
+<section class="auth-gate" id="announcementAuthGate">
+<div class="auth-card">
+<h1>お知らせ管理</h1>
+<p id="announcementAuthMessage">管理者のGoogleアカウントでログインしてください。</p>
+<button id="announcementGoogleLogin" type="button">Googleでログイン</button>
+<p><a href="index.html">アプリへ戻る</a></p>
+</div>
+</section>
+<header class="app-header admin-app-header">
+<div>
+<h1 class="admin-page-title"><span aria-hidden="true">📢</span> お知らせ管理</h1>
+<p>Version 1.4β / Phase 7 管理画面</p>
+</div>
+<div class="header-controls admin-header-links">
+<a class="ghost admin-link" href="admin.html">ユーザー管理</a>
+<a class="ghost admin-link" href="index.html">アプリへ戻る</a>
+<button class="ghost" id="announcementLogout" type="button">ログアウト</button>
+</div>
+</header>
+<main class="announcement-management-main">
+<section class="card code-admin-box system-announcement-admin announcement-management-card">
+<h2>システム管理者からのお知らせ</h2>
+<p class="note">現時点ではシステム管理者だけが作成・編集できます。将来、組合管理者からのお知らせにも拡張できる構造です。日時は日本時間（JST）で保存します。</p>
+<form class="code-admin-form announcement-form" id="systemAnnouncementForm">
+<label>タイトル<input id="announcementTitle" maxlength="100" required type="text" placeholder="例：システム改修のお知らせ"/></label>
+<label>重要度<select id="announcementPriority"><option value="important">重要</option><option value="notice">お知らせ</option><option value="info">情報</option></select></label>
+<label>掲載開始（JST）<input id="announcementStartAt" required type="datetime-local"/></label>
+<label>掲載終了（JST）<input id="announcementEndAt" required type="datetime-local"/></label>
+<label class="announcement-message-field">本文<textarea id="announcementMessage" maxlength="1000" required rows="7" placeholder="例：2026/08/10 02:00 ～ 2026/08/10 04:00までシステム改修のためログインできません。"></textarea></label>
+<label class="checkbox-row"><input id="announcementEnabled" type="checkbox"/> お知らせを掲載する</label>
+<label class="checkbox-row"><input id="announcementBlockLogin" type="checkbox"/> 掲載期間中、一般利用者のログインを停止する</label>
+<div class="admin-form-actions"><button class="admin-button admin-button-blue" type="submit">お知らせを保存</button><button class="admin-button admin-button-neutral" id="disableSystemAnnouncement" type="button">掲載を停止</button></div>
+</form>
+<div aria-live="polite" class="admin-announcement-status" id="systemAnnouncementStatus">設定を読み込んでいます…</div>
+<div class="admin-announcement-preview" hidden id="systemAnnouncementPreview"></div>
+</section>
+</main>
+<script src="firebase-config.js?v=20260804-phase7-r4"></script>
+<script type="module" src="announcement-admin.js?v=20260804-phase7-r4"></script>
+</body>
+</html>

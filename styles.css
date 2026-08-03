@@ -449,3 +449,20 @@ tr[hidden] { display: none !important; }
 .system-announcement[data-priority="info"],.admin-announcement-preview[data-priority="info"]{border-color:#2d6f9f;background:#eef7ff;color:#174d73}
 .system-announcement[data-block-login="true"]{border-width:2px}
 .system-announcement-admin select{width:100%;min-height:42px}
+
+/* Phase7 r4: PC/mobile feature parity and independent announcement management */
+.admin-header-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.announcement-management-main{width:min(920px,calc(100% - 28px));margin:24px auto 48px}
+.announcement-management-card{margin:0}
+.announcement-form{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.announcement-form label{display:flex;flex-direction:column;gap:6px}
+.announcement-form .announcement-message-field,.announcement-form .checkbox-row,.announcement-form .admin-form-actions{grid-column:1/-1}
+.announcement-form .checkbox-row{display:flex;flex-direction:row;align-items:center}
+.admin-announcement-preview{margin-top:14px;padding:14px;border:1px solid #d7e0e7;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:700px){
+  .announcement-management-main{width:min(100% - 18px,920px);margin:12px auto 32px}
+  .announcement-form{grid-template-columns:1fr}
+  .announcement-form .announcement-message-field,.announcement-form .checkbox-row,.announcement-form .admin-form-actions{grid-column:1}
+  .admin-header-links{width:100%}
+  .admin-header-links .admin-link,.admin-header-links button{flex:1 1 auto;justify-content:center}
+}
