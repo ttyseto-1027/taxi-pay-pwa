@@ -152,6 +152,102 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
 
   provider.setCustomParameters({ prompt: 'select_account' });
 
+  const announcementRef = doc(db, 'appSettings', 'systemAnnouncement');
+
+  function datetimeLocalToJstIso(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+    if (!match) throw new Error('掲載日時を入力してください。');
+    return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:00+09:00`;
+  }
+
+  function jstIsoToDatetimeLocal(value) {
+    const match = String(value || '').match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+    return match ? `${match[1]}T${match[2]}` : '';
+  }
+
+  function formatJst(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', hour12: false });
+  }
+
+  function announcementIsActive(data) {
+    if (!data?.enabled) return false;
+    const now = Date.now();
+    const start = new Date(data.startAtJst).getTime();
+    const end = new Date(data.endAtJst).getTime();
+    return Number.isFinite(start) && Number.isFinite(end) && start <= now && now < end;
+  }
+
+  function renderAnnouncementAdmin(data = {}) {
+    document.getElementById('announcementStartAt').value = jstIsoToDatetimeLocal(data.startAtJst);
+    document.getElementById('announcementEndAt').value = jstIsoToDatetimeLocal(data.endAtJst);
+    document.getElementById('announcementTitle').value = data.title || '';
+    document.getElementById('announcementPriority').value = data.priority || 'important';
+    document.getElementById('announcementMessage').value = data.message || '';
+    document.getElementById('announcementEnabled').checked = data.enabled === true;
+    document.getElementById('announcementBlockLogin').checked = data.blockLogin === true;
+    const active = announcementIsActive(data);
+    const status = document.getElementById('systemAnnouncementStatus');
+    status.textContent = data.message
+      ? `${active ? '現在掲載中' : (data.enabled ? '掲載期間外' : '掲載停止中')}／${formatJst(data.startAtJst)} ～ ${formatJst(data.endAtJst)}${data.blockLogin ? '／ログイン停止あり' : ''}`
+      : 'お知らせは未設定です。';
+    const preview = document.getElementById('systemAnnouncementPreview');
+    preview.hidden = !data.message;
+    preview.dataset.priority = data.priority || 'important';
+    preview.textContent = data.message ? `${data.title ? data.title + '\n' : ''}${data.message}` : '';
+  }
+
+  async function loadSystemAnnouncement() {
+    const snapshot = await getDoc(announcementRef);
+    renderAnnouncementAdmin(snapshot.exists() ? snapshot.data() : {});
+  }
+
+  document.getElementById('systemAnnouncementForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const status = document.getElementById('systemAnnouncementStatus');
+    try {
+      const startAtJst = datetimeLocalToJstIso(document.getElementById('announcementStartAt').value);
+      const endAtJst = datetimeLocalToJstIso(document.getElementById('announcementEndAt').value);
+      if (new Date(endAtJst) <= new Date(startAtJst)) throw new Error('掲載終了は掲載開始より後にしてください。');
+      const titleText = document.getElementById('announcementTitle').value.trim();
+      const priority = document.getElementById('announcementPriority').value;
+      const messageText = document.getElementById('announcementMessage').value.trim();
+      if (!titleText) throw new Error('タイトルを入力してください。');
+      if (!messageText) throw new Error('本文を入力してください。');
+      const payload = {
+        title: titleText,
+        priority,
+        sourceType: 'system',
+        sourceLabel: 'システム管理者',
+        message: messageText,
+        startAtJst,
+        endAtJst,
+        enabled: document.getElementById('announcementEnabled').checked,
+        blockLogin: document.getElementById('announcementBlockLogin').checked,
+        updatedAt: serverTimestamp(),
+        updatedAtJst: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '+09:00',
+        updatedByUid: currentAdminUid,
+        updatedByEmail: currentAdminEmail
+      };
+      await setDoc(announcementRef, payload, { merge: true });
+      renderAnnouncementAdmin(payload);
+      status.textContent = 'お知らせを保存しました。';
+    } catch (error) {
+      status.textContent = errorText(error, 'お知らせを保存できませんでした。');
+    }
+  });
+
+  document.getElementById('disableSystemAnnouncement')?.addEventListener('click', async () => {
+    const status = document.getElementById('systemAnnouncementStatus');
+    try {
+      await setDoc(announcementRef, { enabled: false, updatedAt: serverTimestamp(), updatedAtJst: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '+09:00', updatedByUid: currentAdminUid, updatedByEmail: currentAdminEmail }, { merge: true });
+      document.getElementById('announcementEnabled').checked = false;
+      status.textContent = 'お知らせの掲載を停止しました。';
+    } catch (error) {
+      status.textContent = errorText(error, '掲載を停止できませんでした。');
+    }
+  });
+
   let editingAllowlistEmail = null;
   const allowlistForm = document.getElementById('allowlistForm');
   const allowSubmitButton = document.getElementById('allowSubmitButton');
@@ -917,7 +1013,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       currentAdminEmail = String(user.email || '').trim().toLowerCase();
 
       showPage();
-      await Promise.all([loadAllowlist(), loadUsers()]);
+      await Promise.all([loadAllowlist(), loadUsers(), loadSystemAnnouncement()]);
     } catch (error) {
       await signOut(auth).catch(() => {});
       showGate(errorText(error, '管理者権限を確認できませんでした。'));

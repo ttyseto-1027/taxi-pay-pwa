@@ -114,3 +114,8 @@
 - `admin.js` のキャッシュ識別子を更新し、旧版JavaScriptが残る問題を回避。
 - `admin.html` の `admin.js` 読込バージョンを更新。
 - CSV取込・v1.3β状態表示処理をFirebase初期化スコープ内へ移動し、`db is not defined` / `loadAllowlist is not defined` を防止。
+
+## v1.4β Phase7 r3
+- 管理者向け「改修アナウンス」を「お知らせ管理」へ変更
+- お知らせのタイトル、重要度、将来の発信元拡張用フィールドを追加
+- 現時点の発信元と編集権限はシステム管理者に限定

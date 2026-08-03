@@ -15,7 +15,9 @@
     const item=record(code,kind==='error'?'error':'info',message,detail);
     const box=document.createElement('div'); box.className=`app-notification ${kind}`;
     box.innerHTML=`<strong>${message}</strong><small>${code}／${new Date(item.at).toLocaleString('ja-JP')}</small>`;
-    center.appendChild(box); setTimeout(()=>box.remove(), kind==='error'?12000:4500);
+    center.appendChild(box);
+    const duration = kind === 'error' ? 12000 : (code === 'AUTH-SIGNIN-OK' || code === 'AUTH-SIGNOUT-OK' ? 1000 : 4500);
+    setTimeout(()=>box.remove(), duration);
     return item;
   }
   function compatible(){

@@ -6,7 +6,7 @@
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <meta content="#0f4c5c" name="theme-color"/>
 <title>ユーザー管理 | タクシー給与シミュレーター</title>
-<link href="styles.css?v=20260804-phase7-r1" rel="stylesheet"/>
+<link href="styles.css?v=20260804-phase7-r3" rel="stylesheet"/>
 </head>
 <body class="admin-page auth-pending">
 <section class="auth-gate" id="adminAuthGate">
@@ -29,6 +29,22 @@
 </header>
 <main>
 <section class="card admin-dashboard-card">
+<section class="code-admin-box system-announcement-admin">
+<h2>お知らせ管理</h2>
+<p class="note">現時点ではシステム管理者からのお知らせを設定します。将来、組合管理者からのお知らせにも拡張できる構造です。日時は日本時間（JST）で保存します。</p>
+<form class="code-admin-form" id="systemAnnouncementForm">
+<label>タイトル<input id="announcementTitle" maxlength="100" required type="text" placeholder="例：システム改修のお知らせ"/></label>
+<label>重要度<select id="announcementPriority"><option value="important">重要</option><option value="notice">お知らせ</option><option value="info">情報</option></select></label>
+<label>掲載開始（JST）<input id="announcementStartAt" required type="datetime-local"/></label>
+<label>掲載終了（JST）<input id="announcementEndAt" required type="datetime-local"/></label>
+<label>本文<textarea id="announcementMessage" maxlength="1000" required rows="5" placeholder="例：2026/08/10 02:00 ～ 2026/08/10 04:00までシステム改修のためログインできません。"></textarea></label>
+<label><input id="announcementEnabled" type="checkbox"/> お知らせを掲載する</label>
+<label><input id="announcementBlockLogin" type="checkbox"/> 掲載期間中、一般利用者のログインを停止する</label>
+<div class="admin-form-actions"><button class="admin-button admin-button-blue" type="submit">お知らせを保存</button><button class="admin-button admin-button-neutral" id="disableSystemAnnouncement" type="button">掲載を停止</button></div>
+</form>
+<div aria-live="polite" class="admin-announcement-status" id="systemAnnouncementStatus">設定を読み込んでいます…</div>
+<div class="admin-announcement-preview" hidden id="systemAnnouncementPreview"></div>
+</section>
 <div class="admin-action-guide" role="note">
         利用者情報の編集・利用停止・削除、管理者権限の付与・解除は、各一覧の操作ボタンから行えます。
         管理者権限と組合員区分は別管理です。管理者へ組合員情報を登録すると、管理機能と組合員機能の両方を利用できます。古い利用者情報でregisteredUidが未設定の場合も、Googleアカウントから自動的に紐付けて同期します。
@@ -176,6 +192,6 @@
 </section>
 </main>
 <script src="firebase-config.js?v=20260729-01"></script>
-<script src="admin.js?v=20260804-phase7-r1" type="module"></script>
+<script src="admin.js?v=20260804-phase7-r3" type="module"></script>
 </body>
 </html>

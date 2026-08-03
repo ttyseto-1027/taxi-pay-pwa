@@ -432,3 +432,20 @@ tr[hidden] { display: none !important; }
   .admin-list-tools { grid-template-columns: 1fr; }
   .admin-user-stage { padding: 14px; }
 }
+
+/* Phase7 r2: system announcement and mobile admin navigation */
+.system-announcement{margin:12px auto;padding:13px 16px;border:1px solid #c78a00;border-radius:10px;background:#fff7dd;color:#5c4100;font-weight:700;white-space:pre-wrap;overflow-wrap:anywhere}
+.auth-announcement{max-width:620px;margin:0 0 14px}
+.app-announcement{width:min(1180px,calc(100% - 28px));margin-top:12px}
+.system-announcement[data-block-login="true"]{border-color:#b72a2d;background:#fff0f0;color:#7a171a}
+.admin-menu-link{text-decoration:none}
+.admin-announcement-status{margin-top:12px;padding:12px;border-radius:9px;background:#f4f7fa;border:1px solid #d9e0e7}
+.admin-announcement-preview{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:700px){.admin-menu-link{display:flex}.admin-page .admin-app-header{align-items:flex-start}.admin-page .header-controls{display:flex;flex-wrap:wrap;gap:8px}.admin-page .admin-link{display:inline-flex!important}}
+
+/* Phase7 r3: announcement management priorities */
+.system-announcement[data-priority="important"],.admin-announcement-preview[data-priority="important"]{border-color:#b72a2d;background:#fff0f0;color:#7a171a}
+.system-announcement[data-priority="notice"],.admin-announcement-preview[data-priority="notice"]{border-color:#c78a00;background:#fff7dd;color:#5c4100}
+.system-announcement[data-priority="info"],.admin-announcement-preview[data-priority="info"]{border-color:#2d6f9f;background:#eef7ff;color:#174d73}
+.system-announcement[data-block-login="true"]{border-width:2px}
+.system-announcement-admin select{width:100%;min-height:42px}
