@@ -1,4 +1,4 @@
-const CACHE = 'taxi-pay-v1.4-beta-20260804-phase7-r5';
+const CACHE = 'taxi-pay-v1.4-beta-20260805-phase7-r6';
 
 const FILES = [
   './',
@@ -19,6 +19,7 @@ const FILES = [
   './phase7-ui.js',
   './admin.html',
   './announcement.html',
+  './announcement-admin.js',
   './admin.js'
 ];
 

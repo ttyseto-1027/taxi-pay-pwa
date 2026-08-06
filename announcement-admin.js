@@ -25,6 +25,7 @@ let currentAdminUid = '';
 let currentAdminEmail = '';
 
 function setStatus(text = '', kind = '') {
+  if (!message) return;
   message.textContent = text;
   message.dataset.kind = kind;
 }
@@ -35,12 +36,12 @@ function errorText(error, fallback) {
 }
 function showGate(text = '管理者のGoogleアカウントでログインしてください。') {
   document.body.classList.add('auth-pending');
-  gate.hidden = false;
+  if (gate) gate.hidden = false;
   setStatus(text, text.includes('してください') ? 'info' : 'error');
 }
 function showPage() {
   document.body.classList.remove('auth-pending');
-  gate.hidden = true;
+  if (gate) gate.hidden = true;
   setStatus('');
 }
 function datetimeLocalToJstIso(value) {
@@ -66,23 +67,39 @@ function announcementIsActive(data) {
   const end = new Date(data.endAtJst).getTime();
   return Number.isFinite(start) && Number.isFinite(end) && start <= now && now < end;
 }
+function getAnnouncementElements() {
+  const elements = {
+    startAt: document.getElementById('announcementStartAt'),
+    endAt: document.getElementById('announcementEndAt'),
+    title: document.getElementById('announcementTitle'),
+    priority: document.getElementById('announcementPriority'),
+    message: document.getElementById('announcementMessage'),
+    enabled: document.getElementById('announcementEnabled'),
+    blockLogin: document.getElementById('announcementBlockLogin'),
+    status: document.getElementById('systemAnnouncementStatus'),
+    preview: document.getElementById('systemAnnouncementPreview')
+  };
+  return Object.values(elements).every(Boolean) ? elements : null;
+}
 function renderAnnouncement(data = {}) {
-  document.getElementById('announcementStartAt').value = jstIsoToDatetimeLocal(data.startAtJst);
-  document.getElementById('announcementEndAt').value = jstIsoToDatetimeLocal(data.endAtJst);
-  document.getElementById('announcementTitle').value = data.title || '';
-  document.getElementById('announcementPriority').value = data.priority || 'important';
-  document.getElementById('announcementMessage').value = data.message || '';
-  document.getElementById('announcementEnabled').checked = data.enabled === true;
-  document.getElementById('announcementBlockLogin').checked = data.blockLogin === true;
+  const elements = getAnnouncementElements();
+  if (!elements) {
+    throw new Error('お知らせ管理画面の必要な要素を確認できませんでした。最新版を再読み込みしてください。');
+  }
+  elements.startAt.value = jstIsoToDatetimeLocal(data.startAtJst);
+  elements.endAt.value = jstIsoToDatetimeLocal(data.endAtJst);
+  elements.title.value = data.title || '';
+  elements.priority.value = data.priority || 'important';
+  elements.message.value = data.message || '';
+  elements.enabled.checked = data.enabled === true;
+  elements.blockLogin.checked = data.blockLogin === true;
   const active = announcementIsActive(data);
-  const status = document.getElementById('systemAnnouncementStatus');
-  status.textContent = data.message
+  elements.status.textContent = data.message
     ? `${active ? '現在掲載中' : (data.enabled ? '掲載期間外' : '掲載停止中')}／${formatJst(data.startAtJst)} ～ ${formatJst(data.endAtJst)}${data.blockLogin ? '／ログイン停止あり' : ''}`
     : 'お知らせは未設定です。';
-  const preview = document.getElementById('systemAnnouncementPreview');
-  preview.hidden = !data.message;
-  preview.dataset.priority = data.priority || 'important';
-  preview.textContent = data.message ? `${data.title ? data.title + '\n' : ''}${data.message}` : '';
+  elements.preview.hidden = !data.message;
+  elements.preview.dataset.priority = data.priority || 'important';
+  elements.preview.textContent = data.message ? `${data.title ? data.title + '\n' : ''}${data.message}` : '';
 }
 
 if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
@@ -95,7 +112,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
   provider.setCustomParameters({ prompt: 'select_account' });
   const announcementRef = doc(db, 'appSettings', 'systemAnnouncement');
 
-  document.getElementById('announcementGoogleLogin').addEventListener('click', async () => {
+  document.getElementById('announcementGoogleLogin')?.addEventListener('click', async () => {
     try {
       await setPersistence(auth, browserLocalPersistence);
       try { await signInWithPopup(auth, provider); }
@@ -108,8 +125,8 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       }
     } catch (error) { setStatus(errorText(error, 'Googleログインに失敗しました。'), 'error'); }
   });
-  document.getElementById('announcementLogout').addEventListener('click', () => signOut(auth));
-  document.getElementById('systemAnnouncementForm').addEventListener('submit', async (event) => {
+  document.getElementById('announcementLogout')?.addEventListener('click', () => signOut(auth));
+  document.getElementById('systemAnnouncementForm')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const status = document.getElementById('systemAnnouncementStatus');
     try {
@@ -140,7 +157,7 @@ if (!config.enabled || !config.apiKey || config.apiKey === 'REPLACE_ME') {
       status.textContent = 'お知らせを保存しました。';
     } catch (error) { status.textContent = errorText(error, 'お知らせを保存できませんでした。'); }
   });
-  document.getElementById('disableSystemAnnouncement').addEventListener('click', async () => {
+  document.getElementById('disableSystemAnnouncement')?.addEventListener('click', async () => {
     const status = document.getElementById('systemAnnouncementStatus');
     try {
       await setDoc(announcementRef, {
