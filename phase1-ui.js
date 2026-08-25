@@ -82,6 +82,8 @@ function acceptProfile(profile){
   fillProfile(profile);
   const previewPanel=$('adminPreviewPanel');
   if(previewPanel) previewPanel.hidden=profile.isAdmin!==true;
+  const adminMenuLink=$('adminMenuLink');
+  if(adminMenuLink) adminMenuLink.hidden=profile.isAdmin!==true;
   if(profile.isAdmin!==true){
     previewMode='actual';
     const select=$('adminPreviewMode');

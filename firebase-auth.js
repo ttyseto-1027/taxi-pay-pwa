@@ -8,7 +8,8 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  reauthenticateWithPopup
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js';
 import {
   getFirestore,
@@ -21,13 +22,14 @@ import {
   collection,
   getDocs,
   query,
-  where
+  where,
+  deleteDoc
 } from 'https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js';
 
 const DIAG_KEY = 'taxiPayAuthDiagnosticV17';
 const ATTEMPT_KEY = 'taxiPayAuthAttemptV1';
 const MAX_STEPS = 120;
-const DIAGNOSTIC_BUILD = 'phase0-07-firestore-user-fix';
+const DIAGNOSTIC_BUILD = 'phase7.5-profile-diagnostics-20260819-07';
 
 function safeStorageGet() {
   try { return JSON.parse(localStorage.getItem(DIAG_KEY) || '{}'); } catch { return {}; }
@@ -198,7 +200,7 @@ function createDiagnosticUI() {
     const ua = navigator.userAgent;
     const env = state.environment || {};
     const lines = [
-      'タクシー給与シミュレーター ログイン診断',
+      'DEVELOP_タクシー給与シミュレーター ログイン診断',
       `診断版: ${DIAGNOSTIC_BUILD}`,
       `URL: ${location.origin}${location.pathname}`,
       `端末情報: ${ua}`,
@@ -307,15 +309,112 @@ export async function initializeTaxiPayAuth(){
   }
 
   let app, auth, db;
+  let currentSystemAnnouncement = null;
+
+  function announcementIsActive(data) {
+    if (!data?.enabled) return false;
+    const now = Date.now();
+    const start = new Date(data.startAtJst).getTime();
+    const end = new Date(data.endAtJst).getTime();
+    return Number.isFinite(start) && Number.isFinite(end) && start <= now && now < end;
+  }
+
+  function applySystemAnnouncement(data) {
+    currentSystemAnnouncement = data || null;
+    const active = announcementIsActive(data);
+    ['authSystemAnnouncement', 'appSystemAnnouncement'].forEach((id) => {
+      const node = document.getElementById(id);
+      if (!node) return;
+      node.hidden = !active;
+      node.textContent = active ? `${data.title ? data.title + '\n' : ''}${String(data.message || '')}` : '';
+      node.dataset.priority = String(data.priority || 'important');
+      node.dataset.blockLogin = String(active && data.blockLogin === true);
+    });
+    if (active && data.blockLogin === true) {
+      login.disabled = true;
+      setMessage(String(data.message || 'システム改修中のためログインできません。'), 'error');
+    }
+    return active;
+  }
+
+  async function refreshSystemAnnouncement() {
+    try {
+      const snapshot = await getDoc(doc(db, 'appSettings', 'systemAnnouncement'));
+      applySystemAnnouncement(snapshot.exists() ? snapshot.data() : null);
+    } catch (error) {
+      D.record('APP-ANNOUNCEMENT-READ-WARN', 'warning', 'お知らせを取得できませんでした。', error?.message || error);
+    }
+  }
+
   try {
     diag.step('AUTH-INIT-START','Firebaseを初期化しています。');
     app=initializeApp(config); auth=getAuth(app); db=getFirestore(app);
     diag.step('AUTH-INIT-OK','Firebaseの初期化に成功しました。','success');
+    await refreshSystemAnnouncement();
   } catch(err) {
     const info=userFriendlyError('INIT',err); diag.fail(info,'INIT'); D.notify(info.text,'error',info.displayCode,err?.stack||err); throw err;
   }
 
   const provider = new GoogleAuthProvider();
+const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+if (sessionStorage.getItem('taxipay:request-drive-scope') === '1') {
+  provider.addScope(DRIVE_FILE_SCOPE);
+}
+
+function rememberGoogleApiToken(result) {
+  try {
+    if (!result) return '';
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    const token = credential?.accessToken || '';
+    if (token) {
+      sessionStorage.setItem('taxipay:google-api-access-token', token);
+      sessionStorage.removeItem('taxipay:request-drive-scope');
+      window.dispatchEvent(new CustomEvent('taxipay:google-api-token', { detail: { available: true } }));
+    }
+    return token;
+  } catch (error) {
+    console.warn('Google API token capture failed:', error);
+    return '';
+  }
+}
+
+  
+  window.TaxiPayRequestDriveAuthorization = async function(){
+    try {
+      const user = auth.currentUser;
+      if(!user){
+        throw Object.assign(
+          new Error('Googleログイン状態を確認できません。もう一度ログインしてください。'),
+          {code:'drive/not-signed-in'}
+        );
+      }
+
+      const driveProvider = new GoogleAuthProvider();
+      driveProvider.addScope(DRIVE_FILE_SCOPE);
+      driveProvider.setCustomParameters({
+        prompt:'consent',
+        login_hint:user.email || undefined
+      });
+
+      // Already signed in: reauthenticate the current user only to add drive.file.
+      const result = await reauthenticateWithPopup(user, driveProvider);
+      const token = rememberGoogleApiToken(result);
+
+      if(!token){
+        throw Object.assign(
+          new Error('Google Drive用のアクセストークンを取得できませんでした。'),
+          {code:'drive/no-access-token'}
+        );
+      }
+
+      return token;
+    } catch(error) {
+      console.error('Google Drive authorization error:', error);
+      sessionStorage.removeItem('taxipay:request-drive-scope');
+      throw error;
+    }
+  };
+
   provider.setCustomParameters({prompt:'select_account'});
   const ua = navigator.userAgent || '';
   const isIOS = /iPad|iPhone|iPod/.test(ua) ||
@@ -527,8 +626,8 @@ export async function initializeTaxiPayAuth(){
     if(!a.driverNumber) throw Object.assign(new Error('事前登録情報に乗務員番号がありません。管理者へお問い合わせください。'),{authStage:'DRIVER'});
 
     const profile={
-      name:user.displayName||a.displayName||'',
-      displayName:user.displayName||'',
+      name:a.displayName||user.displayName||'',
+      displayName:a.displayName||user.displayName||'',
       email:allow.email,
       status:'active',
       plan:'beta_v1_3',
@@ -618,6 +717,31 @@ export async function initializeTaxiPayAuth(){
 
     return routingPromise;
   }
+
+  function getDeviceId(){
+    const key='taxiPayDeviceIdV1';
+    try{let id=localStorage.getItem(key);if(!id){id=(crypto.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`);localStorage.setItem(key,id);}return id;}catch{return `temporary-${Date.now()}`;}
+  }
+  function deviceInfo(){
+    const ua=navigator.userAgent||'';
+    const os=/Android/i.test(ua)?'Android':/iPad|iPhone|iPod/i.test(ua)?'iOS':/Windows/i.test(ua)?'Windows':/Macintosh|Mac OS X/i.test(ua)?'macOS':'その他';
+    const browser=/CriOS|Chrome/i.test(ua)?'Chrome':/Safari/i.test(ua)?'Safari':/Firefox/i.test(ua)?'Firefox':'その他';
+    const meta=window.TAXI_PAY_APP_META||{};
+    return {deviceId:getDeviceId(),os,browser,userAgent:ua,launchMode:(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true)?'pwa':'browser',screenWidth:window.screen?.width||0,screenHeight:window.screen?.height||0,viewportWidth:innerWidth,viewportHeight:innerHeight,appVersion:meta.version||'',build:meta.build||'',environment:meta.environment||'',lastSeenAtJst:new Date().toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}),lastSeenAt:serverTimestamp()};
+  }
+  async function recordDeviceAndHistory(user,result='success',errorCode=''){
+    if(!user?.uid)return;
+    const info=deviceInfo();
+    await setDoc(doc(db,'users',user.uid,'devices',info.deviceId),info,{merge:true});
+    const historyId=`${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    await setDoc(doc(db,'users',user.uid,'loginHistory',historyId),{...info,result,errorCode,occurredAtJst:new Date().toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}),occurredAt:serverTimestamp()});
+    const now=Date.now(), deviceLimit=180*86400000, historyLimit=60*86400000;
+    for(const [name,limitMs] of [['devices',deviceLimit],['loginHistory',historyLimit]]){
+      const snap=await getDocs(collection(db,'users',user.uid,name));
+      await Promise.all(snap.docs.filter(d=>{const x=d.data();const ts=x.lastSeenAt?.toMillis?.()||x.occurredAt?.toMillis?.()||0;return ts&&now-ts>limitMs;}).map(d=>deleteDoc(d.ref)));
+    }
+  }
+
   async function route(user){
     setMessage('利用者情報を確認しています…','info');
     diag.step('AUTH-STATE-SIGNED-IN','Google認証に成功しました。','success');
@@ -639,6 +763,7 @@ export async function initializeTaxiPayAuth(){
       );
     }
 
+    try{await recordDeviceAndHistory(user,'success','');}catch(e){diag.step('AUTH-DEVICE-RECORD-WARN','利用端末・ログイン履歴を保存できませんでした。','warning',e?.message||e);}
     diag.step('AUTH-COMPLETE-001','ログインが完了しました。','success');
     clearAttempt();
     D.notify('ログインしました。','success','AUTH-SIGNIN-OK');
@@ -647,6 +772,12 @@ export async function initializeTaxiPayAuth(){
 
   login.addEventListener('click',async()=>{
     I?.add('V17-LOGIN-CLICK','Googleログインボタンが押されました。');
+    // お知らせは起動時に取得済み。Safariのユーザー操作権限を維持するため、
+    // ログインボタン押下後は通信待ちを挟まず、キャッシュ済み状態を確認する。
+    if (announcementIsActive(currentSystemAnnouncement) && currentSystemAnnouncement.blockLogin === true) {
+      setMessage(String(currentSystemAnnouncement.message || 'システム改修中のためログインできません。'), 'error');
+      return;
+    }
     preservedFailure=false;
     login.disabled=true;
     setMessage('Googleログインを開始しています…','info');
@@ -656,7 +787,7 @@ export async function initializeTaxiPayAuth(){
     diag.step(
       'AUTH-DEVICE-METHOD',
       isIOS
-        ? 'iPhone・iPadのためポップアップ方式でログインします。'
+        ? 'iPhone・iPadのため、タップ直後にポップアップ方式でログインします。'
         : isAndroid
           ? 'Android Chromeのためポップアップ方式でログインします。'
           : 'PCのためポップアップ方式でログインします。'
@@ -664,23 +795,14 @@ export async function initializeTaxiPayAuth(){
     diag.step('AUTH-ATTEMPT-SAVED','ログイン試行情報を端末に保存しました。','success');
 
     try {
-      diag.step('AUTH-PERSIST-START','認証情報の保存方式を設定しています。');
-      try {
-        await withTimeout(
-          setPersistence(auth,browserLocalPersistence),
-          8000,
-          'auth/persistence-timeout',
-          '認証情報の保存設定が時間内に完了しませんでした。'
-        );
-        diag.step('AUTH-PERSIST-OK','認証情報の保存設定に成功しました。','success');
-      } catch (persistErr) {
-        diag.step(
-          'AUTH-PERSIST-WARN',
-          '認証情報の保存設定を完了できませんでしたが、ログイン処理を続行します。',
-          'warning',
-          persistErr?.message || persistErr
-        );
-      }
+      // Safariでは、利用者のタップ後にawaitを挟むとポップアップが
+      // ユーザー操作由来と認識されず auth/popup-blocked になる場合がある。
+      // Persistenceは起動時に設定済みなので、ここでは直ちにPopupを開く。
+      diag.step(
+        'AUTH-PERSIST-REUSE',
+        '起動時に設定済みの認証情報保存方式を使用します。',
+        'success'
+      );
 
       if(isIOS){
         updateAttempt({method:'popup',phase:'popup-start',isIOS});
@@ -691,6 +813,7 @@ export async function initializeTaxiPayAuth(){
       diag.step('AUTH-POPUP-START','Googleアカウント選択画面を開いています。');
       I?.add('V17-POPUP-CALL','signInWithPopup を呼び出します。');
       const result=await signInWithPopup(auth,provider);
+      rememberGoogleApiToken(result);
       I?.add('V17-POPUP-RETURN','signInWithPopup が完了しました。',result?.user?.email||'emailなし');
       updateAttempt({phase:'popup-resolved', email:maskEmail(result?.user?.email||'')});
       diag.setUserEmail(result?.user?.email||'');
@@ -729,7 +852,7 @@ export async function initializeTaxiPayAuth(){
         D.notify(info.text,'error',info.displayCode,err?.stack||err);
       }
     } finally {
-      login.disabled=false;
+      login.disabled = announcementIsActive(currentSystemAnnouncement) && currentSystemAnnouncement?.blockLogin === true;
     }
   });
 
@@ -763,13 +886,31 @@ export async function initializeTaxiPayAuth(){
       routingUid='';
       routingPromise=null;
       showGate();
+      await refreshSystemAnnouncement();
       if(!preservedFailure && !readAttempt()){
-        setMessage('Googleアカウントでログインしてください。','info');
+        if (announcementIsActive(currentSystemAnnouncement) && currentSystemAnnouncement.blockLogin === true) {
+          setMessage(String(currentSystemAnnouncement.message || 'システム改修中のためログインできません。'), 'error');
+        } else {
+          setMessage('Googleアカウントでログインしてください。','info');
+        }
         diag.step('AUTH-STATE-SIGNED-OUT','現在は未ログインです。');
       }
       return;
     }
-    try { await routeOnce(user); }
+    try {
+      await refreshSystemAnnouncement();
+      if (announcementIsActive(currentSystemAnnouncement) && currentSystemAnnouncement.blockLogin === true) {
+        const adminSnapshot = await getDoc(doc(db, 'admins', user.uid));
+        if (!adminSnapshot.exists() || adminSnapshot.data().enabled === false) {
+          preservedFailure = true;
+          await signOut(auth);
+          showGate();
+          setMessage(String(currentSystemAnnouncement.message || 'システム改修中のためログインできません。'), 'error');
+          return;
+        }
+      }
+      await routeOnce(user);
+    }
     catch(err) {
       const stage=err?.authStage||'USER';
       const info=userFriendlyError(stage,err);
@@ -862,9 +1003,13 @@ export async function initializeTaxiPayAuth(){
     }
   }
 
-  login.disabled=false;
+  login.disabled = announcementIsActive(currentSystemAnnouncement) && currentSystemAnnouncement?.blockLogin === true;
   if (!auth.currentUser && !preservedFailure) {
-    setMessage('Googleアカウントでログインしてください。','info');
+    if (announcementIsActive(currentSystemAnnouncement) && currentSystemAnnouncement?.blockLogin === true) {
+      setMessage(String(currentSystemAnnouncement.message || 'システム改修中のためログインできません。'), 'error');
+    } else {
+      setMessage('Googleアカウントでログインしてください。','info');
+    }
   }
   captureEnvironment('auth-ready');
   diag.step('AUTH-READY-001','認証機能の準備が完了しました。','success');

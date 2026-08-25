@@ -1,11 +1,11 @@
 {
-  "name": "タクシー給与シミュレーター v1.3β",
-  "short_name": "給与計算 v1.3β",
+  "name": "DEVELOP_タクシー給与シミュレーター",
+  "short_name": "DEVELOP_給与",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#eef3f5",
   "theme_color": "#0f4c5c",
   "lang": "ja",
-  "description": "タクシー乗務員向け給与概算シミュレーター"
+  "description": "DEVELOP環境：タクシー乗務員向け給与概算シミュレーター"
 }

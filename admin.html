@@ -1,195 +1,186 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0f4c5c">
-  <title>ユーザー管理 | タクシー給与シミュレーター</title>
-  <link href="styles.css?v=20260727-17" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="#0f4c5c" name="theme-color"/>
+<title>ユーザー管理 | DEVELOP_タクシー給与シミュレーター</title>
+<link href="styles.css?v=20260824-13" rel="stylesheet"/>
 </head>
+<body class="admin-page auth-checking">
+<section class="auth-checking-panel" id="authCheckingPanel" role="status" aria-live="polite">
+<div class="auth-card auth-checking-card">
+<h1>ユーザー管理</h1>
+<p>ログイン状態を確認しています…</p>
+</div>
+</section>
+<section class="auth-gate" id="adminAuthGate" hidden>
+<div class="auth-card">
+<h1>ユーザー管理</h1>
+<p id="adminMessage">管理者のGoogleアカウントでログインしてください。</p>
+<button id="adminGoogleLogin" type="button">Googleでログイン</button>
+<p><a href="index.html">アプリへ戻る</a></p>
+</div>
+</section>
+<header class="app-header admin-app-header">
+<div>
+<h1 class="admin-page-title"><span aria-hidden="true">👥</span> ユーザー管理</h1>
+<p data-app-version></p>
+</div>
+<div class="header-controls">
+<a class="ghost admin-link" href="announcement.html">お知らせ管理</a><a class="ghost admin-link" href="system-info.html">システム情報</a>
+<a class="ghost admin-link" href="index.html">アプリへ戻る</a>
+<button class="ghost" id="adminLogout" type="button">ログアウト</button>
+</div>
+</header>
+<main>
+<section class="card admin-dashboard-card">
 
-<body class="admin-page auth-pending">
-  <section class="auth-gate" id="adminAuthGate">
-    <div class="auth-card">
-      <h1>ユーザー管理</h1>
-      <p id="adminMessage">管理者のGoogleアカウントでログインしてください。</p>
-      <button id="adminGoogleLogin" type="button">Googleでログイン</button>
-      <p><a href="index.html">アプリへ戻る</a></p>
-    </div>
-  </section>
-
-  <header class="app-header admin-app-header">
-    <div>
-      <h1 class="admin-page-title"><span aria-hidden="true">👥</span> ユーザー管理</h1>
-      <p>Version 1.3β / 管理画面 v17</p>
-    </div>
-    <div class="header-controls">
-      <a class="ghost admin-link" href="index.html">アプリへ戻る</a>
-      <button class="ghost" id="adminLogout" type="button">ログアウト</button>
-    </div>
-  </header>
-
-  <main>
-    <section class="card admin-dashboard-card">
-      <div class="admin-action-guide" role="note">
+<div class="admin-action-guide" role="note">
         利用者情報の編集・利用停止・削除、管理者権限の付与・解除は、各一覧の操作ボタンから行えます。
         管理者権限と組合員区分は別管理です。管理者へ組合員情報を登録すると、管理機能と組合員機能の両方を利用できます。古い利用者情報でregisteredUidが未設定の場合も、Googleアカウントから自動的に紐付けて同期します。
         削除はFirestore内の利用者情報を対象とし、Firebase Authenticationのアカウント自体は削除しません。
       </div>
-      <div class="admin-summary">
-        <div>
-          <span>登録ユーザー数</span>
-          <strong id="userCount">0人</strong>
-        </div>
-        <div>
-          <span>利用中</span>
-          <strong id="activeCount">0人</strong>
-        </div>
-        <div>
-          <span>利用停止</span>
-          <strong id="lockedCount">0人</strong>
-        </div>
-        <div>
-          <span>有効な管理者</span>
-          <strong id="adminCount">0人</strong>
-        </div>
-      </div><div><span>v1.3βログイン成功</span><strong id="v13LoginCount">0人</strong></div><div><span>14日猶予期間</span><strong id="graceStatus">未開始</strong></div>
-
-      <div class="code-admin-box"><h2>v1.3β 事前登録マスター</h2><p class="note">CSV見出し：displayName,email,driverNumber,office,unionStatus,tester,enabled</p><input id="masterCsv" type="file" accept=".csv,text/csv"><button class="admin-button admin-button-green" id="importMaster" type="button">CSVを取り込む</button><p id="masterStatus" class="note" aria-live="polite"></p></div>
-
-      <div class="code-admin-box">
-        <h2>β版無料利用コードの発行</h2>
-        <p class="note">
+<div class="admin-summary">
+<div>
+<span>登録ユーザー数</span>
+<strong id="userCount">0人</strong>
+</div>
+<div>
+<span>利用中</span>
+<strong id="activeCount">0人</strong>
+</div>
+<div>
+<span>利用停止</span>
+<strong id="lockedCount">0人</strong>
+</div>
+<div>
+<span>有効な管理者</span>
+<strong id="adminCount">0人</strong>
+</div>
+</div><div><span>v1.3βログイン成功</span><strong id="v13LoginCount">0人</strong></div><div><span>14日猶予期間</span><strong id="graceStatus">未開始</strong></div>
+<div class="code-admin-box"><h2>v1.3β 事前登録マスター</h2><p class="note">CSV見出し：displayName,email,driverNumber,office,unionStatus,tester,enabled</p><input accept=".csv,text/csv" id="masterCsv" type="file"/><button class="admin-button admin-button-green" id="importMaster" type="button">CSVを取り込む</button><p aria-live="polite" class="note" id="masterStatus"></p></div>
+<div class="code-admin-box">
+<h2>β版無料利用コードの発行</h2>
+<p class="note">
           コード本文は保存せず、SHA-256ハッシュだけをFirestoreへ保存します。
           初期値は先着10人です。
         </p>
-        <form class="code-admin-form" id="codeForm">
-          <label>
+<form class="code-admin-form" id="codeForm">
+<label>
             利用コード
-            <input id="newAccessCode" minlength="8" required type="text" autocomplete="off">
-          </label>
-          <label>
+            <input autocomplete="off" id="newAccessCode" minlength="8" required="" type="text"/>
+</label>
+<label>
             利用上限
-            <input id="newAccessMaxUses" min="1" required type="number" value="10">
-          </label>
-          <button class="admin-button admin-button-purple" type="submit">新規コードを登録</button>
-        </form>
-        <p class="note" id="codeStatus" aria-live="polite"></p>
-      </div>
-
-      <div class="code-admin-box">
-        <h2>既存コードの利用上限変更</h2>
-        <form class="code-admin-form" id="limitForm">
-          <label>
+            <input id="newAccessMaxUses" min="1" required="" type="number" value="10"/>
+</label>
+<button class="admin-button admin-button-purple" type="submit">新規コードを登録</button>
+</form>
+<p aria-live="polite" class="note" id="codeStatus"></p>
+</div>
+<div class="code-admin-box">
+<h2>既存コードの利用上限変更</h2>
+<form class="code-admin-form" id="limitForm">
+<label>
             利用コード
-            <input id="limitAccessCode" minlength="8" required type="text" autocomplete="off">
-          </label>
-          <label>
+            <input autocomplete="off" id="limitAccessCode" minlength="8" required="" type="text"/>
+</label>
+<label>
             新しい利用上限
-            <input id="limitMaxUses" min="1" required type="number" value="10">
-          </label>
-          <button class="admin-button admin-button-purple" type="submit">上限を変更</button>
-        </form>
-        <p class="note" id="limitStatus" aria-live="polite"></p>
-      </div>
-
-      <div class="code-admin-box">
-        <h2>新規テストユーザー登録（1名ずつ）</h2>
-        <p class="note">
-          CSV取込と同じ7項目を登録します。登録したGoogleアカウントで初回ログインすると、
-          利用者情報と紐づきます。
-        </p>
-        <form class="code-admin-form" id="allowlistForm">
-          <label>
+            <input id="limitMaxUses" min="1" required="" type="number" value="10"/>
+</label>
+<button class="admin-button admin-button-purple" type="submit">上限を変更</button>
+</form>
+<p aria-live="polite" class="note" id="limitStatus"></p>
+</div>
+<div class="code-admin-box admin-user-stage admin-user-stage-pending">
+<h2>ユーザー登録（登録待ち・事前登録）</h2>
+<p class="note">初回ログイン前の利用者を登録・編集します。登録済み利用者とは別の一覧です。</p>
+<form class="code-admin-form" id="allowlistForm">
+<label>
             氏名
-            <input id="allowDisplayName" required type="text" autocomplete="name">
-          </label>
-          <label>
+            <input autocomplete="name" id="allowDisplayName" required="" type="text"/>
+</label>
+<label>
             Googleアカウント
-            <input id="allowEmail" required type="email" autocomplete="email">
-          </label>
-          <label>
+            <input autocomplete="email" id="allowEmail" required="" type="email"/>
+</label>
+<label>
             乗務員番号
-            <input id="allowDriverNumber" required type="text" inputmode="numeric" autocomplete="off"
-              placeholder="例：381234">
-          </label>
-          <label>
+            <input autocomplete="off" id="allowDriverNumber" inputmode="numeric" placeholder="例：381234" required="" type="text"/>
+</label>
+<label>
             営業所
-            <input id="allowOffice" required type="text" autocomplete="organization"
-              placeholder="例：成城">
-          </label>
-          <label>
+            <input autocomplete="organization" id="allowOffice" placeholder="例：成城" required="" type="text"/>
+</label>
+<label>
             組合員区分
-            <select id="allowUnionStatus" required>
-              <option value="">選択してください</option>
-              <option value="member">組合員</option>
-              <option value="nonmember">非組合員</option>
-            </select>
-          </label>
-          <label>
+            <select id="allowUnionStatus" required="">
+<option value="">選択してください</option>
+<option value="member">組合員</option>
+<option value="nonmember">非組合員</option>
+</select>
+</label>
+<label>
             テストユーザー
-            <select id="allowTester" required>
-              <option value="true" selected>対象</option>
-              <option value="false">対象外</option>
-            </select>
-          </label>
-          <label>
+            <select id="allowTester" required="">
+<option selected="" value="true">対象</option>
+<option value="false">対象外</option>
+</select>
+</label>
+<label>
             利用状態
-            <select id="allowEnabled" required>
-              <option value="true" selected>利用中</option>
-              <option value="false">利用停止</option>
-            </select>
-          </label>
-          <div class="admin-form-actions">
-            <button class="admin-button admin-button-blue" id="allowSubmitButton" type="submit">テストユーザーを登録</button>
-            <button class="admin-button admin-button-neutral" id="allowCancelEdit" type="button" hidden>編集をキャンセル</button>
-          </div>
-        </form>
-        <p class="note" id="allowlistStatus" aria-live="polite"></p>
+            <select id="allowEnabled" required="">
+<option selected="" value="true">利用中</option>
+<option value="false">利用停止</option>
+</select>
+</label>
+<div class="admin-form-actions">
+<button class="admin-button admin-button-blue" id="allowSubmitButton" type="submit">テストユーザーを登録</button>
+<button class="admin-button admin-button-neutral" hidden="" id="allowCancelEdit" type="button">編集をキャンセル</button>
+</div>
+</form>
+<p aria-live="polite" class="note" id="allowlistStatus"></p>
+<div hidden aria-hidden="true">
+  <div aria-label="登録待ちユーザーの検索" class="admin-list-tools"><label>登録待ちを検索<input id="allowlistSearch" placeholder="氏名・メール・乗務員番号・営業所" type="search"/></label><label>初回登録<select id="allowlistRegistrationFilter"><option value="">すべて</option><option value="pending">未登録</option><option value="registered">登録済み</option></select></label><p aria-live="polite" class="admin-visible-count" id="allowlistVisibleCount"></p></div>
+  <div class="table-wrap"><table><tbody id="allowlistBody"></tbody></table></div>
+</div>
+</div>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>氏名</th>
-                <th>Googleアカウント</th>
-                <th>乗務員番号</th>
-                <th>営業所</th>
-                <th>組合員区分</th>
-                <th>テスター</th>
-                <th>利用状態</th>
-                <th>初回登録</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="allowlistBody"></tbody>
-          </table>
-        </div>
-      </div>
+<section class="admin-user-stage admin-user-stage-unified">
+<h2>ユーザー一覧</h2>
+<p class="note">事前登録ユーザーと登録済みユーザーを1つの一覧で管理します。氏名・Googleアカウント・乗務員番号・営業所で検索できます。</p>
+<div aria-label="ユーザー一覧の検索と並び替え" class="admin-list-tools admin-list-tools-unified">
+<label>検索<input id="unifiedUserSearch" placeholder="氏名・Googleアカウント・乗務員番号・営業所" type="search"/></label>
+<label>登録状態<select id="unifiedRegistrationFilter"><option value="">すべて</option><option value="pending">未登録</option><option value="registered">登録済み</option></select></label>
+<label>利用状態<select id="unifiedStatusFilter"><option value="">すべて</option><option value="active">利用中</option><option value="locked">利用停止</option></select></label>
+<label>権限<select id="unifiedRoleFilter"><option value="">すべて</option><option value="admin">管理者</option><option value="user">一般利用者</option></select></label>
+<label>並び順<select id="unifiedSort"><option value="name-asc">氏名（昇順）</option><option value="name-desc">氏名（降順）</option><option value="office-asc">営業所 → 氏名</option><option value="driver-asc">乗務員番号（昇順）</option><option value="registration">未登録を先に</option><option value="created-desc">登録日時（新しい順）</option><option value="last-desc">最終利用（新しい順）</option></select></label>
+<label>表示件数<select id="unifiedPageSize"><option value="10">10件</option><option value="20">20件</option></select></label>
+</div>
+<div class="admin-list-summary"><p aria-live="polite" id="unifiedVisibleCount"></p><p aria-live="polite" class="note" id="adminStatus"></p></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>氏名</th><th>Googleアカウント</th><th>乗務員番号</th><th>営業所</th><th>組合員区分</th><th>登録状態</th><th>利用状態</th><th>権限</th><th>登録日時</th><th>最終利用</th><th>操作</th></tr></thead>
+<tbody id="unifiedUsersBody"></tbody>
+</table>
+</div>
+<nav aria-label="ユーザー一覧ページ切替" class="admin-pagination" id="unifiedPagination">
+<button type="button" id="unifiedPrevPage">← 前へ</button><div class="admin-pagination-pages" id="unifiedPageButtons"></div><button type="button" id="unifiedNextPage">次へ →</button>
+</nav>
+</section>
 
-      <h2>登録ユーザー一覧</h2>
-      <p class="note" id="adminStatus" aria-live="polite"></p>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>氏名</th>
-              <th>メール</th>
-              <th>プラン</th>
-              <th>状態</th>
-              <th>管理者権限</th>
-              <th>登録日時</th>
-              <th>最終利用</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="usersBody"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+<section hidden aria-hidden="true" class="admin-user-stage admin-user-stage-registered">
+<div aria-label="登録済みユーザーの検索" class="admin-list-tools"><label>登録済みを検索<input id="registeredUserSearch" placeholder="氏名・メール・プラン" type="search"/></label><label>利用状態<select id="registeredStatusFilter"><option value="">すべて</option><option value="active">利用中</option><option value="locked">利用停止</option></select></label><label>権限<select id="registeredRoleFilter"><option value="">すべて</option><option value="admin">管理者</option><option value="user">一般利用者</option></select></label><p aria-live="polite" class="admin-visible-count" id="registeredVisibleCount"></p></div>
+<div class="table-wrap"><table><tbody id="usersBody"></tbody></table></div>
+</section>
 
-  <script src="firebase-config.js?v=20260729-01"></script>
-  <script src="admin.js?v=20260729-01" type="module"></script>
+
+</section>
+</main><dialog class="modal user-detail-dialog" id="userDetailDialog"><div class="modal-title-row"><h2 id="userDetailTitle">ユーザー詳細</h2><button class="icon-button" id="closeUserDetail" type="button">✕</button></div><div id="userDetailContent"><p>読み込み中…</p></div></dialog>
+<script src="firebase-config.js?v=20260824-13"></script><script src="app-meta.js?v=20260824-13"></script><script src="phase75-ops.js?v=20260824-13"></script>
+<script src="admin.js?v=20260824-13" type="module"></script>
 </body>
 </html>

@@ -1,13 +1,270 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn(){ return request.auth != null; }
-    function isAdmin(){ return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.enabled != false; }
-    match /admins/{uid} { allow read: if signedIn() && request.auth.uid == uid; allow write: if isAdmin(); }
-    match /betaAllowlist/{email} { allow read: if signedIn() && request.auth.token.email == email; allow read, write: if isAdmin(); }
-    match /users/{uid} { allow read: if signedIn() && (request.auth.uid == uid || isAdmin()); allow create: if signedIn() && request.auth.uid == uid; allow update: if signedIn() && (request.auth.uid == uid || isAdmin()); }
-    match /accessCodes/{id} { allow read, write: if isAdmin(); }
-    match /v13LoginSuccess/{uid} { allow read: if isAdmin(); allow create, update: if signedIn() && request.auth.uid == uid; }
-    match /appSettings/{id} { allow read: if signedIn(); allow create, update: if signedIn(); }
+
+    /*
+     * 共通関数
+     */
+
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.email != null;
+    }
+
+    function email() {
+      return request.auth.token.email;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/admins/$(request.auth.uid)
+        )
+        && get(
+          /databases/$(database)/documents/admins/$(request.auth.uid)
+        ).data.enabled != false;
+    }
+
+    function allowlistExists() {
+      return signedIn()
+        && exists(
+          /databases/$(database)/documents/betaAllowlist/$(email())
+        );
+    }
+
+    function allowDoc() {
+      return get(
+        /databases/$(database)/documents/betaAllowlist/$(email())
+      );
+    }
+
+    function isAllowlisted() {
+      return allowlistExists()
+        && allowDoc().data.enabled == true;
+    }
+
+    function isRegistered() {
+      return isAllowlisted()
+        && allowDoc().data.registeredUid == request.auth.uid;
+    }
+
+    /* 管理者 */
+    match /admins/{uid} {
+      allow get: if signedIn()
+        && uid == request.auth.uid;
+      allow list, create, update, delete: if isAdmin();
+    }
+
+    /* β版利用許可リスト */
+    match /betaAllowlist/{emailAddress} {
+      allow get: if signedIn()
+        && (
+          emailAddress == email()
+          || isAdmin()
+        );
+      allow list, create, delete: if isAdmin();
+
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && emailAddress == email()
+          && resource.data.enabled == true
+          && resource.data.registeredUid == null
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              'registeredUid',
+              'registeredAt'
+            ])
+          && request.resource.data.registeredUid
+            == request.auth.uid
+        )
+        || (
+          signedIn()
+          && emailAddress == email()
+          && resource.data.enabled == true
+          && resource.data.invitationUsed == false
+          && resource.data.registeredUid == null
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              'invitationUsed',
+              'registeredUid',
+              'registeredAt'
+            ])
+          && request.resource.data.invitationUsed == true
+          && request.resource.data.registeredUid
+            == request.auth.uid
+        );
+    }
+
+    /* アクセスコード */
+    match /accessCodes/{codeHash} {
+      allow get: if isAllowlisted()
+        || isAdmin();
+      allow list, create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (
+          isAllowlisted()
+          && resource.data.active == true
+          && resource.data.usageCount is int
+          && resource.data.maxUses is int
+          && request.resource.data.usageCount
+            == resource.data.usageCount + 1
+          && request.resource.data.usageCount
+            <= resource.data.maxUses
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              'usageCount',
+              'lastUsedAt',
+              'lastUsedBy'
+            ])
+          && request.resource.data.lastUsedBy
+            == request.auth.uid
+        );
+    }
+
+    /* 利用者情報 */
+    match /users/{uid} {
+      allow get: if signedIn()
+        && (
+          uid == request.auth.uid
+          || isAdmin()
+        );
+      allow list: if isAdmin();
+      allow create: if isAllowlisted()
+        && uid == request.auth.uid
+        && request.resource.data.email
+          == email()
+        && request.resource.data.status
+          == 'active'
+        && request.resource.data.plan
+          == 'beta_v1_3'
+        && request.resource.data.authProvider
+          == 'google.com'
+        && request.resource.data.version
+          == 'v1.3-beta';
+      allow update: if isAdmin()
+        || (
+          isAllowlisted()
+          && uid == request.auth.uid
+          && resource.data.email
+            == email()
+          && request.resource.data.email
+            == resource.data.email
+          && request.resource.data
+            .diff(resource.data)
+            .affectedKeys()
+            .hasOnly([
+              'lastLoginAt',
+              'lastVersion'
+            ])
+        );
+      allow delete: if isAdmin();
+    }
+
+    /* Phase7.5 利用端末情報 */
+    match /users/{uid}/devices/{deviceId} {
+      allow get, list: if signedIn()
+        && (
+          uid == request.auth.uid
+          || isAdmin()
+        );
+      allow create, update, delete: if signedIn()
+        && uid == request.auth.uid;
+    }
+
+    /* Phase7.5 ログイン履歴 */
+    match /users/{uid}/loginHistory/{historyId} {
+      allow get, list: if signedIn()
+        && (
+          uid == request.auth.uid
+          || isAdmin()
+        );
+      allow create: if signedIn()
+        && uid == request.auth.uid;
+      allow delete: if signedIn()
+        && uid == request.auth.uid;
+    }
+
+    /* v1.3βログイン成功記録 */
+    match /v13LoginSuccess/{uid} {
+      allow get: if signedIn()
+        && (
+          uid == request.auth.uid
+          || isAdmin()
+        );
+      allow list: if isAllowlisted()
+        || isAdmin();
+      allow create: if isAllowlisted()
+        && uid == request.auth.uid
+        && request.resource.data.uid
+          == request.auth.uid
+        && request.resource.data.email
+          == email()
+        && request.resource.data.isAdmin
+          == false
+        && request.resource.data
+          .keys()
+          .hasOnly([
+            'uid',
+            'email',
+            'driverNumber',
+            'firstSuccessAt',
+            'lastSuccessAt',
+            'isAdmin'
+          ]);
+      allow update: if isAllowlisted()
+        && uid == request.auth.uid
+        && request.resource.data.uid
+          == request.auth.uid
+        && request.resource.data.email
+          == email()
+        && request.resource.data.isAdmin
+          == false
+        && request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            'uid',
+            'email',
+            'driverNumber',
+            'firstSuccessAt',
+            'lastSuccessAt',
+            'isAdmin'
+          ]);
+      allow delete: if isAdmin();
+    }
+
+    /* アプリ共通設定 */
+    match /appSettings/{settingId} {
+      allow get: if signedIn();
+      allow list: if isAdmin();
+      allow create: if settingId == 'v1_3_beta'
+        && isAllowlisted()
+        && request.resource.data
+          .keys()
+          .hasOnly([
+            'gracePeriodStartedAt',
+            'gracePeriodDays',
+            'gracePeriodTriggeredByCount'
+          ])
+        && request.resource.data.gracePeriodDays
+          == 14
+        && request.resource.data.gracePeriodTriggeredByCount is int
+        && request.resource.data.gracePeriodTriggeredByCount
+          >= 3;
+      allow update, delete: if isAdmin();
+    }
+
+    /* 上記に定義されていないデータへのアクセスは拒否 */
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }

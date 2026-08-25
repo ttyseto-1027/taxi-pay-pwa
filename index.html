@@ -6,9 +6,9 @@
 <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
 <meta content="#0f4c5c" name="theme-color"/>
 <meta content="タクシー乗務員向け給与概算シミュレーター" name="description"/>
-<title>タクシー給与シミュレーター</title>
+<title>DEVELOP_タクシー給与シミュレーター</title>
 <link href="manifest.json" rel="manifest"/>
-<link href="styles.css?v=20260728-phase1-auth-deferred" rel="stylesheet"/>
+<link href="styles.css?v=20260825-07" rel="stylesheet"/>
 <script>
 (function(){
   'use strict';
@@ -33,9 +33,10 @@
 </head>
 <body class="auth-pending"><section aria-live="polite" class="auth-gate no-print" id="authGate">
 <div class="auth-card">
-<h1>タクシー給与シミュレーター</h1>
-<p class="note">Version 1.3β</p>
+<h1>DEVELOP_タクシー給与シミュレーター</h1>
+<p class="note app-version-line" data-app-version></p>
 <div class="setup-notice" hidden="" id="firebaseSetupNotice">Firebaseの初期設定が未完了です。管理者向けセットアップマニュアルをご確認ください。</div>
+<div class="system-announcement auth-announcement" hidden id="authSystemAnnouncement" role="alert"></div>
 <div class="auth-message" id="authMessage" role="status"></div>
 <button class="google-login-button" id="googleLoginButton" type="button">Googleでログイン</button>
 <div class="setup-notice prereg-notice">初回利用前に、管理者による事前登録が必要です。登録済みのGoogleアカウントでログインしてください。</div>
@@ -53,28 +54,75 @@
 </details>
 </div>
 </section>
-<header class="app-header no-print"><div class="header-brand"><h1>タクシー給与シミュレーター</h1><p id="headerShift">勤務区分未設定</p></div><div class="header-controls"><span class="eligibility-badge" id="userEligibility"></span><span class="signed-in-user" id="signedInUser"></span><a class="ghost admin-link" hidden="" href="admin.html" id="adminPageLink">ユーザー管理</a><button aria-label="メニューを開く" class="icon-button menu-open-button" id="openAppMenu" type="button">☰</button></div></header>
+<section class="profile-diagnostic-mode" id="profileDiagnosticMode" hidden>
+<div class="profile-diagnostic-mode-inner">
+<div class="view-heading"><h2>利用者情報</h2><p>Googleログインを完了できなかったため、診断モードを表示しています。</p></div>
+<section class="card">
+<h2>ログイン診断</h2>
+<p class="profile-diagnostic-error-message" id="profileLoginFailureMessage">Googleログインを完了できませんでした。</p>
+<p class="note">この画面では本人の登録情報・給与・勤務実績は表示しません。端末とアプリの診断情報だけを確認できます。</p>
+<dl class="profile-list profile-app-info">
+<div><dt>Version</dt><dd id="diagModeAppVersion">—</dd></div>
+<div><dt>Build</dt><dd id="diagModeAppBuild">—</dd></div>
+<div><dt>公開日時</dt><dd id="diagModeAppReleasedAt">—</dd></div>
+<div><dt>Service Worker</dt><dd id="diagModeServiceWorker">確認中…</dd></div>
+<div><dt>Cache Version</dt><dd id="diagModeCacheVersion">—</dd></div>
+<div><dt>認証エラー</dt><dd id="diagModeAuthError">—</dd></div>
+</dl>
+<div class="actions profile-diagnostic-actions">
+<button type="button" id="copyLoginFailureDiagnostic">診断情報をコピー</button>
+<button type="button" id="retryGoogleLogin">Googleログインを再試行</button>
+<button class="ghost" type="button" id="rebuildLoginFailureCache">PWAキャッシュを再構築</button>
+</div>
+<p class="phase2-message" id="diagModeMessage" aria-live="polite"></p><hr/><h3>旧Googleアカウントにログインできない場合</h3><p class="note">新しいGoogleアカウントへの変更申請と、この端末の診断情報をまとめてコピーします。管理者が本人確認後に変更処理を行います。</p><label>氏名<input id="diagChangeName" type="text" autocomplete="name"/></label><label>乗務員番号<input id="diagChangeDriverNumber" inputmode="numeric" type="text"/></label><label>変更先Googleアカウント<input id="diagChangeNewEmail" inputmode="email" type="email" autocomplete="email"/></label><div class="actions"><button type="button" id="copyLoginFailureChangeRequest">アカウント変更申請＋診断ログをコピー</button></div><p class="phase2-message" id="diagChangeMessage" aria-live="polite"></p>
+</section>
+</div>
+</section>
+<header class="app-header no-print"><div class="header-brand"><h1>DEVELOP_タクシー給与シミュレーター</h1><p id="headerShift">勤務区分未設定</p></div><div class="header-controls"><span class="eligibility-badge" id="userEligibility"></span><span class="signed-in-user" id="signedInUser"></span><a class="ghost admin-link" hidden="" href="admin.html" id="adminPageLink">ユーザー管理</a><a class="ghost admin-link" hidden="" href="announcement.html" id="announcementPageLink">お知らせ管理</a><button aria-label="メニューを開く" class="icon-button menu-open-button" id="openAppMenu" type="button">☰</button></div></header>
+<div class="system-announcement app-announcement no-print" hidden id="appSystemAnnouncement" role="status"></div>
 <main class="app-shell">
-<button aria-label="メニューを閉じる" class="menu-overlay" hidden="" id="menuOverlay" type="button"></button><aside aria-label="メインメニュー" class="app-menu no-print" hidden="" id="appMenu"><div class="menu-head"><div><h2>メニュー</h2><p>Version 1.4β / Phase 4（控除額設定・給与計算精度向上）</p></div><button aria-label="メニューを閉じる" class="menu-close-button" id="closeAppMenu" type="button">×</button></div><div class="admin-preview-panel" hidden="" id="adminPreviewPanel"><label>表示確認モード<select id="adminPreviewMode"><option value="actual">実際の権限</option><option value="member">組合員UI</option><option value="nonmember">非組合員UI</option></select></label><p>表示だけを切り替えます。利用者データは変更しません。</p></div><nav class="menu-nav"><button class="menu-item" data-view="work" type="button"><span>勤務実績</span></button><button class="menu-item" data-member-menu="true" data-view="monthly" type="button"><span>月次集計</span><small>組合員専用</small></button><button class="menu-item" data-member-menu="true" data-view="paidleave" type="button"><span>有給管理</span><small>組合員専用</small></button><button class="menu-item" data-member-menu="true" data-view="deductions" type="button"><span>控除額設定</span><small>組合員専用</small></button><button class="menu-item" data-view="profile" type="button"><span>利用者情報</span></button><button class="menu-item" data-view="settings" type="button"><span>設定</span></button><button class="menu-item" data-view="help" type="button"><span>ヘルプ</span></button></nav><button class="menu-logout" id="logoutButton" type="button">ログアウト</button></aside><div class="view-container"><section class="app-view" data-view-panel="work"><div class="view-heading"><h2>勤務実績</h2><p>勤務実績の入力、日別明細、給与シミュレーターを確認します。</p></div><section class="card no-print union-dashboard" data-union-only="" hidden=""><h2>組合員向け売上目標管理</h2><p class="note" id="salesTargetPayrollMonth">表示中の給与月について、目標と現在の状況を確認できます。</p><div class="sales-target-settings"><div class="form-grid"><label>今月の目標手取り<input id="targetTakeHome" min="0" placeholder="例 430000" step="1000" type="number" inputmode="numeric"/></label><label>残り出番数<input id="remainingShiftCountInput" min="0" placeholder="例 12" step="1" type="number" inputmode="numeric"/></label><label>営業目標の丸め単位<select id="salesTargetRounding"><option value="1">1円単位</option><option value="100">100円単位で切り上げ</option><option selected value="1000">1,000円単位で切り上げ</option></select></label></div><div class="actions"><button id="saveSalesTarget" type="button">売上目標を保存</button></div><div aria-live="polite" class="phase2-message" id="salesTargetMessage"></div></div><div class="summary-grid"><div><span>現在の予想手取り</span><strong id="currentExpectedTakeHome">—</strong></div><div><span>達成率</span><strong id="targetAchievementRate">—</strong></div><div><span>あと必要な手取り</span><strong id="remainingTakeHome">—</strong></div><div><span>必要な税込営収</span><strong id="neededRevenue">—</strong></div><div><span>残り出番あたりの必要営収</span><strong id="neededRevenuePerShift">—</strong></div><div><span>実質還元率</span><strong id="effectiveReturn">—</strong></div><div><span>手取り還元率</span><strong id="takeHomeReturn">—</strong></div><div><span>時間あたり手取り</span><strong id="hourlyTakeHome">—</strong></div></div><p class="note">今月の勤務実績と現在の設定に基づく概算です。実際の給与額は給与明細をご確認ください。</p></section><section class="card no-print layout-entry">
-<h2>勤務実績を入力</h2>
+<button aria-label="メニューを閉じる" class="menu-overlay" hidden="" id="menuOverlay" type="button"></button><aside aria-label="メインメニュー" class="app-menu no-print" hidden="" id="appMenu"><div class="menu-head"><div><h2>メニュー</h2><p>Version 1.4β / Phase 7（画面最適化・UI/UX改善）</p></div><button aria-label="メニューを閉じる" class="menu-close-button" id="closeAppMenu" type="button">×</button></div><div class="admin-preview-panel" hidden="" id="adminPreviewPanel"><label>表示確認モード<select id="adminPreviewMode"><option value="actual">実際の権限</option><option value="member">組合員UI</option><option value="nonmember">非組合員UI</option></select></label><p>表示だけを切り替えます。利用者データは変更しません。</p></div><nav class="menu-nav"><button class="menu-item" data-view="work" type="button"><span>勤務実績</span></button><button class="menu-item" data-member-menu="true" data-view="monthly" type="button"><span>月次集計</span><small>組合員専用</small></button><button class="menu-item" data-member-menu="true" data-view="paidleave" type="button"><span>有給管理</span><small>組合員専用</small></button><button class="menu-item" data-member-menu="true" data-view="deductions" type="button"><span>控除額設定</span><small>組合員専用</small></button><button class="menu-item" data-view="profile" type="button"><span>利用者情報</span></button><button class="menu-item" data-view="settings" type="button"><span>バックアップ</span></button><button class="menu-item" data-view="help" type="button"><span>ヘルプ</span></button><a class="menu-item admin-menu-link" hidden href="admin.html" id="adminMenuLink"><span>ユーザー管理</span><small>管理者専用</small></a><a class="menu-item admin-menu-link" hidden href="announcement.html" id="announcementMenuLink"><span>お知らせ管理</span><small>管理者専用</small></a><a class="menu-item admin-menu-link" hidden href="system-info.html" id="systemInfoMenuLink"><span>システム情報</span><small>管理者専用</small></a></nav><button class="menu-logout" id="logoutButton" type="button">ログアウト</button></aside><div class="view-container"><section class="app-view" data-view-panel="work"><div class="view-heading"><h2>勤務実績</h2><p>勤務実績の入力、日別明細、給与シミュレーターを確認します。</p></div><details class="card no-print union-dashboard phase7-accordion" data-union-only="" hidden=""><summary><span class="phase7-summary-title">組合員向け売上目標管理</span><small class="phase7-summary-note">月初や目標変更時に設定</small></summary><div class="phase7-accordion-body"><p class="note" id="salesTargetPayrollMonth">表示中の給与月について、目標と現在の状況を確認できます。</p><div class="sales-target-settings"><div class="form-grid"><label>今月の目標手取り<input id="targetTakeHome" inputmode="numeric" min="0" placeholder="例 430000" step="1000" type="number"/></label><label>残り出番数<input id="remainingShiftCountInput" inputmode="numeric" min="0" placeholder="例 12" step="1" type="number"/></label><input id="salesTargetRounding" type="hidden" value="1000"/></div><div class="actions"><button id="saveSalesTarget" type="button">売上目標を保存</button></div><div aria-live="polite" class="phase2-message" id="salesTargetMessage"></div></div><div class="summary-grid"><div><span>現在の予想手取り</span><strong id="currentExpectedTakeHome">—</strong></div><div><span>達成率</span><strong id="targetAchievementRate">—</strong></div><div><span>あと必要な手取り</span><strong id="remainingTakeHome">—</strong></div><div><span>必要な税込営収</span><strong id="neededRevenue">—</strong></div><div><span>残り出番あたりの必要営収</span><strong id="neededRevenuePerShift">—</strong></div><div><span>実質還元率</span><strong id="effectiveReturn">—</strong></div><div><span>手取り還元率</span><strong id="takeHomeReturn">—</strong></div><div><span>時間あたり手取り</span><strong id="hourlyTakeHome">—</strong></div></div><p class="note">今月の勤務実績と現在の設定に基づく概算です。実際の給与額は給与明細をご確認ください。</p></div></details><details class="card no-print layout-entry phase7-accordion" open=""><summary><span class="phase7-summary-title">勤務実績を入力</span><small class="phase7-summary-note">日々の入力</small></summary><div class="phase7-accordion-body">
+
 <form class="entry-form" id="entryForm">
 <label>勤務日<input id="date" required="" type="date"/></label>
 <fieldset class="paid-leave-selector"><legend>勤務・有給区分</legend><div class="paid-leave-radios"><label><input checked="" name="paidLeaveType" type="radio" value="0"/>通常勤務</label><label><input name="paidLeaveType" type="radio" value="1"/>1有給</label><label><input name="paidLeaveType" type="radio" value="2"/>2有給</label></div><p class="note" id="paidLeaveEntryNote"></p></fieldset>
-<label>税込営収<div class="money-input"><input id="grossRevenue" inputmode="numeric" min="0" required="" step="1" type="number"/><span>円</span></div></label>
+<label class="revenue-source-field">総営収（税込）<div class="money-input"><input id="grossRevenue" inputmode="numeric" min="0" required="" step="1" type="number"/><span>円</span></div></label>
+
+<section class="revenue-adjustment-section" aria-labelledby="revenueAdjustmentTitle">
+<h3 id="revenueAdjustmentTitle">営収調整</h3>
+<p class="note revenue-adjustment-guide">日常点検表のA空転・B空転・その他（＋）・その他（－）の金額をそのまま入力してください。記載がない項目は0円です。</p>
+<div class="revenue-adjustment-grid">
+<label>A空転<div class="money-input"><input id="idleA" inputmode="numeric" pattern="[0-9]*" type="text" value="0"/><span>円</span></div></label>
+<label>B空転<div class="money-input"><input id="idleB" inputmode="numeric" pattern="[0-9]*" type="text" value="0"/><span>円</span></div></label>
+<label>その他（＋）<div class="money-input"><input id="otherPlus" inputmode="numeric" pattern="[0-9]*" type="text" value="0"/><span>円</span></div></label>
+<label>その他（－）<div class="money-input"><input id="otherMinus" inputmode="numeric" pattern="[0-9]*" type="text" value="0"/><span>円</span></div></label>
+</div>
+<p class="revenue-adjustment-formula" id="revenueAdjustmentFormula">給与計算用営収 ＝ 総営収 － A空転 － B空転 ＋ その他（＋）－ その他（－）</p>
+</section>
+
+<div class="revenue-result-grid">
+<label>給与計算用営収（税込・自動）<div class="money-input"><input id="adjustedGrossRevenue" readonly="" type="text"/><span>円</span></div></label>
 <label>税抜営収（自動）<div class="money-input"><input id="netRevenue" readonly="" type="text"/><span>円</span></div></label>
-<label>出勤時刻（アルコール）<input id="clockIn" required="" type="time"/></label>
-<label>退勤時刻（アルコール）<input id="clockOut" required="" type="time"/></label>
+</div>
+<label>出勤時刻（アルコール）
+<div class="tap-time-row" data-clock-group="clockIn">
+<button class="tap-number-field" data-tap-target="clockInHour" type="button"><span id="clockInHour">--</span></button><span class="clock-unit">時</span>
+<button class="tap-number-field" data-tap-target="clockInMinute" type="button"><span id="clockInMinute">--</span></button><span class="clock-unit">分</span>
+</div><input id="clockIn" type="hidden"/></label>
+<label>退勤時刻（アルコール）
+<div class="tap-time-row" data-clock-group="clockOut">
+<button class="tap-number-field" data-tap-target="clockOutHour" type="button"><span id="clockOutHour">--</span></button><span class="clock-unit">時</span>
+<button class="tap-number-field" data-tap-target="clockOutMinute" type="button"><span id="clockOutMinute">--</span></button><span class="clock-unit">分</span>
+</div><input id="clockOut" type="hidden"/></label>
 <label>休日区分<select id="holidayType"><option value="normal">通常勤務</option><option value="statutory">法定休日出勤</option><option value="nonstatutory">法定外休日出勤</option></select></label>
 <fieldset><legend>通常休憩</legend>
-<div aria-label="通常休憩時間" class="break-picker">
-<label><span>時間</span><select aria-label="通常休憩の時間" id="normalBreakHours"></select><span>時間</span></label>
-<label><span>分</span><select aria-label="通常休憩の分" id="normalBreakMinutes"></select><span>分</span></label>
+<div aria-label="通常休憩時間" class="break-single-row" data-duration-prefix="normalBreak">
+<button class="break-single-field" data-break-target="normalBreak" type="button"><span id="normalBreakDisplay">0時間00分</span></button>
 </div>
 </fieldset>
 <fieldset><legend>深夜休憩（22:00〜翌5:00内）</legend>
-<div aria-label="深夜休憩時間" class="break-picker">
-<label><span>時間</span><select aria-label="深夜休憩の時間" id="nightBreakHours"></select><span>時間</span></label>
-<label><span>分</span><select aria-label="深夜休憩の分" id="nightBreakMinutes"></select><span>分</span></label>
+<div aria-label="深夜休憩時間" class="break-single-row" data-duration-prefix="nightBreak">
+<button class="break-single-field" data-break-target="nightBreak" type="button"><span id="nightBreakDisplay">0時間00分</span></button>
 </div>
 </fieldset>
 <label class="check-label"><input id="hadAccident" type="checkbox"/>この乗務で事故あり</label>
@@ -82,14 +130,15 @@
 <input id="editingId" type="hidden"/>
 <div class="actions full"><button type="submit">勤務実績を保存</button><button class="ghost" id="resetForm" type="button">入力欄クリア</button></div>
 </form>
-</section><section class="card phase4-card"><h2>給与の追加調整</h2><p class="note">メーター検査、当直、故障対応等を行った日の勤務時間を登録します。</p><form id="phase4HourlyPaymentForm"><div class="form-grid"><label>業務内容<select id="phase4WorkCategory"><option>メーター検査</option><option>当直</option><option>故障対応等</option></select></label><label>対象日<input id="phase4WorkDate" required type="date"/></label><label>開始日時<input id="phase4StartAt" required type="datetime-local"/></label><label>終了日時<input id="phase4EndAt" required type="datetime-local"/></label><label>適用時給<input id="phase4HourlyRate" min="0" required step="1" type="number" inputmode="numeric"/></label><label>メモ（任意）<input id="phase4HourlyMemo" maxlength="100" type="text"/></label></div><p class="note">22:00～翌5:00は深夜時間として自動分割し、通常時給の1.25倍で概算します。</p><div id="phase4HourlyPreview" class="phase4-preview">支給見込額：—</div><div class="actions"><button type="submit">時給勤務分を追加</button></div></form><hr/>
-<form id="phase4OtherPaymentForm"><div class="form-grid"><label>対象日<input id="phase4OtherPaymentDate" required type="date"/></label><label>支給名<input id="phase4OtherPaymentName" maxlength="40" required type="text" value="その他支給"/></label><label>金額<input id="phase4OtherPaymentAmount" min="0" required step="1" type="number" inputmode="numeric"/></label><label>メモ（任意）<input id="phase4OtherPaymentMemo" maxlength="100" type="text"/></label></div><div class="actions"><button type="submit">その他支給を追加</button></div></form><div aria-live="polite" class="phase2-message" id="phase4PaymentMessage"></div></section>
-<section class="card"><h2>登録済みの給与追加調整</h2><div id="phase4PaymentList"></div></section>
-<section class="card layout-daily"><h2>日別明細</h2><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>勤務・有給区分</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></section><section class="card dashboard layout-simulation">
+</div></details><details class="card phase4-card phase7-accordion"><summary><span class="phase7-summary-title">給与の追加調整</span><small class="phase7-summary-note">メーター検査・当直・故障対応等</small></summary><div class="phase7-accordion-body"><p class="note">メーター検査、当直、故障対応等を行った日の勤務時間を登録します。</p><form id="phase4HourlyPaymentForm"><div class="form-grid"><label>業務内容<select id="phase4WorkCategory"><option>メーター検査</option><option>当直</option><option>故障対応等</option></select></label><label>対象日<input id="phase4WorkDate" required="" type="date"/></label><label>開始日時<input id="phase4StartAt" required="" type="datetime-local"/></label><label>終了日時<input id="phase4EndAt" required="" type="datetime-local"/></label><label>適用時給<input id="phase4HourlyRate" inputmode="numeric" min="0" required="" step="1" type="number"/></label><label>メモ（任意）<input id="phase4HourlyMemo" maxlength="100" type="text"/></label></div><p class="note">22:00～翌5:00は深夜時間として自動分割し、通常時給の1.25倍で概算します。</p><div class="phase4-preview" id="phase4HourlyPreview">支給見込額：—</div><div class="actions"><button type="submit">時給勤務分を追加</button></div></form><hr/>
+<form id="phase4OtherPaymentForm"><div class="form-grid"><label>対象日<input id="phase4OtherPaymentDate" required="" type="date"/></label><label>支給名<input id="phase4OtherPaymentName" maxlength="40" required="" type="text" value="その他支給"/></label><label>金額<input id="phase4OtherPaymentAmount" inputmode="numeric" min="0" required="" step="1" type="number"/></label><label>メモ（任意）<input id="phase4OtherPaymentMemo" maxlength="100" type="text"/></label></div><div class="actions"><button type="submit">その他支給を追加</button></div></form><div aria-live="polite" class="phase2-message" id="phase4PaymentMessage"></div></div></details>
+<details class="card phase7-accordion"><summary><span class="phase7-summary-title">登録済みの給与追加調整</span><small class="phase7-summary-note">選択中の給与月</small></summary><div class="phase7-accordion-body"><div id="phase4PaymentList"></div></div></details>
+<details class="card layout-daily phase7-accordion"><summary><span class="phase7-summary-title">日別明細</span><small class="phase7-summary-note">登録内容の確認・編集</small></summary><div class="phase7-accordion-body"><div class="table-wrap"><table id="entriesTable"><thead><tr><th>勤務日</th><th>給与計算用税込営収</th><th>出勤</th><th>退勤</th><th>実働</th><th>深夜</th><th>勤務・有給区分</th><th class="no-print">操作</th></tr></thead><tbody></tbody></table></div></div></details><details class="card dashboard layout-simulation phase7-accordion"><summary><span class="phase7-summary-title">給与シミュレーション結果</span><small class="phase7-summary-note">総支給・控除・概算手取り</small></summary><div class="phase7-accordion-body">
+<h2 id="reportTitle">給与シミュレーション</h2>
 <div class="month-row no-print"><button class="ghost" id="prevMonth">前給与月</button><input id="currentMonth" type="month"/><button class="ghost" id="nextMonth">翌給与月</button></div>
-<h2 id="reportTitle">給与シミュレーター</h2><p class="note" id="payPeriod"></p>
+<p class="note" id="payPeriod"></p>
 <div class="summary-grid">
-<div><span>税込営収</span><strong id="sumGross">0円</strong></div>
+<div><span>給与計算用税込営収</span><strong id="sumGross">0円</strong></div>
 <div><span>税抜営収</span><strong id="sumNet">0円</strong></div>
 <div><span>月間営収</span><strong id="payRevenue">0円</strong></div>
 <div><span>積算歩合給計</span><strong id="commissionTotal">0円</strong></div>
@@ -109,21 +158,57 @@
 <p>本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
 <p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
 <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
-<p class="version-line">Version 1.3β<br/>© Taxi Payroll Processing Simulator</p>
+<p class="version-line"><span data-app-version></span><br/>© Taxi Payroll Processing Simulator</p>
 </div>
-</section></section><section class="app-view" data-member-panel="true" data-view-panel="monthly" hidden=""><div class="view-heading"><h2>月次集計</h2><p>月全体の実績と締め履歴を確認する組合員専用画面です。</p></div><section class="card"><h2>月間集計</h2><div class="summary-grid phase1-placeholder-grid"><div><span>税込営収合計</span><strong>—</strong></div><div><span>総労働時間</span><strong>—</strong></div><div><span>総休憩時間</span><strong>—</strong></div><div><span>1乗務平均営収</span><strong>—</strong></div><div><span>時間あたり営収</span><strong>—</strong></div><div><span>概算手取り</span><strong>—</strong></div></div><p class="note">月次集計の算出・比較機能は後続Phaseで実装します。</p></section><section class="card no-print layout-history"><h2>給与締め履歴</h2><div id="historyList"></div></section></section><section class="app-view" data-member-panel="true" data-view-panel="paidleave" hidden=""><div class="view-heading"><h2>有給管理</h2><p>有給残数と次回付与の設定を端末内で管理します。</p></div><section class="card phase3-settings-card"><form id="phase3PaidLeaveForm"><div class="form-grid"><label>標準報酬日額<input id="phase3PaidLeaveDailyRate" min="0" step="1" type="number" inputmode="numeric"/></label><label>管理開始時の有給残日数<input id="phase3PaidLeaveOpeningBalance" min="0" max="100" step="0.5" type="number"/></label><label>次回有給付与日<input id="phase3PaidLeaveNextGrantDate" type="date"/></label><label>次回付与日数<input id="phase3PaidLeaveNextGrantDays" min="0" max="100" step="0.5" type="number"/></label></div><div class="phase3-balance"><span>現在の有給残日数</span><strong id="phase3PaidLeaveCurrentBalance">0日</strong></div><div aria-live="polite" class="phase2-message" id="phase3PaidLeaveMessage"></div><div class="actions"><button type="submit">有給設定を保存</button></div></form></section><section class="card"><h2>付与・使用履歴</h2><div id="phase3PaidLeaveHistory"></div><p class="note">勤務実績で登録した有給使用分と、付与日を迎えた付与分を反映します。</p></section></section><section class="app-view" data-member-panel="true" data-view-panel="deductions" hidden=""><div class="view-heading"><h2>控除額設定</h2><p>法定控除・任意控除・その他控除を適用年月ごとに保存します。</p></div>
-<section class="card phase4-card"><form id="phase4DeductionForm"><label class="phase4-month-label">適用年月<input id="phase4EffectiveMonth" required type="month"/></label>
-<fieldset><legend>法定控除</legend><div class="form-grid"><label>扶養親族等の数<input id="phase4DependentCount" max="20" min="0" required step="1" type="number" inputmode="numeric"/></label><label>健康保険料<input id="phase4HealthInsurance" min="0" required step="1" type="number" inputmode="numeric"/></label><label>厚生年金保険料<input id="phase4Pension" min="0" required step="1" type="number" inputmode="numeric"/></label><label>雇用保険料<input id="phase4EmploymentInsurance" min="0" required step="1" type="number" inputmode="numeric"/></label><label>住民税<input id="phase4ResidentTax" min="0" required step="1" type="number" inputmode="numeric"/></label></div><p class="note">所得税は、総支給額・社会保険料・扶養人数から自動で概算します。</p></fieldset>
-<fieldset><legend>任意控除</legend><div class="form-grid"><label>組合費<input id="phase4UnionFee" min="0" required step="1" type="number" inputmode="numeric"/></label><label>共済費<input id="phase4MutualAidFee" min="0" required step="1" type="number" inputmode="numeric"/></label></div></fieldset>
-<fieldset><legend>その他控除</legend><div id="phase4OtherDeductionRows"></div><button class="ghost" id="phase4AddOtherDeduction" type="button">その他控除を追加</button></fieldset>
+</div></details></section><section class="app-view" data-member-panel="true" data-view-panel="monthly" hidden=""><div class="view-heading"><h2>月次集計</h2><p>月全体の実績と締め履歴を確認する組合員専用画面です。</p></div><section class="card"><h2>月間集計</h2><div class="summary-grid"><div><span>税込営収合計</span><strong id="monthlyGross">—</strong></div><div><span>総労働時間</span><strong id="monthlyWorkHours">—</strong></div><div><span>総休憩時間</span><strong id="monthlyBreakHours">—</strong></div><div><span>1乗務平均営収</span><strong id="monthlyAvgGross">—</strong></div><div><span>時間あたり営収</span><strong id="monthlyGrossPerHour">—</strong></div><div><span>概算手取り</span><strong id="monthlyTakeHome">—</strong></div></div><p class="note" id="monthlyProgressNote"></p></section>
+<section class="card phase8-dashboard"><div class="phase8-title-row"><div><h2>推移グラフ</h2><p class="note">期間と指標を選んで月ごとの推移を確認できます。当月は「進行中」として表示します。</p></div></div>
+<div class="phase8-controls"><label>表示期間<select id="phase8Period"><option value="current" selected>当月</option><option value="3">3か月</option><option value="6">6か月</option><option value="12">12か月</option><option value="all">全期間</option></select></label>
+<button class="ghost" id="phase8ToggleCustomPeriod" type="button">期間指定</button><label>グラフ形式<select id="phase8ChartType"><option value="line" selected>折れ線</option><option value="bar">棒グラフ</option><option value="stacked">積み上げ棒</option></select></label><div class="phase8-axis-stack">
+<div class="phase8-axis-row"><label>第1軸<select id="phase8Primary"></select></label><button class="ghost" id="phase8AddSecondary" type="button">＋ 第2軸を追加表示</button></div>
+<div class="phase8-axis-row phase8-axis-row-secondary"><label id="phase8SecondaryWrap" hidden>第2軸<select id="phase8Secondary"></select></label><button class="ghost" id="phase8RemoveSecondary" type="button" hidden>第2軸を非表示</button></div>
+</div></div>
+<div class="phase8-custom-period" id="phase8CustomPeriod" hidden>
+<label>開始日<input id="phase8StartDate" type="date"/></label>
+<label>終了日<input id="phase8EndDate" type="date"/></label>
+<button class="ghost" id="phase8ApplyCustomPeriod" type="button">この期間を表示</button>
+<button class="ghost" id="phase8CancelCustomPeriod" type="button">期間指定を解除</button>
+<p class="note full">期間指定では、保存されている勤務実績を日付で絞り込みます。旧締め履歴に日別データが残っていない期間は、表示できる範囲のみ対象になります。</p>
+</div>
+<div class="phase8-legend" id="phase8Legend"></div><div class="phase8-chart-wrap"><canvas id="phase8Chart" width="900" height="360" aria-label="月次推移グラフ"></canvas><p class="note" id="phase8Empty" hidden>表示できる月次データがありません。</p></div>
+<div class="table-scroll"><table class="phase8-table"><thead><tr><th id="phase8PeriodLabel">月</th><th>税込営収</th><th>概算総支給</th><th>概算手取り</th><th>時間あたり手取り</th><th>実質還元率</th><th>手取り還元率</th></tr></thead><tbody id="phase8TableBody"></tbody></table></div></section><section class="card no-print layout-history"><h2>給与締め履歴</h2><div id="historyList"></div></section></section><section class="app-view" data-member-panel="true" data-view-panel="paidleave" hidden=""><div class="view-heading"><h2>有給管理</h2><p>有給残数と次回付与の設定を端末内で管理します。</p></div><section class="card phase3-settings-card"><form id="phase3PaidLeaveForm"><div class="form-grid"><label>標準報酬日額<input id="phase3PaidLeaveDailyRate" inputmode="numeric" min="0" step="1" type="number"/></label><label>管理開始時の有給残日数<input id="phase3PaidLeaveOpeningBalance" max="100" min="0" step="0.5" type="number"/></label><label>次回有給付与日<input id="phase3PaidLeaveNextGrantDate" type="date"/></label><label>次回付与日数<input id="phase3PaidLeaveNextGrantDays" max="100" min="0" step="0.5" type="number"/></label></div><div class="phase3-balance"><span>現在の有給残日数</span><strong id="phase3PaidLeaveCurrentBalance">0日</strong></div><div aria-live="polite" class="phase2-message" id="phase3PaidLeaveMessage"></div><div class="actions"><button type="submit">有給設定を保存</button></div></form></section><section class="card"><h2>付与・使用履歴</h2><div id="phase3PaidLeaveHistory"></div><p class="note">勤務実績で登録した有給使用分と、付与日を迎えた付与分を反映します。</p></section></section><section class="app-view" data-member-panel="true" data-view-panel="deductions" hidden=""><div class="view-heading"><h2>控除額設定</h2><p>法定控除・任意控除・その他控除を適用年月ごとに保存します。</p></div>
+<section class="card phase4-card"><form id="phase4DeductionForm"><label class="phase4-month-label">適用年月<input id="phase4EffectiveMonth" required="" type="month"/></label>
+<details class="phase7-subaccordion" open=""><summary><span>税額計算に必要な設定</span><small>扶養人数・所得税計算</small></summary><div class="phase7-subaccordion-body"><label>扶養親族等の数<input id="phase4DependentCount" inputmode="numeric" max="20" min="0" required="" step="1" type="number"/></label><p class="note">所得税は、総支給額・社会保険料・扶養人数から自動で概算します。</p></div></details><details class="phase7-subaccordion"><summary><span>法定控除</span><small>社会保険料・住民税</small></summary><div class="phase7-subaccordion-body"><div class="form-grid"><label>健康保険料<input id="phase4HealthInsurance" inputmode="numeric" min="0" required="" step="1" type="number"/></label><label>厚生年金保険料<input id="phase4Pension" inputmode="numeric" min="0" required="" step="1" type="number"/></label><label>雇用保険料<input id="phase4EmploymentInsurance" inputmode="numeric" min="0" required="" step="1" type="number"/></label><label>住民税<input id="phase4ResidentTax" inputmode="numeric" min="0" required="" step="1" type="number"/></label></div></div></details>
+<details class="phase7-subaccordion"><summary><span>任意控除</span><small>組合費・共済費</small></summary><div class="phase7-subaccordion-body"><div class="form-grid"><label>組合費<input id="phase4UnionFee" inputmode="numeric" min="0" required="" step="1" type="number"/></label><label>共済費<input id="phase4MutualAidFee" inputmode="numeric" min="0" required="" step="1" type="number"/></label></div></div></details>
+<details class="phase7-subaccordion"><summary><span>その他控除</span><small>名称と金額を必要に応じて追加</small></summary><div class="phase7-subaccordion-body"><div id="phase4OtherDeductionRows"></div><button class="ghost" id="phase4AddOtherDeduction" type="button">その他控除を追加</button></div></details>
 <div aria-live="polite" class="phase2-message" id="phase4DeductionMessage"></div><div class="actions"><button type="submit">控除設定を保存</button></div></form></section>
-<section class="card"><h2>設定の保存・復元</h2><p>控除・扶養・有給・給与追加調整データをJSONファイルとして保存できます。通常の勤務実績は含みません。</p><div class="actions"><button id="phase3ExportSettings" type="button">設定ファイルを保存</button><label class="button-like secondary">設定ファイルから復元<input accept="application/json,.json" hidden id="phase3ImportSettings" type="file"/></label></div><div aria-live="polite" class="phase2-message" id="phase3BackupMessage"></div></section></section><section class="app-view" data-view-panel="profile" hidden=""><div class="view-heading"><h2>利用者情報</h2><p>運営側で登録された利用者情報を確認します。</p></div><section class="card" id="profileSummaryCard"><div class="profile-card-title"><h2>登録内容</h2></div><dl class="profile-list"><div><dt>氏名</dt><dd id="profileName">—</dd></div><div><dt>Googleアカウント</dt><dd id="profileEmail">—</dd></div><div><dt>乗務員番号</dt><dd id="profileDriverNumber">—</dd></div><div><dt>営業所</dt><dd id="profileOffice">—</dd></div><div><dt>勤務形態</dt><dd id="profileShiftType">—</dd></div><div><dt>組合員区分</dt><dd id="profileUnionStatus">—</dd></div><div><dt>利用状態</dt><dd id="profileUseStatus">—</dd></div></dl><p class="note" id="profilePermissionNote">乗務員番号、営業所、勤務形態、組合員区分、利用状態の変更は管理者が行います。</p></section></section><section class="app-view" data-view-panel="settings" hidden=""><div class="view-heading"><h2>設定</h2><p>アプリ全体の動作設定です。</p></div><section class="card"><h2>準備中</h2><p>バックアップ、復元、通知、キャッシュ、バージョン情報などを今後追加します。</p></section></section><section class="app-view" data-view-panel="help" hidden=""><div class="view-heading"><h2>ヘルプ</h2><p>操作方法と利用上の注意を確認します。</p></div><section class="card"><h2>このアプリについて</h2><p>給与支給額の概算を確認するためのテスト版です。実際の支給額は会社が発行する給与明細をご確認ください。</p><details><summary>ログインできない場合</summary><p>LINE内ブラウザではなく、SafariまたはChromeで公開URLを開いてください。</p></details></section></section></div><button hidden="" id="openSettings" type="button">設定</button></main>
+<section class="card"><h2>設定の保存・復元</h2><p>控除・扶養・有給・給与追加調整データをJSONファイルとして保存できます。通常の勤務実績は含みません。</p><div class="actions"><button id="phase3ExportSettings" type="button">設定ファイルを保存</button><label class="button-like secondary">設定ファイルから復元<input accept="application/json,.json" hidden="" id="phase3ImportSettings" type="file"/></label></div><div aria-live="polite" class="phase2-message" id="phase3BackupMessage"></div></section></section><section class="app-view" data-view-panel="profile" hidden=""><div class="view-heading"><h2>利用者情報</h2><p>登録内容と、この端末で動作しているアプリ情報を確認します。</p></div><section class="card" id="profileSummaryCard"><div class="profile-card-title"><h2>登録内容</h2></div><dl class="profile-list"><div><dt>氏名</dt><dd id="profileName">—</dd></div><div><dt>Googleアカウント</dt><dd id="profileEmail">—</dd></div><div><dt>乗務員番号</dt><dd id="profileDriverNumber">—</dd></div><div><dt>営業所</dt><dd id="profileOffice">—</dd></div><div><dt>勤務形態</dt><dd id="profileShiftType">—</dd></div><div><dt>組合員区分</dt><dd id="profileUnionStatus">—</dd></div><div><dt>利用状態</dt><dd id="profileUseStatus">—</dd></div></dl><p class="note" id="profilePermissionNote">乗務員番号、営業所、勤務形態、組合員区分、利用状態の変更は管理者が行います。</p></section><section class="card"><h2>Googleアカウント変更申請</h2><p class="note">現在のGoogleアカウントにログインできている場合の変更申請です。変更先アカウントを端末から選択できない場合は、メールアドレスを手入力できます。申請だけでは変更されません。管理者が本人確認後に変更処理を行います。</p><label>変更先Googleアカウント<input id="accountChangeNewEmail" inputmode="email" autocomplete="email" type="email" placeholder="new-account@gmail.com"/></label><div class="actions"><button type="button" id="copyAccountChangeRequest">変更申請をコピー</button></div><p class="phase2-message" id="accountChangeMessage" aria-live="polite"></p></section>
+<section class="card profile-diagnostics-card" id="profileDiagnosticsCard">
+<div class="profile-card-title"><h2>アプリ・診断情報</h2></div>
+<p class="note">不具合のお問い合わせ時は「診断情報をコピー」を押して、表示された内容を管理者へお知らせください。給与額・勤務実績はコピーされません。</p>
+<dl class="profile-list profile-app-info">
+<div><dt>Version</dt><dd id="profileAppVersion">—</dd></div>
+<div><dt>Build</dt><dd id="profileAppBuild">—</dd></div>
+<div><dt>公開日時</dt><dd id="profileAppReleasedAt">—</dd></div>
+<div><dt>Service Worker</dt><dd id="profileAppServiceWorker">確認中…</dd></div>
+<div><dt>Cache Version</dt><dd id="profileAppCacheVersion">—</dd></div>
+</dl>
+<div class="actions profile-diagnostic-actions">
+<button type="button" id="copyProfileDiagnostic">診断情報をコピー</button>
+<button class="ghost" type="button" id="rebuildProfileCache">PWAキャッシュを再構築</button>
+</div>
+<p class="phase2-message" id="profileDiagnosticMessage" aria-live="polite"></p>
+</section></section><section class="app-view" data-view-panel="settings" hidden=""><div class="view-heading"><h2>設定</h2><p>アプリ全体の動作設定です。</p></div>
+<section class="card drive-card"><h2>Google Drive 同期・復元</h2><p class="note">端末への保存とGoogle Driveへの同期は別です。Google Driveへは、あなたが［Google Driveにバックアップ］を押した時点の本人データ一式だけを保存します。管理者には勤務実績（売上や個人の給与に関わる設定等の全て）は送信されません。初回バックアップ時だけGoogleのDrive利用許可画面が表示されます。利用者による事前設定は不要です。</p>
+<dl class="profile-list"><div><dt>Drive利用権限</dt><dd id="driveConnectionStatus">初回同期時に自動確認</dd></div><div><dt>最終同期</dt><dd id="driveLastSync">—</dd></div></dl>
+<label>この端末の名前<input id="driveDeviceName" maxlength="40" placeholder="例：自宅PC / iPhone" type="text"/></label><div class="actions"><button class="secondary" id="saveDriveDeviceName" type="button">デバイス名を保存</button></div>
+<div class="actions"><button id="driveSyncNow" type="button">Google Driveにバックアップ</button></div><p class="phase2-message" id="driveSyncMessage" aria-live="polite"></p><div class="drive-conflict-box" id="driveConflictBox" hidden></div></section>
+<section class="card drive-card"><h2>過去のバックアップ</h2><p class="note">同期1回につき1世代を保存します。90日以内は自分で削除でき、90日を超えた世代は同期・一覧更新時に自動削除します。</p><p id="driveBackupSummary">過去バックアップ：確認前</p><div class="actions"><button class="secondary" id="driveRefreshBackups" type="button">バックアップ一覧を更新</button><button class="ghost" id="restoreSafetyButton" type="button" hidden>復元前の端末データに戻す</button></div><div id="driveBackupList"><p class="note">Google Driveにバックアップすると、過去のバックアップをここで確認できます。</p></div><p class="phase2-message" id="driveBackupMessage" aria-live="polite"></p></section></section><section class="app-view" data-view-panel="help" hidden=""><div class="view-heading"><h2>ヘルプ</h2><p>操作方法と利用上の注意を確認します。</p></div><section class="card"><h2>このアプリについて</h2><p>給与支給額の概算を確認するためのテスト版です。実際の支給額は会社が発行する給与明細をご確認ください。</p><details><summary>ログインできない場合</summary><p>LINE内ブラウザではなく、SafariまたはChromeで公開URLを開いてください。</p></details></section></section></div><button hidden="" id="openSettings" type="button">設定</button></main>
 <dialog class="modal" id="onboardingDialog"><form id="onboardingForm" method="dialog"><h2>最初に勤務区分を選択してください</h2><label>勤務区分<select id="onboardingShiftType" required=""></select></label><div class="rule-box" id="onboardingRule"></div><label class="agree"><input id="agreeDisclaimer" required="" type="checkbox"/>免責事項を確認しました</label><button id="completeOnboarding">利用を開始</button><div class="app-disclaimer" role="note">
 <p class="disclaimer-title">【免責事項】</p>
 <p>本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
 <p>本アプリの計算結果は参考値であり、給与支給額を保証するものではありません。</p>
 <p>実際の給与支給額は会社が発行する給与明細をご確認ください。</p>
-<p class="version-line">Version 1.3β<br/>© Taxi Payroll Processing Simulator</p>
+<p class="version-line"><span data-app-version></span><br/>© Taxi Payroll Processing Simulator</p>
 </div></form></dialog>
 <dialog class="modal settings-modal" id="settingsDialog"><form id="settingsForm" method="dialog"><div class="modal-title-row"><h2>設定</h2><button class="icon-button" value="cancel">✕</button></div>
 <label>勤務区分<select id="shiftType"></select></label><div class="rule-box" id="shiftRuleInfo"></div>
@@ -148,4 +233,19 @@
 <label>運賃改定係数<input id="fareRevisionCoefficient" step="0.0001" type="number"/></label><label>給与算定係数<input id="payRevenueCoefficient" step="0.0001" type="number"/></label><label>消費税率（%）<input id="taxRate" step="0.1" type="number"/></label>
 <label>模範勤務手当/月<input id="modelWorkAllowance" type="number"/></label><label>無事故手当/乗務<input id="accidentFreeAllowance" type="number"/></label><label>無違反手当/乗務<input id="violationFreeAllowance" type="number"/></label>
 <label>法定超 時間外割増（%）<input id="statutoryOvertimeRate" step="0.01" type="number"/></label><label>所定超 時間外割増（%）<input id="scheduledOvertimeRate" step="0.01" type="number"/></label><label>月60時間超 割増（%）<input id="over60Rate" step="0.01" type="number"/></label><label>法定休日割増（%）<input id="statutoryHolidayRate" step="0.01" type="number"/></label><label>法定外休日割増（%）<input id="nonStatutoryHolidayRate" step="0.01" type="number"/></label><label>深夜割増（%）<input id="nightRate" step="0.01" type="number"/></label></div><div class="actions"><button id="saveAdmin">開発者設定を保存</button></div></form></dialog>
-<script src="diagnostics.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="firebase-config.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="v13-features.js?v=20260729-phase4-sales-target-complete"></script><script src="boot.js?v=20260728-phase0-06-ios-popup-fix"></script><script src="phase1-ui.js?v=20260728-phase1-auth-deferred"></script><script type="module" src="phase2-user-settings.js?v=20260729-phase2-display-only"></script><script src="phase3-personal-settings.js?v=20260729-phase3-personal-settings"></script><script src="phase4-payroll-adjustments.js?v=20260731-phase4-deductions-payments"></script></body></html>
+
+<dialog id="tapNumberDialog" class="tap-number-dialog">
+<div id="tapNumberGuide" class="tap-number-guide" hidden></div>
+<div class="tap-number-display" id="tapNumberDisplay">0</div>
+<div class="tap-number-pad">
+<button type="button" data-key="1">1</button><button type="button" data-key="2">2</button><button type="button" data-key="3">3</button>
+<button type="button" data-key="4">4</button><button type="button" data-key="5">5</button><button type="button" data-key="6">6</button>
+<button type="button" data-key="7">7</button><button type="button" data-key="8">8</button><button type="button" data-key="9">9</button>
+<button class="ghost" type="button" data-key="clear">クリア</button><button type="button" data-key="0">0</button><button class="ghost" type="button" data-key="back">←</button>
+</div>
+<div class="tap-break-units" id="tapBreakUnits" hidden>
+<button type="button" data-unit="hour">時間</button>
+<button type="button" data-unit="minute">分</button>
+</div>
+</dialog>
+<script src="app-meta.js?v=20260825-07"></script><script src="phase75-ops.js?v=20260825-07"></script><script src="diagnostics.js?v=20260825-07"></script><script src="firebase-config.js?v=20260825-07"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20260825-07"></script><script src="v13-features.js?v=20260825-07"></script><script src="profile-diagnostics.js?v=20260825-07"></script><script src="google-drive-config.js?v=20260825-07"></script><script src="phase56-drive-backup.js?v=20260825-07"></script><script src="boot.js?v=20260825-07"></script><script src="phase1-ui.js?v=20260825-07"></script><script src="phase2-user-settings.js?v=20260825-07" type="module"></script><script src="phase3-personal-settings.js?v=20260825-07"></script><script src="phase4-payroll-adjustments.js?v=20260825-07"></script><script src="phase7-ui.js?v=20260825-07"></script></body></html>
