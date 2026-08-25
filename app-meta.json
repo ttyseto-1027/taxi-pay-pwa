@@ -1,7 +1,7 @@
 {
   "version": "1.4β",
-  "build": "20260825-12",
-  "cacheVersion": "taxi-pay-v1.4-beta-20260825-12-mobile-keypad",
-  "releasedAtJst": "2026/08/25 12:08:08 JST",
+  "build": "20260825-13",
+  "cacheVersion": "taxi-pay-v1.4-beta-20260825-13-production-title",
+  "releasedAtJst": "2026/08/25 12:15:51 JST",
   "environment": "DEVELOP"
 }

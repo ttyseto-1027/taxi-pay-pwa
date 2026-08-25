@@ -200,7 +200,7 @@ function createDiagnosticUI() {
     const ua = navigator.userAgent;
     const env = state.environment || {};
     const lines = [
-      'DEVELOP_タクシー給与シミュレーター ログイン診断',
+      'タクシー給与シミュレーター ログイン診断',
       `診断版: ${DIAGNOSTIC_BUILD}`,
       `URL: ${location.origin}${location.pathname}`,
       `端末情報: ${ua}`,
