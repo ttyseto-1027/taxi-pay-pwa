@@ -18,6 +18,7 @@ const storage = read('storage-safety.js');
 const phase7 = read('phase7-ui.js');
 const workflow = read('.github/workflows/production-release.yml');
 const history = read('IMPLEMENTATION_HISTORY_v1.4beta.md');
+const rootEntries = fs.readdirSync(root);
 
 function metaScriptField(name) {
   const match = metaScript.match(new RegExp(`${name}:\\s*'([^']+)'`));
@@ -47,6 +48,18 @@ assert.ok(!phase7.includes("get('phase10DeviceTest')"));
 for (const file of ['phase11-live-test.js', 'phase10-device-association-test.js']) {
   assert.equal(fs.existsSync(path.join(root, file)), false, `${file} must not ship to Production`);
   assert.equal(serviceWorker.includes(file), false, `${file} must not be cached in Production`);
+}
+
+for (const file of rootEntries) {
+  assert.ok(
+    !/^IMPLEMENTATION_(?!HISTORY_v1\.4beta\.md$)/.test(file),
+    `legacy implementation note must remain in Git history: ${file}`
+  );
+  assert.ok(!/^README-.+\.(?:md|txt)$/.test(file), `temporary README must remain in Git history: ${file}`);
+  assert.ok(!/\.tmp$/.test(file), `temporary file must not ship to Production: ${file}`);
+}
+for (const file of ['menu.js', 'menu-v13beta.js', 'SPEC_v1.md', 'SYSTEM_SPEC_v1.md', 'UI_DESIGN_SPEC_v1.md']) {
+  assert.equal(fs.existsSync(path.join(root, file)), false, `legacy file must remain in Git history: ${file}`);
 }
 
 assert.ok(storage.includes("const primaryKey = isDevelop ? 'taxiPayPwaDevelopStateV10' : 'taxiPayPwaStateV10';"));
