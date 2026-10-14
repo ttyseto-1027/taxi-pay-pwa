@@ -130,3 +130,11 @@
 - システム管理者は利用者基本情報・端末情報・ログイン履歴を閲覧可能
 - Firestore権限エラーを利用者向け日本語メッセージへ変更
 - Firestoreルール反映手順を追加
+## Version 1.4β Production release candidate（2026-10-14）
+
+- Developで完成・実機確認した保存保護、データ競合判定、退避・復旧、端末識別、Google Drive世代バックアップをProductionへ選別移植。
+- Productionの既存保存キー `taxiPayPwaStateV10` と旧版キー読込を維持し、Develop保存キーとの混在を防止。
+- Google DriveのJSON読取、専用認証スコープ、外部エラー日本語化を反映。
+- Develop専用ヘッダー、Phase 10/11実機テスト読込、Develop専用テスト資産はProductionから除外。
+- PWA manifestに残っていたDevelop専用の短縮名・説明をProduction表記へ修正。
+- Build `20261014-01`、PWAキャッシュ `taxi-pay-v1.4-beta-20261014-production-rc-01`。

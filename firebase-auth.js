@@ -727,7 +727,7 @@ function rememberGoogleApiToken(result) {
     const os=/Android/i.test(ua)?'Android':/iPad|iPhone|iPod/i.test(ua)?'iOS':/Windows/i.test(ua)?'Windows':/Macintosh|Mac OS X/i.test(ua)?'macOS':'その他';
     const browser=/CriOS|Chrome/i.test(ua)?'Chrome':/Safari/i.test(ua)?'Safari':/Firefox/i.test(ua)?'Firefox':'その他';
     const meta=window.TAXI_PAY_APP_META||{};
-    return {deviceId:getDeviceId(),os,browser,userAgent:ua,launchMode:(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true)?'pwa':'browser',screenWidth:window.screen?.width||0,screenHeight:window.screen?.height||0,viewportWidth:innerWidth,viewportHeight:innerHeight,appVersion:meta.version||'',build:meta.build||'',environment:meta.environment||'',lastSeenAtJst:new Date().toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}),lastSeenAt:serverTimestamp()};
+    return {deviceId:getDeviceId(),deviceName:String(localStorage.getItem('taxiPayDeviceNameV2')||''),os,browser,userAgent:ua,launchMode:(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true)?'pwa':'browser',screenWidth:window.screen?.width||0,screenHeight:window.screen?.height||0,viewportWidth:innerWidth,viewportHeight:innerHeight,appVersion:meta.version||'',build:meta.build||'',environment:meta.environment||'',lastSeenAtJst:new Date().toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}),lastSeenAt:serverTimestamp()};
   }
   async function recordDeviceAndHistory(user,result='success',errorCode=''){
     if(!user?.uid)return;
@@ -735,11 +735,11 @@ function rememberGoogleApiToken(result) {
     await setDoc(doc(db,'users',user.uid,'devices',info.deviceId),info,{merge:true});
     const historyId=`${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
     await setDoc(doc(db,'users',user.uid,'loginHistory',historyId),{...info,result,errorCode,occurredAtJst:new Date().toLocaleString('ja-JP',{timeZone:'Asia/Tokyo'}),occurredAt:serverTimestamp()});
-    const now=Date.now(), deviceLimit=180*86400000, historyLimit=60*86400000;
-    for(const [name,limitMs] of [['devices',deviceLimit],['loginHistory',historyLimit]]){
-      const snap=await getDocs(collection(db,'users',user.uid,name));
-      await Promise.all(snap.docs.filter(d=>{const x=d.data();const ts=x.lastSeenAt?.toMillis?.()||x.occurredAt?.toMillis?.()||0;return ts&&now-ts>limitMs;}).map(d=>deleteDoc(d.ref)));
-    }
+    // v1.4β: devices are persistent identity records used for reassociation after browser-data loss or device replacement.
+    // Do not age them out. Login history remains a short operational log.
+    const now=Date.now(), historyLimit=60*86400000;
+    const snap=await getDocs(collection(db,'users',user.uid,'loginHistory'));
+    await Promise.all(snap.docs.filter(d=>{const x=d.data();const ts=x.occurredAt?.toMillis?.()||0;return ts&&now-ts>historyLimit;}).map(d=>deleteDoc(d.ref)));
   }
 
   async function route(user){

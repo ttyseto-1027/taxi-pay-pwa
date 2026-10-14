@@ -936,3 +936,17 @@ tr[hidden] { display: none !important; }
  #tapBreakUnits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
  #tapBreakUnits[hidden]{display:none!important}
 }
+
+
+/* v1.4β 2026-08-27: human-error-safe navigation, device registry, recovery */
+.tap-number-pad button,.tap-number-grid button,#tapBreakUnits button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.month-navigation-card{position:relative;border:2px solid rgba(15,76,92,.22);background:#f8fbfc}
+.month-navigation-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px}.month-navigation-title small{color:var(--muted)}
+.month-navigation-card .month-row{margin:0}.month-navigation-card .month-row button{min-width:120px}
+.device-id-short{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.78rem;overflow-wrap:anywhere}
+.registered-device-list{display:grid;gap:7px;padding-top:8px}.registered-device-list>div{display:flex;justify-content:space-between;gap:12px;padding:8px;background:#f5f8f9;border-radius:8px}.registered-device-list small{color:var(--muted)}
+.v14-conflict-row{width:100%;display:grid;grid-template-columns:minmax(90px,.8fr) minmax(0,2fr) auto;gap:10px;align-items:center;text-align:left;margin:7px 0;background:#fff;color:#17212b;border:1px solid var(--border)}.v14-conflict-row.resolved{border-color:#48895a;background:#eef8f0}.v14-conflict-row small{color:var(--muted)}
+.v14-diff-list{display:grid;gap:10px}.v14-diff-row{padding:10px;border:1px solid var(--border);border-radius:10px}.v14-diff-row>strong{display:block;margin-bottom:7px}.v14-diff-row>div{display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr);gap:8px;padding:5px 0}.v14-diff-row span{color:var(--muted)}
+.v14-archive-row{display:flex;gap:10px;align-items:flex-start;padding:9px;border-bottom:1px solid var(--border)}.v14-archive-row input{width:auto;margin-top:4px}.v14-archive-row span{display:grid}.v14-archive-row small{color:var(--muted)}
+#v14RecoveryFile{margin:8px 0}.v14-conflict-dialog{max-width:720px;width:min(94vw,720px);max-height:90vh;overflow:auto}
+@media(max-width:640px){.month-navigation-title{display:grid}.month-navigation-card .month-row{display:grid;grid-template-columns:1fr 1fr}.month-navigation-card .month-row input{grid-column:1/-1;grid-row:1}.month-navigation-card .month-row button{min-width:0;font-size:.9rem}.v14-conflict-row{grid-template-columns:1fr auto}.v14-conflict-row strong{grid-column:1/-1;grid-row:2}.v14-diff-row>div{grid-template-columns:1fr}.registered-device-list>div{display:grid}}

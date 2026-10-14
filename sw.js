@@ -1,9 +1,13 @@
-const CACHE = 'taxi-pay-v1.4-beta-20260825-13-production-title';
+const CACHE = 'taxi-pay-v1.4-beta-20261014-production-rc-01';
 
 const FILES = [
   './',
   './index.html',
   './styles.css',
+  './storage-safety.js',
+  './data-integrity-v14.js',
+  './data-recovery-v14.js',
+  './phase11-archive-restore.js',
   './app.js',
   './tax-table-2026.js',
   './manifest.json',
@@ -17,6 +21,7 @@ const FILES = [
   './phase3-personal-settings.js',
   './phase4-payroll-adjustments.js',
   './phase7-ui.js',
+  './device-registry-v14.js',
   './admin.html',
   './announcement.html',
   './announcement-admin.js',
@@ -31,7 +36,6 @@ const FILES = [
   './profile-diagnostics.js'
 ];
 
-
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
@@ -39,25 +43,13 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(FILES))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES)));
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE)
-            .map((key) => caches.delete(key))
-        )
-      )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -70,9 +62,8 @@ self.addEventListener('fetch', (event) => {
 
   const isNavigation = event.request.mode === 'navigate';
   const isRuntimeControlFile =
-    /\/(?:app-meta\.js|app-meta\.json|phase75-ops\.js|sw\.js)$/.test(url.pathname);
+    /\/(?:app-meta\.js|app-meta\.json|phase75-ops\.js|phase7-ui\.js|device-registry-v14\.js|phase11-archive-restore\.js|sw\.js)$/.test(url.pathname);
 
-  // 更新判定に使うファイルとHTMLナビゲーションは常にネットワーク優先・HTTPキャッシュ不使用。
   if (isNavigation || isRuntimeControlFile) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
@@ -83,14 +74,11 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() =>
-          caches.match(event.request).then((response) => response || caches.match('./index.html'))
-        )
+        .catch(() => caches.match(event.request).then((response) => response || caches.match('./index.html')))
     );
     return;
   }
 
-  // その他の静的ファイルもネットワーク優先。
   event.respondWith(
     fetch(event.request, { cache: 'no-cache' })
       .then((response) => {
@@ -100,8 +88,6 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() =>
-        caches.match(event.request).then((response) => response || caches.match('./index.html'))
-      )
+      .catch(() => caches.match(event.request).then((response) => response || caches.match('./index.html')))
   );
 });
