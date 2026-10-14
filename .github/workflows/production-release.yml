@@ -31,6 +31,7 @@ jobs:
           node tests/phase12-drive-flow-v14.cjs
           node tests/phase13-recovery-safety-v14.cjs
           node tests/phase15-production-release-v14.cjs
+          node tests/phase16-help-v14.cjs
       - name: Static integration guards
         run: |
           grep -q 'data-integrity-v14.js' index.html

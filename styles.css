@@ -950,3 +950,35 @@ tr[hidden] { display: none !important; }
 .v14-archive-row{display:flex;gap:10px;align-items:flex-start;padding:9px;border-bottom:1px solid var(--border)}.v14-archive-row input{width:auto;margin-top:4px}.v14-archive-row span{display:grid}.v14-archive-row small{color:var(--muted)}
 #v14RecoveryFile{margin:8px 0}.v14-conflict-dialog{max-width:720px;width:min(94vw,720px);max-height:90vh;overflow:auto}
 @media(max-width:640px){.month-navigation-title{display:grid}.month-navigation-card .month-row{display:grid;grid-template-columns:1fr 1fr}.month-navigation-card .month-row input{grid-column:1/-1;grid-row:1}.month-navigation-card .month-row button{min-width:0;font-size:.9rem}.v14-conflict-row{grid-template-columns:1fr auto}.v14-conflict-row strong{grid-column:1/-1;grid-row:2}.v14-diff-row>div{grid-template-columns:1fr}.registered-device-list>div{display:grid}}
+
+/* Phase 16: searchable help center */
+.help-search-card{display:grid;gap:12px}
+.help-search-card label{margin:0}
+.help-search-card input[type="search"]{width:100%;min-height:48px;font-size:16px}
+.help-search-actions{margin:0;flex-wrap:wrap}
+.help-search-card .note{margin:0}
+.help-topic-list{display:grid;gap:12px}
+.help-topic{margin:0;padding:0;overflow:hidden}
+.help-topic[hidden]{display:none!important}
+.help-topic>summary{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;font-weight:800;list-style-position:inside}
+.help-topic>summary small{color:var(--muted);font-weight:600;text-align:right}
+.help-topic[open]>summary{border-bottom:1px solid var(--border);background:#f5f9fa}
+.help-topic-body{padding:18px 20px}
+.help-topic-body>:first-child{margin-top:0}
+.help-topic-body>:last-child{margin-bottom:0}
+.help-topic-body li+li{margin-top:8px}
+.help-steps{padding-left:22px}
+.help-callout{padding:12px 14px;border-left:4px solid var(--primary);border-radius:6px;background:#eef7f8;font-weight:700}
+.help-data-map{display:grid;gap:10px;margin:0}
+.help-data-map>div{display:grid;grid-template-columns:minmax(110px,.35fr) minmax(0,1fr);gap:12px;padding:12px;border:1px solid var(--border);border-radius:9px}
+.help-data-map dt{font-weight:800}
+.help-data-map dd{margin:0}
+.help-empty{text-align:center;font-weight:700}
+@media(max-width:640px){
+  .help-search-actions{display:grid;grid-template-columns:1fr 1fr}
+  .help-search-actions button{width:100%;min-width:0}
+  .help-topic>summary{display:grid;padding:16px}
+  .help-topic>summary small{text-align:left}
+  .help-topic-body{padding:16px}
+  .help-data-map>div{grid-template-columns:1fr;gap:4px}
+}

@@ -105,6 +105,49 @@
   };
   ensureFreshDeviceRegistry();
 
+  // Phase 16: searchable in-app help. This only controls help visibility and
+  // navigation; it never reads or changes payroll, profile, or backup data.
+  const helpSearch = document.getElementById('helpSearch');
+  const helpTopics = [...document.querySelectorAll('.help-topic[data-help-topic]')];
+  const helpStatus = document.getElementById('helpSearchStatus');
+  const helpEmpty = document.getElementById('helpEmpty');
+  const normalizedHelpText = value => String(value || '').normalize('NFKC').toLocaleLowerCase('ja');
+  const visibleHelpTopics = () => helpTopics.filter(topic => !topic.hidden);
+
+  const filterHelp = () => {
+    const terms = normalizedHelpText(helpSearch?.value).trim().split(/\s+/).filter(Boolean);
+    let visible = 0;
+    helpTopics.forEach(topic => {
+      const haystack = normalizedHelpText(`${topic.dataset.helpKeywords || ''} ${topic.textContent || ''}`);
+      const matched = terms.length === 0 || terms.every(term => haystack.includes(term));
+      topic.hidden = !matched;
+      if (matched) {
+        visible += 1;
+        if (terms.length) topic.open = true;
+      }
+    });
+    if (helpStatus) {
+      helpStatus.textContent = terms.length
+        ? `${visible}件の説明が見つかりました。`
+        : `全${helpTopics.length}項目を表示しています。`;
+    }
+    if (helpEmpty) helpEmpty.hidden = visible !== 0;
+  };
+
+  helpSearch?.addEventListener('input', filterHelp);
+  document.getElementById('helpExpandAll')?.addEventListener('click', () => {
+    visibleHelpTopics().forEach(topic => { topic.open = true; });
+  });
+  document.getElementById('helpCollapseAll')?.addEventListener('click', () => {
+    visibleHelpTopics().forEach(topic => { topic.open = false; });
+  });
+  document.querySelectorAll('[data-help-view]').forEach(button => {
+    button.addEventListener('click', () => {
+      document.querySelector(`.menu-item[data-view="${button.dataset.helpView}"]`)?.click();
+    });
+  });
+  filterHelp();
+
 })();
 
 window.addEventListener('taxipay:profile',(event)=>{const el=document.getElementById('systemInfoMenuLink');if(el)el.hidden=event.detail?.isAdmin!==true;});

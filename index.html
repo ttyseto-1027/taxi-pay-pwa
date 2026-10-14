@@ -8,7 +8,7 @@
 <meta content="タクシー乗務員向け給与概算シミュレーター" name="description"/>
 <title>タクシー給与シミュレーター</title>
 <link href="manifest.json" rel="manifest"/>
-<link href="styles.css?v=20261014-01" rel="stylesheet"/>
+<link href="styles.css?v=20261015-01" rel="stylesheet"/>
 <script>
 (function(){
   'use strict';
@@ -202,7 +202,161 @@
 <dl class="profile-list"><div><dt>Drive利用権限</dt><dd id="driveConnectionStatus">初回同期時に自動確認</dd></div><div><dt>最終同期</dt><dd id="driveLastSync">—</dd></div></dl>
 <p class="note">端末名は「利用者情報」で端末ごとに設定します。端末名が未設定の間はGoogle Driveの保存・同期・復元を実行できません。</p>
 <div class="actions"><button id="driveSyncNow" type="button">Google Driveにバックアップ</button></div><p class="phase2-message" id="driveSyncMessage" aria-live="polite"></p><div class="drive-conflict-box" id="driveConflictBox" hidden></div></section>
-<section class="card drive-card"><h2>過去のバックアップ</h2><p class="note">同期1回につき1世代を保存します。90日以内は自分で削除でき、90日を超えた世代は同期・一覧更新時に自動削除します。</p><p id="driveBackupSummary">過去バックアップ：確認前</p><div class="actions"><button class="secondary" id="driveRefreshBackups" type="button">バックアップ一覧を更新</button><button class="ghost" id="restoreSafetyButton" type="button" hidden>復元前の端末データに戻す</button></div><div id="driveBackupList"><p class="note">Google Driveにバックアップすると、過去のバックアップをここで確認できます。</p></div><p class="phase2-message" id="driveBackupMessage" aria-live="polite"></p></section></section><section class="app-view" data-view-panel="help" hidden=""><div class="view-heading"><h2>ヘルプ</h2><p>操作方法と利用上の注意を確認します。</p></div><section class="card"><h2>このアプリについて</h2><p>給与支給額の概算を確認するためのテスト版です。実際の支給額は会社が発行する給与明細をご確認ください。</p><details><summary>ログインできない場合</summary><p>LINE内ブラウザではなく、SafariまたはChromeで公開URLを開いてください。</p></details></section></section></div><button hidden="" id="openSettings" type="button">設定</button></main>
+<section class="card drive-card"><h2>過去のバックアップ</h2><p class="note">同期1回につき1世代を保存します。90日以内は自分で削除でき、90日を超えた世代は同期・一覧更新時に自動削除します。</p><p id="driveBackupSummary">過去バックアップ：確認前</p><div class="actions"><button class="secondary" id="driveRefreshBackups" type="button">バックアップ一覧を更新</button><button class="ghost" id="restoreSafetyButton" type="button" hidden>復元前の端末データに戻す</button></div><div id="driveBackupList"><p class="note">Google Driveにバックアップすると、過去のバックアップをここで確認できます。</p></div><p class="phase2-message" id="driveBackupMessage" aria-live="polite"></p></section></section><section class="app-view help-view" data-view-panel="help" hidden="">
+<div class="view-heading"><h2>ヘルプ</h2><p>操作方法、データの保存先、困ったときの対処を確認できます。</p></div>
+
+<section class="card help-search-card" aria-labelledby="helpSearchLabel">
+<label id="helpSearchLabel" for="helpSearch"><strong>知りたい内容を検索</strong></label>
+<input id="helpSearch" type="search" inputmode="search" autocomplete="off" placeholder="例：ログイン、営収、バックアップ、復元"/>
+<div class="actions help-search-actions">
+<button class="secondary" id="helpExpandAll" type="button">すべて開く</button>
+<button class="ghost" id="helpCollapseAll" type="button">すべて閉じる</button>
+</div>
+<p class="note" id="helpSearchStatus" aria-live="polite">全11項目を表示しています。</p>
+</section>
+
+<div class="help-topic-list" id="helpTopicList">
+<details class="card help-topic" data-help-topic="start" data-help-keywords="初回 はじめて 始め方 勤務区分 免責 事前登録">
+<summary><span>1. 初めて使うとき</span><small>ログインから利用開始まで</small></summary>
+<div class="help-topic-body">
+<ol class="help-steps">
+<li>管理者へGoogleアカウントを事前登録してもらいます。</li>
+<li>SafariまたはChromeで公開URLを開き、登録済みのGoogleアカウントでログインします。</li>
+<li>初回だけ勤務区分を選び、免責事項を確認して利用を開始します。</li>
+<li>「利用者情報」で登録内容と、この端末の名前を確認します。</li>
+</ol>
+<p class="help-callout">LINEなどのアプリ内ブラウザではなく、SafariまたはChromeを使用してください。</p>
+<div class="actions"><button class="ghost" data-help-view="profile" type="button">利用者情報を開く</button></div>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="login" data-help-keywords="Google ログイン できない 事前登録 利用停止 LINE Safari Chrome アカウント">
+<summary><span>2. ログインできない場合</span><small>Googleアカウントとブラウザ</small></summary>
+<div class="help-topic-body">
+<ul>
+<li>事前登録されたGoogleアカウントを選んでいるか確認します。</li>
+<li>LINE内ブラウザを閉じ、SafariまたはChromeで開き直します。</li>
+<li>「利用停止中」と表示された場合は、管理者による利用再開が必要です。</li>
+<li>別のGoogleアカウントへ変更する場合は「利用者情報」の変更申請を使用します。</li>
+</ul>
+<p class="note">通常のGoogleログインだけでは、勤務実績を個人のGoogle Driveへ保存しません。</p>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="work" data-help-keywords="勤務実績 日報 営収 税込 出勤 退勤 休憩 深夜 有給 事故 違反 保存 編集 削除 給与シミュレーション">
+<summary><span>3. 勤務実績と給与シミュレーション</span><small>日々の入力・編集・概算</small></summary>
+<div class="help-topic-body">
+<ul>
+<li>勤務日、税込営収、出退勤時刻、通常休憩・深夜休憩などを入力して保存します。</li>
+<li>営収調整がある場合は、対象項目だけ入力します。</li>
+<li>保存済みの明細から編集・削除できます。削除データは安全のため退避されます。</li>
+<li>給与シミュレーションは概算です。正式な金額は会社の給与明細を確認してください。</li>
+</ul>
+<div class="actions"><button class="ghost" data-help-view="work" type="button">勤務実績を開く</button></div>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="monthly" data-help-keywords="月次集計 グラフ 推移 期間 給与締め 売上目標 手取り 達成率 組合員">
+<summary><span>4. 月次集計と売上目標</span><small>組合員向け機能</small></summary>
+<div class="help-topic-body">
+<ul>
+<li>月次集計では、税込営収・概算総支給・概算手取りなどを表とグラフで確認できます。</li>
+<li>当月、期間指定、3・6・12か月、全期間を切り替えられます。</li>
+<li>売上目標管理では、目標手取りと残り出番数から必要営収を概算します。</li>
+<li>給与締めを行うと、その月の集計が締め履歴へ保存されます。</li>
+</ul>
+<p class="note">月次集計・売上目標・有給・控除設定は組合員向け機能です。</p>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="paidleave" data-help-keywords="有給 有休 残日数 標準報酬日額 付与日 使用履歴 組合員">
+<summary><span>5. 有給管理</span><small>残数・付与・使用履歴</small></summary>
+<div class="help-topic-body">
+<ul>
+<li>標準報酬日額、管理開始時の残数、次回付与日・付与日数を設定します。</li>
+<li>勤務実績で登録した有給使用分と、付与日を迎えた付与分が履歴へ反映されます。</li>
+<li>表示される残数はアプリ内での管理値です。会社の正式な有給記録も確認してください。</li>
+</ul>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="deductions" data-help-keywords="控除 扶養 所得税 健康保険 厚生年金 雇用保険 住民税 組合費 共済 その他 設定ファイル JSON">
+<summary><span>6. 控除額設定</span><small>適用年月ごとの個人設定</small></summary>
+<div class="help-topic-body">
+<ul>
+<li>扶養人数、社会保険料、住民税、組合費、共済費、その他控除を適用年月ごとに保存します。</li>
+<li>所得税は、総支給額・社会保険料・扶養人数から自動で概算します。</li>
+<li>「設定ファイルを保存」では控除・扶養・有給・給与追加調整だけをJSON保存します。勤務実績は含みません。</li>
+</ul>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="storage" data-help-keywords="保存先 端末 localStorage Firebase 管理者 個人情報 勤務実績 売上 給与 プライバシー">
+<summary><span>7. データの保存先とプライバシー</span><small>端末・Firebase・Google Driveの違い</small></summary>
+<div class="help-topic-body">
+<dl class="help-data-map">
+<div><dt>この端末</dt><dd>勤務実績、給与計算設定、有給、控除、締め履歴などを保存します。</dd></div>
+<div><dt>Firebase</dt><dd>Googleログイン、事前登録、利用者情報、権限、端末登録などの運用情報を管理します。</dd></div>
+<div><dt>Google Drive</dt><dd>利用者が「Google Driveにバックアップ」を押した場合だけ、本人データ一式を保存します。</dd></div>
+</dl>
+<p class="help-callout">管理者へ勤務実績、売上、個人の給与設定は送信されません。</p>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="drive" data-help-keywords="Google Drive バックアップ 同期 current.json backup フォルダ 給与シミュレーター 90日 権限 手動">
+<summary><span>8. Google Driveバックアップ</span><small>手動保存と世代管理</small></summary>
+<div class="help-topic-body">
+<ol class="help-steps">
+<li>「利用者情報」でこの端末の名前を設定します。</li>
+<li>「バックアップ」を開き、「Google Driveにバックアップ」を押します。</li>
+<li>初回だけGoogle Driveの利用許可を行います。</li>
+<li>個人のGoogle Drive内の「給与シミュレーター」フォルダへ保存されます。</li>
+</ol>
+<p>`current.json`が最新版、`backup-日時.json`が世代バックアップです。世代は90日を超えると、同期または一覧更新時に自動削除されます。</p>
+<p class="help-callout">自動バックアップではありません。ボタンを押した時点のデータだけが保存されます。</p>
+<div class="actions"><button class="ghost" data-help-view="settings" type="button">バックアップを開く</button></div>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="restore" data-help-keywords="復元 競合 端末変更 機種変更 バックアップ一覧 退避 データ復旧 削除履歴">
+<summary><span>9. 復元・競合・端末変更</span><small>データを失わないための操作</small></summary>
+<div class="help-topic-body">
+<ul>
+<li>「バックアップ一覧を更新」すると、Google Driveの世代を確認できます。</li>
+<li>復元前には現在の端末データを安全退避します。</li>
+<li>端末とDriveで内容が異なる場合は、勝手に上書きせず、内容を比較して選択します。</li>
+<li>誤って復元した場合は「復元前の端末データに戻す」を使用できます。</li>
+<li>機種変更時は、旧端末でバックアップしてから新端末で同じGoogleアカウントへログインし、復元します。</li>
+</ul>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="update" data-help-keywords="更新 キャッシュ Service Worker 最新版 PWA 古い画面 再構築 Build バージョン">
+<summary><span>10. 最新版への更新</span><small>キャッシュと表示更新</small></summary>
+<div class="help-topic-body">
+<ul>
+<li>「新しいバージョンがあります」と表示されたら「更新する」を押します。</li>
+<li>画面が古いままの場合は「利用者情報」→「PWAキャッシュを再構築」を使用します。</li>
+<li>更新後も勤務実績などの端末データは同じ保存領域を使用します。</li>
+</ul>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="support" data-help-keywords="不具合 エラー 診断情報 コピー 問い合わせ アカウント変更 Build Service Worker">
+<summary><span>11. 不具合・アカウント変更</span><small>管理者へ伝える情報</small></summary>
+<div class="help-topic-body">
+<ul>
+<li>不具合時は「利用者情報」→「診断情報をコピー」を押し、表示内容を管理者へ伝えます。</li>
+<li>診断情報には給与額や勤務実績は含まれません。</li>
+<li>Googleアカウントを変更する場合は「変更申請をコピー」で申請文を作成します。申請だけでは変更されません。</li>
+</ul>
+<div class="actions"><button class="ghost" data-help-view="profile" type="button">利用者情報を開く</button></div>
+</div>
+</details>
+</div>
+<p class="card help-empty" id="helpEmpty" hidden>該当する説明が見つかりません。別の言葉で検索してください。</p>
+</section>
+</div><button hidden="" id="openSettings" type="button">設定</button></main>
 <dialog class="modal" id="onboardingDialog"><form id="onboardingForm" method="dialog"><h2>最初に勤務区分を選択してください</h2><label>勤務区分<select id="onboardingShiftType" required=""></select></label><div class="rule-box" id="onboardingRule"></div><label class="agree"><input id="agreeDisclaimer" required="" type="checkbox"/>免責事項を確認しました</label><button id="completeOnboarding">利用を開始</button><div class="app-disclaimer" role="note">
 <p class="disclaimer-title">【免責事項】</p>
 <p>本アプリは給与支給額の概算を計算するシミュレーションツールです。</p>
@@ -248,4 +402,4 @@
 <button type="button" data-unit="minute">分</button>
 </div>
 </dialog>
-<script src="app-meta.js?v=20261014-01"></script><script src="storage-safety.js?v=20261014-01"></script><script src="data-integrity-v14.js?v=20261014-01"></script><script src="phase75-ops.js?v=20261014-01"></script><script src="diagnostics.js?v=20261014-01"></script><script src="firebase-config.js?v=20261014-01"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20261014-01"></script><script src="v13-features.js?v=20261014-01"></script><script src="profile-diagnostics.js?v=20261014-01"></script><script src="google-drive-config.js?v=20261014-01"></script><script src="data-recovery-v14.js?v=20261014-01"></script><script src="phase11-archive-restore.js?v=20261014-01"></script><script type="module" src="device-registry-v14.js?v=20261014-01"></script><script src="phase56-drive-backup.js?v=20261014-01"></script><script src="boot.js?v=20261014-01"></script><script src="phase1-ui.js?v=20261014-01"></script><script src="phase2-user-settings.js?v=20261014-01" type="module"></script><script src="phase3-personal-settings.js?v=20261014-01"></script><script src="phase4-payroll-adjustments.js?v=20261014-01"></script><script src="phase7-ui.js?v=20261014-01"></script></body></html>
+<script src="app-meta.js?v=20261015-01"></script><script src="storage-safety.js?v=20261014-01"></script><script src="data-integrity-v14.js?v=20261014-01"></script><script src="phase75-ops.js?v=20261014-01"></script><script src="diagnostics.js?v=20261014-01"></script><script src="firebase-config.js?v=20261014-01"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20261014-01"></script><script src="v13-features.js?v=20261014-01"></script><script src="profile-diagnostics.js?v=20261014-01"></script><script src="google-drive-config.js?v=20261014-01"></script><script src="data-recovery-v14.js?v=20261014-01"></script><script src="phase11-archive-restore.js?v=20261014-01"></script><script type="module" src="device-registry-v14.js?v=20261014-01"></script><script src="phase56-drive-backup.js?v=20261014-01"></script><script src="boot.js?v=20261014-01"></script><script src="phase1-ui.js?v=20261014-01"></script><script src="phase2-user-settings.js?v=20261014-01" type="module"></script><script src="phase3-personal-settings.js?v=20261014-01"></script><script src="phase4-payroll-adjustments.js?v=20261014-01"></script><script src="phase7-ui.js?v=20261015-01"></script></body></html>
