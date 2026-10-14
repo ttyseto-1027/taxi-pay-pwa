@@ -1,3 +1,0 @@
-# 利用者代行登録
-
-管理者画面から氏名、メール、仮パスワード、無料コードを入力すると、Firebase AuthenticationとFirestore usersを同時作成します。Firestore処理に失敗した場合は作成済みAuthenticationユーザーを削除します。

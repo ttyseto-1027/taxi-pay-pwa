@@ -1935,3 +1935,13 @@ Build: `20260918-04`
 - PWA manifestに残っていたDevelop専用の短縮名 `DEVELOP_給与` と説明をProduction表記へ修正し、再混入を自動検査対象にした。
 - Phase 15は自動公開確認を完了後、利用者がProductionを1回開いて以前の作業データが残っていることだけを確認する。
 
+---
+
+## Productionリポジトリ整理（2026-10-14、Build変更なし）
+
+- Git履歴で参照可能な旧実装メモ、旧仕様の個別ファイル、SHA256退避資料、一時READMEを現行ツリーから削除。
+- 現行仕様は `SPEC_v1.4beta.md`、実装履歴は本ファイル、変更概要は `CHANGELOG.md` を正本として維持。
+- 未使用の旧メニューJavaScriptと空の一時ファイルを削除し、公開画面・Service Workerから参照されていないことを確認。
+- Production専用の公開回帰ワークフローとリリースゲートは維持。
+- アプリ本体、保存キー、Firebase設定、Firestoreルール、税額表、Build番号、PWAキャッシュは変更していない。
+

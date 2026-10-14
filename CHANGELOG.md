@@ -138,3 +138,9 @@
 - Develop専用ヘッダー、Phase 10/11実機テスト読込、Develop専用テスト資産はProductionから除外。
 - PWA manifestに残っていたDevelop専用の短縮名・説明をProduction表記へ修正。
 - Build `20261014-01`、PWAキャッシュ `taxi-pay-v1.4-beta-20261014-production-rc-01`。
+
+## Productionリポジトリ整理（2026-10-14）
+
+- Git履歴に残る旧実装資料・旧仕様書・一時ファイルを現行ツリーから削除。
+- 現行仕様、実装履歴、利用者・管理者マニュアル、公開回帰テストへ資料を集約。
+- アプリ本体とBuild番号は変更なし。
