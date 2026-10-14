@@ -1,0 +1,79 @@
+name: Production v1.4 release gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          for file in *.js; do node --check "$file"; done
+      - name: Full regression
+        run: |
+          node tests/regression-v14.cjs
+          node tests/regression-storage-v14.cjs
+          node tests/phase10-safety-v14.cjs
+          node tests/phase11-safety-v14.cjs
+          node tests/phase12-drive-safety-v14.cjs
+          node tests/phase12-drive-flow-v14.cjs
+          node tests/phase13-recovery-safety-v14.cjs
+          node tests/phase15-production-release-v14.cjs
+      - name: Static integration guards
+        run: |
+          grep -q 'data-integrity-v14.js' index.html
+          grep -q 'data-recovery-v14.js' index.html
+          grep -q 'device-registry-v14.js' index.html
+          grep -q 'phase11-archive-restore.js' boot.js
+          grep -q 'STORAGE.save(state' app.js
+          grep -q 'normalizeBeforeSave' storage-safety.js
+          grep -q 'phase8-smartphone-ui-fixes' phase7-ui.js
+          grep -q 'touch-action: manipulation' phase7-ui.js
+          grep -q 'month-navigation-card #prevMonth' phase7-ui.js
+          grep -q 'month-navigation-card #nextMonth' phase7-ui.js
+          grep -q '現行仕様の正本' SPEC_v1.4beta.md
+          grep -q '実装履歴 Version 1.4β' IMPLEMENTATION_HISTORY_v1.4beta.md
+          grep -q 'Version 1.4β' README.md
+          grep -q '開発ガイド' DEVELOPMENT.md
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          order=['storage-safety.js','data-integrity-v14.js','app.js','data-recovery-v14.js','device-registry-v14.js','phase56-drive-backup.js']
+          pos=[s.find(x) for x in order]
+          assert all(x>=0 for x in pos), (order,pos)
+          assert pos==sorted(pos), (order,pos)
+
+          # Phase 8 smartphone navigation contract.
+          assert 'id="prevMonth"' in s and 'id="nextMonth"' in s
+          assert 'month-navigation-card' in s
+
+          # Phase 9 backup-screen contract: menu and panel must consistently
+          # describe backup/recovery, not the old generic settings screen.
+          assert 'data-view="settings" type="button"><span>バックアップ</span>' in s
+          marker='data-view-panel="settings"'
+          start=s.index(marker)
+          end=s.find('data-view-panel="help"', start)
+          assert end > start
+          backup_panel=s[start:end]
+          assert '<h2>バックアップ</h2>' in backup_panel
+          assert 'Google Driveへのバックアップ・復元、端末ファイルからの過去データ復旧を管理します。' in backup_panel
+          assert '<h2>Google Drive 同期・復元</h2>' in backup_panel
+          assert '<h2>過去のバックアップ</h2>' in backup_panel
+          assert '<h2>設定</h2>' not in backup_panel
+          assert '設定を変更します' not in backup_panel
+
+          obsolete=['app-b17.js','storage-safety-b17.js','v13-features-b17.js','tools/v14_upgrade.py','verify-build17.html']
+          assert all(not Path(x).exists() for x in obsolete), obsolete
+          PY

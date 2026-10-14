@@ -1,6 +1,6 @@
 (() => {
 'use strict';
-const D=window.TaxiPayDiagnostics, $=id=>document.getElementById(id), LS='taxiPayPwaStateV10', DRAFT='taxiPayV13EntryDraft', PROFILE='taxiPayV13Profile';
+const D=window.TaxiPayDiagnostics, $=id=>document.getElementById(id), LS=(window.TaxiPayStorageSafety?.primaryKey||'taxiPayPwaStateV10'), IS_DEVELOP=!!window.TaxiPayStorageSafety?.isDevelop, DRAFT=IS_DEVELOP?'taxiPayDevelopV13EntryDraft':'taxiPayV13EntryDraft', PROFILE=IS_DEVELOP?'taxiPayDevelopV13Profile':'taxiPayV13Profile';
 
 function readStoredProfile(){
   try{return JSON.parse(sessionStorage.getItem(PROFILE)||'null')}
@@ -33,11 +33,17 @@ window.addEventListener('taxipay:app-ready',e=>acceptProfile(e.detail));
 
 if(window.TaxiPayCurrentProfile)acceptProfile(window.TaxiPayCurrentProfile);
 function state(){try{return JSON.parse(localStorage.getItem(LS)||'{}')}catch{return {}}}
-function draftData(){return {date:$('date')?.value||'',paidLeaveType:document.querySelector('input[name="paidLeaveType"]:checked')?.value||'0',grossRevenue:$('grossRevenue')?.value||'',clockIn:$('clockIn')?.value||'',clockOut:$('clockOut')?.value||'',normalBreakHours:$('normalBreakHours')?.value||'0',normalBreakMinutes:$('normalBreakMinutes')?.value||'0',nightBreakHours:$('nightBreakHours')?.value||'0',nightBreakMinutes:$('nightBreakMinutes')?.value||'0',holidayType:$('holidayType')?.value||'normal',hadAccident:!!$('hadAccident')?.checked,hadViolation:!!$('hadViolation')?.checked,editingId:$('editingId')?.value||'',savedAt:new Date().toISOString()};}
+function draftData(){return {date:$('date')?.value||'',paidLeaveType:document.querySelector('input[name="paidLeaveType"]:checked')?.value||'0',grossRevenue:$('grossRevenue')?.value||'',otherPlus:$('otherPlus')?.value||'0',otherMinus:$('otherMinus')?.value||'0',idleA:$('idleA')?.value||'0',idleB:$('idleB')?.value||'0',clockIn:$('clockIn')?.value||'',clockOut:$('clockOut')?.value||'',normalBreakHours:$('normalBreakHours')?.value||'0',normalBreakMinutes:$('normalBreakMinutes')?.value||'0',nightBreakHours:$('nightBreakHours')?.value||'0',nightBreakMinutes:$('nightBreakMinutes')?.value||'0',holidayType:$('holidayType')?.value||'normal',hadAccident:!!$('hadAccident')?.checked,hadViolation:!!$('hadViolation')?.checked,editingId:$('editingId')?.value||'',savedAt:new Date().toISOString()};}
 let draftTimer;
 function saveDraft(){clearTimeout(draftTimer);draftTimer=setTimeout(()=>{try{localStorage.setItem(DRAFT,JSON.stringify(draftData()));D.record('DATA-DRAFT-SAVED','info','入力中データを一時保存');}catch(e){D.notify('入力中データを一時保存できませんでした。','warning','DATA-DRAFT-01',e.message)}},250);}
-function restoreDraft(){let x;try{x=JSON.parse(localStorage.getItem(DRAFT)||'null')}catch{} if(!x||!x.date)return; const current=$('date')?.value; if(current&&current!==new Date().toISOString().slice(0,10))return; for(const k of ['date','grossRevenue','clockIn','clockOut','normalBreakHours','normalBreakMinutes','nightBreakHours','nightBreakMinutes','holidayType','editingId'])if($(k)&&x[k]!=null)$(k).value=x[k]; const r=document.querySelector(`input[name="paidLeaveType"][value="${x.paidLeaveType}"]`);if(r)r.checked=true;if($('hadAccident'))$('hadAccident').checked=!!x.hadAccident;if($('hadViolation'))$('hadViolation').checked=!!x.hadViolation;$('grossRevenue')?.dispatchEvent(new Event('input'));D.notify('前回の未保存入力を復元しました。','info','DATA-DRAFT-RESTORED');}
-const form=$('entryForm'); form?.addEventListener('input',saveDraft);form?.addEventListener('change',saveDraft);form?.addEventListener('submit',()=>{const submitted=draftData();setTimeout(()=>{const s=state();const paidLeaveUnits=Number(submitted.paidLeaveType||0);const ok=(s.entries||[]).some(e=>submitted.editingId?e.id===submitted.editingId:(e.date===submitted.date&&Number(e.paidLeaveUnits||0)===paidLeaveUnits&&(paidLeaveUnits>0||Number(e.grossRevenue||0)===Number(submitted.grossRevenue||0))));if(ok){localStorage.removeItem(DRAFT);D.notify('勤務実績を保存しました。','success','DATA-SAVE-OK');}else D.notify('保存結果を確認できませんでした。入力内容は保持されています。','error','DATA-SAVE-VERIFY-01');},150);},true);
+function restoreDraft(){let x;try{x=JSON.parse(localStorage.getItem(DRAFT)||'null')}catch{} if(!x||!x.date)return; const current=$('date')?.value; if(current&&current!==new Date().toISOString().slice(0,10))return; for(const k of ['date','grossRevenue','otherPlus','otherMinus','idleA','idleB','clockIn','clockOut','normalBreakHours','normalBreakMinutes','nightBreakHours','nightBreakMinutes','holidayType','editingId'])if($(k)&&x[k]!=null)$(k).value=x[k]; const r=document.querySelector(`input[name="paidLeaveType"][value="${x.paidLeaveType}"]`);if(r)r.checked=true;if($('hadAccident'))$('hadAccident').checked=!!x.hadAccident;if($('hadViolation'))$('hadViolation').checked=!!x.hadViolation;$('grossRevenue')?.dispatchEvent(new Event('input'));D.notify('前回の未保存入力を復元しました。','info','DATA-DRAFT-RESTORED');}
+const form=$('entryForm'); form?.addEventListener('input',saveDraft);form?.addEventListener('change',saveDraft);
+window.addEventListener('taxipay:entry-saved',e=>{
+  const entry=e.detail||{};
+  // app.js は StorageSafety.save() の同期書込み＋読戻し照合に成功した場合だけこのイベントを発火する。
+  localStorage.removeItem(DRAFT);
+  D.notify('勤務実績を保存しました。','success','DATA-SAVE-OK',`id=${entry.id||''}`);
+});
 $('resetForm')?.addEventListener('click',()=>{localStorage.removeItem(DRAFT);D.notify('入力欄をクリアしました。','info','DATA-DRAFT-CLEAR');});
 function applyRole(){
   const current=normalizeProfile(window.TaxiPayCurrentProfile)||profile;
@@ -73,7 +79,7 @@ function currentMonthEntries(){const ym=$('currentMonth')?.value||'';return (sta
 function totalWorkMinutes(entries){return (entries||[]).reduce((a,e)=>{if(e.paidLeaveUnits)return a;const [ih,im]=(e.clockIn||'0:0').split(':').map(Number),[oh,om]=(e.clockOut||'0:0').split(':').map(Number);let x=oh*60+om-(ih*60+im);if(x<=0)x+=1440;return a+Math.max(0,x-Number(e.normalBreakMinutes||0)-Number(e.nightBreakMinutes||0));},0)}
 const yen=v=>`${Math.max(0,Math.round(Number(v)||0)).toLocaleString('ja-JP')}円`;
 const textNumber=id=>Number(($(id)?.textContent||'0').replace(/[^0-9-]/g,''))||0;
-const SALES_TARGET_PREFIX='taxiPaySalesTarget:v1:';
+const SALES_TARGET_PREFIX=IS_DEVELOP?'taxiPayDevelopSalesTarget:v1:':'taxiPaySalesTarget:v1:';
 const selectedPayrollMonth=()=>String($('currentMonth')?.value||'');
 const salesTargetKey=ym=>`${SALES_TARGET_PREFIX}${ym}`;
 function previousPayrollMonth(ym){const [y,m]=String(ym||'').split('-').map(Number);if(!y||!m)return '';const d=new Date(y,m-2,1);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}
@@ -87,7 +93,7 @@ function sanitizeSalesTarget(input){
 function readSalesTarget(ym){try{const x=JSON.parse(localStorage.getItem(salesTargetKey(ym))||'null');return x?sanitizeSalesTarget(x):null}catch{return null}}
 function initialSalesTarget(ym){
   const saved=readSalesTarget(ym);if(saved)return {...saved,source:'saved'};
-  const legacy=localStorage.getItem(`taxiPayTargetTakeHome:${ym}`);
+  const legacy=IS_DEVELOP?null:localStorage.getItem(`taxiPayTargetTakeHome:${ym}`);
   const previous=readSalesTarget(previousPayrollMonth(ym));
   if(previous)return {...previous,source:'previous'};
   if(legacy!==null)return {...sanitizeSalesTarget({targetTakeHome:legacy,remainingShifts:'',rounding:1000}),source:'legacy'};

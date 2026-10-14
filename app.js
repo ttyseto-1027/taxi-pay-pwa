@@ -1,6 +1,8 @@
 'use strict';
-const LS_KEY='taxiPayPwaStateV10';
-const OLD_KEYS=['taxiPayPwaStateV9','taxiPayPwaStateV8','taxiPayPwaStateV7','taxiPayPwaStateV6'];
+const STORAGE=window.TaxiPayStorageSafety;
+if(!STORAGE) throw new Error('storage-safety.js が読み込まれていません。');
+const LS_KEY=STORAGE.primaryKey;
+const OLD_KEYS=STORAGE.legacyKeys.filter(k=>k!==LS_KEY);
 const ADMIN_PASSWORD='TaxiPay-Dev-2026';
 
 const SHIFT_RULES={
@@ -33,9 +35,8 @@ const round10=n=>Math.max(0,Math.round(Number(n||0)/10)*10);
 function clone(x){return JSON.parse(JSON.stringify(x));}
 function mergeDeep(base,obj){const out=clone(base);if(obj&&typeof obj==='object'){for(const [k,v] of Object.entries(obj)){if(v&&typeof v==='object'&&!Array.isArray(v)&&out[k]&&typeof out[k]==='object')out[k]=mergeDeep(out[k],v);else out[k]=v;}}return out;}
 function loadState(){
-  let raw=localStorage.getItem(LS_KEY);
-  if(!raw){for(const key of OLD_KEYS){raw=localStorage.getItem(key);if(raw)break;}}
-  try{const s=mergeDeep(DEFAULT_STATE,raw?JSON.parse(raw):{});s.entries=(s.entries||[]).map(e=>{
+  const loaded=STORAGE.loadCandidate();
+  try{const s=mergeDeep(DEFAULT_STATE,loaded.data||{});s.entries=(s.entries||[]).map(e=>{
       const legacyGross=Number(e.grossRevenue||0);
       const grossSales=Number(e.grossSales ?? e.reportedGrossRevenue ?? legacyGross);
       const otherPlus=Number(e.otherPlus||0);
@@ -54,10 +55,25 @@ function loadState(){
         hadAccident:!!e.hadAccident,hadViolation:!!e.hadViolation,
         paidLeaveUnits:Number(e.paidLeaveUnits||0)
       };
-    });return s;}catch{return clone(DEFAULT_STATE);}
+    });return s;}catch(error){STORAGE.blockWrites('state-normalize-failed',error);return clone(DEFAULT_STATE);}
 }
 let state=loadState();
-function saveState(){localStorage.setItem(LS_KEY,JSON.stringify(state));}
+function showStorageSafetyNotice(){
+  const h=STORAGE.getHealth();
+  if(!h.writeBlocked && (!h.sourceKey || h.sourceKey===LS_KEY))return;
+  const box=document.createElement('div');
+  box.id='storageSafetyNotice';
+  box.setAttribute('role','alert');
+  box.style.cssText='position:relative;z-index:20000;margin:12px;padding:12px;border:2px solid #9a5b00;border-radius:10px;background:#fff7e6;color:#3b2a12;font-weight:700;';
+  if(h.writeBlocked){
+    box.textContent='保存済みデータの読み取りに問題を検出したため、安全のため新しい保存を停止しています。データ確認が終わるまで入力を続けないでください。';
+  }else{
+    box.textContent=`旧保存データ（${h.sourceKey}）を読み込んでいます。次回保存時に現行形式へ安全に引き継ぎます。旧データは削除しません。`;
+  }
+  document.body.prepend(box);
+}
+showStorageSafetyNotice();
+function saveState(reason='app-save'){STORAGE.save(state,reason);}
 function leaveUnits(e){return Number(e?.paidLeaveUnits||0);}
 function leaveLabel(n){return Number(n)===1?'1有給':Number(n)===2?'2有給':'通常勤務';}
 function isKakuShift(){const t=state.settings.shiftType||'';return t==='隔日勤務'||t.startsWith('定隔');}
@@ -741,7 +757,9 @@ $('entryForm').addEventListener('submit',ev=>{
       holidayType:'normal',hadAccident:false,hadViolation:false
     };
     state.entries=state.entries.filter(x=>x.id!==id).concat(entry);
-    saveState();clearEntry();render();return;
+    saveState('entry-save-paid-leave');
+    window.dispatchEvent(new CustomEvent('taxipay:entry-saved',{detail:clone(entry)}));
+    clearEntry();render();return;
   }
 
   if(!syncClock('clockIn')||!syncClock('clockOut'))return;
@@ -771,7 +789,9 @@ $('entryForm').addEventListener('submit',ev=>{
   };
   const err=validateEntry(entry);if(err)return alert(err);
   state.entries=state.entries.filter(x=>x.id!==id).concat(entry);
-  saveState();clearEntry();render();
+  saveState('entry-save');
+  window.dispatchEvent(new CustomEvent('taxipay:entry-saved',{detail:clone(entry)}));
+  clearEntry();render();
 });
 $('resetForm').onclick=clearEntry;
 $('entriesTable').addEventListener('click',ev=>{const edit=ev.target.dataset.edit,del=ev.target.dataset.del;if(edit){const e=state.entries.find(x=>x.id===edit);$('date').value=e.date;$('editingId').value=e.id;const radio=document.querySelector(`input[name="paidLeaveType"][value="${leaveUnits(e)}"]`);if(radio)radio.checked=true;if(leaveUnits(e)===0){
@@ -833,7 +853,7 @@ $('phase8RemoveSecondary')?.addEventListener('click',()=>{$('phase8SecondaryWrap
 window.addEventListener('resize',()=>{if(!$('phase8Chart')?.closest('[hidden]'))drawPhase8Chart((()=>{let r=phase8Rows(),p=$('phase8Period')?.value||'12';return window.phase8CustomActive?phase8CustomRows():p==='all'?r:p==='current'?phase8CurrentDailyRows():r.slice(-Number(p));})());});
 $('openSettings').onclick=()=>{loadSettingsForm();$('settingsDialog').showModal();};$('shiftType').onchange=()=>{$('shiftRuleInfo').innerHTML=ruleDescription($('shiftType').value);const r=SHIFT_RULES[$('shiftType').value];$('standardShiftHoursDisplay').value=minutesText(r.shiftMinutes);$('standardHoursDisplay').value=minutesText(r.monthlyMinutes);};$('saveSettings').onclick=e=>{e.preventDefault();saveSettingsForm();$('settingsDialog').close();};
 $('openAdmin').onclick=()=>{const p=prompt('開発者パスワードを入力してください。');if(p!==ADMIN_PASSWORD)return alert('パスワードが違います。');loadAdminForm();$('adminDialog').showModal();};$('saveAdmin').onclick=e=>{e.preventDefault();saveAdminForm();$('adminDialog').close();alert('開発者設定を保存しました。');};
-$('onboardingShiftType').onchange=()=>{$('onboardingRule').innerHTML=ruleDescription($('onboardingShiftType').value);};$('completeOnboarding').onclick=e=>{e.preventDefault();if(!$('agreeDisclaimer').checked)return alert('確認欄にチェックしてください。');state.settings.shiftType=$('onboardingShiftType').value;state.initialized=true;saveState();$('onboardingDialog').close();render();};
+$('onboardingShiftType').onchange=()=>{$('onboardingRule').innerHTML=ruleDescription($('onboardingShiftType').value);};$('completeOnboarding').onclick=e=>{e.preventDefault();if(!$('agreeDisclaimer').checked)return alert('確認欄にチェックしてください。');state.settings.shiftType=$('onboardingShiftType').value;state.initialized=true;saveState('onboarding-complete');$('onboardingDialog').close();render();};
 applyDuePaidLeaveGrant();
 // 診断版v4では古いキャッシュを避けるためService Workerを登録しない。
 window.TaxiPayInlineDiagnostic?.add('V5-SW-SKIP','診断版のためService Worker登録を停止しています。');
