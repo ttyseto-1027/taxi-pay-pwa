@@ -212,7 +212,7 @@
 <button class="secondary" id="helpExpandAll" type="button">すべて開く</button>
 <button class="ghost" id="helpCollapseAll" type="button">すべて閉じる</button>
 </div>
-<p class="note" id="helpSearchStatus" aria-live="polite">全11項目を表示しています。</p>
+<p class="note" id="helpSearchStatus" aria-live="polite">全12項目を表示しています。</p>
 </section>
 
 <div class="help-topic-list" id="helpTopicList">
@@ -266,6 +266,7 @@
 <li>給与締めを行うと、その月の集計が締め履歴へ保存されます。</li>
 </ul>
 <p class="note">月次集計・売上目標・有給・控除設定は組合員向け機能です。</p>
+<div class="actions" data-union-only hidden><button class="ghost" data-help-view="monthly" type="button">月次集計を開く</button></div>
 </div>
 </details>
 
@@ -277,6 +278,7 @@
 <li>勤務実績で登録した有給使用分と、付与日を迎えた付与分が履歴へ反映されます。</li>
 <li>表示される残数はアプリ内での管理値です。会社の正式な有給記録も確認してください。</li>
 </ul>
+<div class="actions" data-union-only hidden><button class="ghost" data-help-view="paidleave" type="button">有給管理を開く</button></div>
 </div>
 </details>
 
@@ -288,6 +290,7 @@
 <li>所得税は、総支給額・社会保険料・扶養人数から自動で概算します。</li>
 <li>「設定ファイルを保存」では控除・扶養・有給・給与追加調整だけをJSON保存します。勤務実績は含みません。</li>
 </ul>
+<div class="actions" data-union-only hidden><button class="ghost" data-help-view="deductions" type="button">控除額設定を開く</button></div>
 </div>
 </details>
 
@@ -296,7 +299,7 @@
 <div class="help-topic-body">
 <dl class="help-data-map">
 <div><dt>この端末</dt><dd>勤務実績、給与計算設定、有給、控除、締め履歴などを保存します。</dd></div>
-<div><dt>Firebase</dt><dd>Googleログイン、事前登録、利用者情報、権限、端末登録などの運用情報を管理します。</dd></div>
+<div><dt>Firebase</dt><dd>Googleログイン、事前登録、利用者情報、権限、端末登録などの運用情報を管理します。勤務実績、売上、給与設定、有給、控除などの主要データはFirebaseには保存されません。</dd></div>
 <div><dt>Google Drive</dt><dd>利用者が「Google Driveにバックアップ」を押した場合だけ、本人データ一式を保存します。</dd></div>
 </dl>
 <p class="help-callout">管理者へ勤務実績、売上、個人の給与設定は送信されません。</p>
@@ -328,6 +331,7 @@
 <li>誤って復元した場合は「復元前の端末データに戻す」を使用できます。</li>
 <li>機種変更時は、旧端末でバックアップしてから新端末で同じGoogleアカウントへログインし、復元します。</li>
 </ul>
+<div class="actions"><button class="ghost" data-help-view="settings" type="button">バックアップを開く</button></div>
 </div>
 </details>
 
@@ -339,11 +343,29 @@
 <li>画面が古いままの場合は「利用者情報」→「PWAキャッシュを再構築」を使用します。</li>
 <li>更新後も勤務実績などの端末データは同じ保存領域を使用します。</li>
 </ul>
+<div class="actions"><button class="ghost" data-help-view="profile" type="button">利用者情報を開く</button></div>
+</div>
+</details>
+
+<details class="card help-topic" data-help-topic="admin" data-help-keywords="管理者 管理者モード 表示確認モード ユーザー管理 お知らせ管理 システム情報 組合員 非組合員 権限">
+<summary><span>11. 管理者機能と表示確認モード</span><small>管理者専用の運用機能</small></summary>
+<div class="help-topic-body">
+<ul>
+<li>管理者だけが「ユーザー管理」「お知らせ管理」「システム情報」を利用できます。</li>
+<li>「表示確認モード」では、組合員・非組合員それぞれの画面表示を確認できます。</li>
+<li>表示確認モードを切り替えても、利用者情報、組合員区分、権限、保存データは変更されません。</li>
+<li>管理者が確認できるのはFirebase上の利用者・権限・端末・ログインなどの運用情報です。利用者端末内の勤務実績、売上、給与設定などは閲覧できません。</li>
+</ul>
+<div class="actions" id="helpAdminActions" hidden>
+<button class="ghost" data-help-admin-href="admin.html" type="button">ユーザー管理を開く</button>
+<button class="ghost" data-help-admin-href="announcement.html" type="button">お知らせ管理を開く</button>
+<button class="ghost" data-help-admin-href="system-info.html" type="button">システム情報を開く</button>
+</div>
 </div>
 </details>
 
 <details class="card help-topic" data-help-topic="support" data-help-keywords="不具合 エラー 診断情報 コピー 問い合わせ アカウント変更 Build Service Worker">
-<summary><span>11. 不具合・アカウント変更</span><small>管理者へ伝える情報</small></summary>
+<summary><span>12. 不具合・アカウント変更</span><small>管理者へ伝える情報</small></summary>
 <div class="help-topic-body">
 <ul>
 <li>不具合時は「利用者情報」→「診断情報をコピー」を押し、表示内容を管理者へ伝えます。</li>
@@ -402,4 +424,4 @@
 <button type="button" data-unit="minute">分</button>
 </div>
 </dialog>
-<script src="app-meta.js?v=20261015-01"></script><script src="storage-safety.js?v=20261014-01"></script><script src="data-integrity-v14.js?v=20261014-01"></script><script src="phase75-ops.js?v=20261014-01"></script><script src="diagnostics.js?v=20261014-01"></script><script src="firebase-config.js?v=20261014-01"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20261014-01"></script><script src="v13-features.js?v=20261014-01"></script><script src="profile-diagnostics.js?v=20261014-01"></script><script src="google-drive-config.js?v=20261014-01"></script><script src="data-recovery-v14.js?v=20261014-01"></script><script src="phase11-archive-restore.js?v=20261014-01"></script><script type="module" src="device-registry-v14.js?v=20261014-01"></script><script src="phase56-drive-backup.js?v=20261014-01"></script><script src="boot.js?v=20261014-01"></script><script src="phase1-ui.js?v=20261014-01"></script><script src="phase2-user-settings.js?v=20261014-01" type="module"></script><script src="phase3-personal-settings.js?v=20261014-01"></script><script src="phase4-payroll-adjustments.js?v=20261014-01"></script><script src="phase7-ui.js?v=20261015-01"></script></body></html>
+<script src="app-meta.js?v=20261016-02"></script><script src="storage-safety.js?v=20261014-01"></script><script src="data-integrity-v14.js?v=20261014-01"></script><script src="phase75-ops.js?v=20261014-01"></script><script src="diagnostics.js?v=20261014-01"></script><script src="firebase-config.js?v=20261014-01"></script><script src="tax-table-2026.js"></script><script src="app.js?v=20261014-01"></script><script src="v13-features.js?v=20261014-01"></script><script src="profile-diagnostics.js?v=20261014-01"></script><script src="google-drive-config.js?v=20261014-01"></script><script src="data-recovery-v14.js?v=20261014-01"></script><script src="phase11-archive-restore.js?v=20261014-01"></script><script type="module" src="device-registry-v14.js?v=20261014-01"></script><script src="phase56-drive-backup.js?v=20261014-01"></script><script src="boot.js?v=20261014-01"></script><script src="phase1-ui.js?v=20261014-01"></script><script src="phase2-user-settings.js?v=20261014-01" type="module"></script><script src="phase3-personal-settings.js?v=20261014-01"></script><script src="phase4-payroll-adjustments.js?v=20261014-01"></script><script src="phase7-ui.js?v=20261016-02"></script></body></html>
