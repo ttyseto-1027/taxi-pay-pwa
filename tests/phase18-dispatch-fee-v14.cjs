@@ -13,6 +13,7 @@ const sw=read('sw.js');
 const meta=JSON.parse(read('app-meta.json'));
 
 assert.equal((html.match(/id="dispatchFee"/g)||[]).length,1);
+assert.ok(html.includes('id="dispatchFee" inputmode="numeric" pattern="[0-9]*" type="text" value=""'));
 assert.ok(html.includes('－ その他（－）－ 配車手数料'));
 
 const match=app.match(/function calculateAdjustedGross\(\)\{([\s\S]*?)\n\}/);
@@ -28,13 +29,13 @@ assert.ok(app.includes('const adjustedGrossSales=Number(e.adjustedGrossSales ?? 
 assert.ok(app.includes('grossSales,otherPlus,otherMinus,dispatchFee,idleA,idleB'));
 assert.ok(app.includes('otherMinus:0,dispatchFee:0,idleA:0'));
 assert.ok(app.includes("$('dispatchFee').value=Number(e.dispatchFee||0)"));
-assert.ok(draft.includes("dispatchFee:$('dispatchFee')?.value||'0'"));
+assert.ok(draft.includes("dispatchFee:$('dispatchFee')?.value||''"));
 assert.ok(draft.includes("'otherMinus','dispatchFee','idleA'"));
 assert.ok(app.includes("'その他（－）','配車手数料','A空転'"));
 assert.ok(app.includes('leave?0:Number(e.dispatchFee||0)'));
 assert.ok(recovery.includes("dispatchFee:'配車手数料'"));
 assert.ok(recovery.includes('gross|Plus|Minus|Fee|idle'));
-assert.equal(meta.build,'20261114-01');
+assert.equal(meta.build,'20261114-02');
 assert.equal(meta.environment,'PRODUCTION');
 assert.ok(sw.includes(meta.cacheVersion));
 

@@ -659,7 +659,8 @@ function checkLongBreakWarning(force){
 function clearEntry(){
   $('entryForm').reset();
   $('date').value=today();
-  for(const id of ['otherPlus','otherMinus','dispatchFee','idleA','idleB'])if($(id))$(id).value='0';
+  for(const id of ['otherPlus','otherMinus','idleA','idleB'])if($(id))$(id).value='0';
+  if($('dispatchFee'))$('dispatchFee').value='';
   setBreak('normalBreak',0);setBreak('nightBreak',0);setClockParts('clockIn','');setClockParts('clockOut','');confirmedLongBreakSignature='';
   $('editingId').value='';
   if($('adjustedGrossRevenue'))$('adjustedGrossRevenue').value='';
@@ -801,7 +802,7 @@ $('entriesTable').addEventListener('click',ev=>{const edit=ev.target.dataset.edi
   $('grossRevenue').value=grossSalesOf(e);
   $('otherPlus').value=Number(e.otherPlus||0);
   $('otherMinus').value=Number(e.otherMinus||0);
-  $('dispatchFee').value=Number(e.dispatchFee||0);
+  $('dispatchFee').value=Number(e.dispatchFee||0)||'';
   $('idleA').value=Number(e.idleA ?? e.idleAdjustmentA ?? 0);
   $('idleB').value=Number(e.idleB ?? e.idleAdjustmentB ?? 0);
   setClockParts('clockIn',e.clockIn);setClockParts('clockOut',e.clockOut);
