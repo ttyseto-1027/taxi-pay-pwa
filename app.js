@@ -41,11 +41,12 @@ function loadState(){
       const grossSales=Number(e.grossSales ?? e.reportedGrossRevenue ?? legacyGross);
       const otherPlus=Number(e.otherPlus||0);
       const otherMinus=Number(e.otherMinus||0);
+      const dispatchFee=Number(e.dispatchFee||0);
       const idleA=Number(e.idleA ?? e.idleAdjustmentA ?? 0);
       const idleB=Number(e.idleB ?? e.idleAdjustmentB ?? 0);
       const adjustedGrossSales=Number(e.adjustedGrossSales ?? legacyGross);
       return {...e,
-        grossSales,otherPlus,otherMinus,idleA,idleB,
+        grossSales,otherPlus,otherMinus,dispatchFee,idleA,idleB,
         adjustedGrossSales,
         grossRevenue:adjustedGrossSales,
         clockIn:e.clockIn||'',clockOut:e.clockOut||'',
@@ -82,7 +83,7 @@ function paidLeaveShiftCredit(e){const n=leaveUnits(e);return n?(isKakuShift()?n
 function addOneYearISO(s){if(!s)return '';const [y,m,d]=s.split('-').map(Number),x=new Date(y+1,m-1,d);return fmtDate(x);}
 function applyDuePaidLeaveGrant(){const st=state.settings,date=st.paidLeaveNextGrantDate,days=Number(st.paidLeaveNextGrantDays||0);if(!date||days<=0||date>today())return false;st.paidLeaveAppliedGrants=Array.isArray(st.paidLeaveAppliedGrants)?st.paidLeaveAppliedGrants:[];if(!st.paidLeaveAppliedGrants.some(x=>x.date===date))st.paidLeaveAppliedGrants.push({date,days,appliedAt:new Date().toISOString()});st.paidLeaveNextGrantDate=addOneYearISO(date);saveState();return true;}
 function paidLeaveBalance(excludeId=''){const st=state.settings,grants=(st.paidLeaveAppliedGrants||[]).reduce((a,x)=>a+Number(x.days||0),0),closed=(st.paidLeaveUsageHistory||[]).reduce((a,x)=>a+Number(x.days||0),0),open=(state.entries||[]).filter(e=>e.id!==excludeId).reduce((a,e)=>a+leaveUnits(e),0);return Math.max(0,Number(st.paidLeaveOpeningBalance||0)+grants-closed-open);}
-function setPaidLeaveMode(){const n=Number(document.querySelector('input[name="paidLeaveType"]:checked')?.value||0),leave=n>0;for(const id of ['grossRevenue','otherPlus','otherMinus','idleA','idleB','clockIn','clockOut','holidayType','hadAccident','hadViolation']){const el=$(id);if(!el)continue;el.disabled=leave;if(leave){if(el.type==='checkbox')el.checked=false;else if(el.tagName==='SELECT')el.selectedIndex=0;
+function setPaidLeaveMode(){const n=Number(document.querySelector('input[name="paidLeaveType"]:checked')?.value||0),leave=n>0;for(const id of ['grossRevenue','otherPlus','otherMinus','dispatchFee','idleA','idleB','clockIn','clockOut','holidayType','hadAccident','hadViolation']){const el=$(id);if(!el)continue;el.disabled=leave;if(leave){if(el.type==='checkbox')el.checked=false;else if(el.tagName==='SELECT')el.selectedIndex=0;
 else if(el.tagName==='BUTTON'){
   const span=el.querySelector('span');
   if(span)span.textContent=el.id.toLowerCase().includes('minutes')?'00':'0';
@@ -107,9 +108,10 @@ function calculateAdjustedGross(){
   const gross=Math.max(0,Number($('grossRevenue')?.value||0));
   const otherPlus=adjustmentValue('otherPlus');
   const otherMinus=adjustmentValue('otherMinus');
+  const dispatchFee=adjustmentValue('dispatchFee');
   const idleA=adjustmentValue('idleA');
   const idleB=adjustmentValue('idleB');
-  return Math.max(0,gross+otherPlus-otherMinus-idleA-idleB);
+  return Math.max(0,gross+otherPlus-otherMinus-dispatchFee-idleA-idleB);
 }
 function monthlyRevenue(net){const r=currentRule(),fare=Number(state.settings.fareRevisionCoefficient||1);return r.family==='fixed'?net*fare:net*fare*Number(state.settings.payRevenueCoefficient||0.9585);}
 function commission(revenue){
@@ -657,7 +659,7 @@ function checkLongBreakWarning(force){
 function clearEntry(){
   $('entryForm').reset();
   $('date').value=today();
-  for(const id of ['otherPlus','otherMinus','idleA','idleB'])if($(id))$(id).value='0';
+  for(const id of ['otherPlus','otherMinus','dispatchFee','idleA','idleB'])if($(id))$(id).value='0';
   setBreak('normalBreak',0);setBreak('nightBreak',0);setClockParts('clockIn','');setClockParts('clockOut','');confirmedLongBreakSignature='';
   $('editingId').value='';
   if($('adjustedGrossRevenue'))$('adjustedGrossRevenue').value='';
@@ -672,18 +674,18 @@ function updateRevenuePreview(){
   $('netRevenue').value=adjusted?calcNet(adjusted).toLocaleString('ja-JP'):'';
   const formula=$('revenueAdjustmentFormula');
   if(formula){
-    const p=adjustmentValue('otherPlus'),m=adjustmentValue('otherMinus'),a=adjustmentValue('idleA'),b=adjustmentValue('idleB');
-    formula.textContent=`${gross.toLocaleString('ja-JP')}円 － ${a.toLocaleString('ja-JP')}円 － ${b.toLocaleString('ja-JP')}円 ＋ ${p.toLocaleString('ja-JP')}円 － ${m.toLocaleString('ja-JP')}円 ＝ ${adjusted.toLocaleString('ja-JP')}円`;
+    const p=adjustmentValue('otherPlus'),m=adjustmentValue('otherMinus'),d=adjustmentValue('dispatchFee'),a=adjustmentValue('idleA'),b=adjustmentValue('idleB');
+    formula.textContent=`${gross.toLocaleString('ja-JP')}円 － ${a.toLocaleString('ja-JP')}円 － ${b.toLocaleString('ja-JP')}円 ＋ ${p.toLocaleString('ja-JP')}円 － ${m.toLocaleString('ja-JP')}円 － ${d.toLocaleString('ja-JP')}円 ＝ ${adjusted.toLocaleString('ja-JP')}円`;
   }
 }
 function validateEntry(e){const t=entryTimeInfo(e);if(!e.clockIn||!e.clockOut)return '出勤・退勤時刻を入力してください。';if(t.duration<=0)return '勤務時間を確認してください。';if(e.normalBreakMinutes+e.nightBreakMinutes>t.duration)return '休憩時間が拘束時間を超えています。';if(t.work<=0)return '実働時間が0以下です。';return '';}
 
 initBreakPickers();populateShiftSelects();$('currentMonth').value=payrollMonthOf(today());clearEntry();
-for(const id of ['grossRevenue','otherPlus','otherMinus','idleA','idleB']){
+for(const id of ['grossRevenue','otherPlus','otherMinus','dispatchFee','idleA','idleB']){
   const el=$(id);
   if(!el) continue;
   el.addEventListener('input',()=>{
-    if(['otherPlus','otherMinus','idleA','idleB'].includes(id)){
+    if(['otherPlus','otherMinus','dispatchFee','idleA','idleB'].includes(id)){
       const cleaned=String(el.value||'').replace(/[^0-9]/g,'');
       if(el.value!==cleaned)el.value=cleaned;
     }
@@ -751,7 +753,7 @@ $('entryForm').addEventListener('submit',ev=>{
     if(paidLeaveUnits>paidLeaveBalance($('editingId').value||''))return alert(`有給残数が不足しています。現在使用可能：${paidLeaveBalance($('editingId').value||'')}日`);
     const entry={
       id,date:$('date').value,paidLeaveUnits,
-      grossSales:0,otherPlus:0,otherMinus:0,idleA:0,idleB:0,
+      grossSales:0,otherPlus:0,otherMinus:0,dispatchFee:0,idleA:0,idleB:0,
       adjustedGrossSales:0,grossRevenue:0,
       clockIn:'',clockOut:'',normalBreakMinutes:0,nightBreakMinutes:0,
       holidayType:'normal',hadAccident:false,hadViolation:false
@@ -768,16 +770,17 @@ $('entryForm').addEventListener('submit',ev=>{
    const grossSales=Math.max(0,Number($('grossRevenue').value||0));
   const otherPlus=adjustmentValue('otherPlus');
   const otherMinus=adjustmentValue('otherMinus');
+  const dispatchFee=adjustmentValue('dispatchFee');
   const idleA=adjustmentValue('idleA');
   const idleB=adjustmentValue('idleB');
-  const adjustedGrossSales=Math.max(0,grossSales+otherPlus-otherMinus-idleA-idleB);
+  const adjustedGrossSales=Math.max(0,grossSales+otherPlus-otherMinus-dispatchFee-idleA-idleB);
 
   if(grossSales<=0)return alert('総営収（税込）を入力してください。');
   if(adjustedGrossSales<=0)return alert('給与計算用営収が0円以下になっています。営収調整の金額を確認してください。');
 
   const entry={
     id,date:$('date').value,paidLeaveUnits:0,
-    grossSales,otherPlus,otherMinus,idleA,idleB,
+    grossSales,otherPlus,otherMinus,dispatchFee,idleA,idleB,
     adjustedGrossSales,
     grossRevenue:adjustedGrossSales, // 既存計算・バックアップとの互換用
     clockIn:$('clockIn').value,clockOut:$('clockOut').value,
@@ -798,6 +801,7 @@ $('entriesTable').addEventListener('click',ev=>{const edit=ev.target.dataset.edi
   $('grossRevenue').value=grossSalesOf(e);
   $('otherPlus').value=Number(e.otherPlus||0);
   $('otherMinus').value=Number(e.otherMinus||0);
+  $('dispatchFee').value=Number(e.dispatchFee||0);
   $('idleA').value=Number(e.idleA ?? e.idleAdjustmentA ?? 0);
   $('idleB').value=Number(e.idleB ?? e.idleAdjustmentB ?? 0);
   setClockParts('clockIn',e.clockIn);setClockParts('clockOut',e.clockOut);
@@ -808,7 +812,7 @@ $('entriesTable').addEventListener('click',ev=>{const edit=ev.target.dataset.edi
 $('prevMonth').onclick=()=>{$('currentMonth').value=addMonths($('currentMonth').value,-1);render();};$('nextMonth').onclick=()=>{$('currentMonth').value=addMonths($('currentMonth').value,1);render();};$('currentMonth').onchange=render;$('printReport').onclick=()=>window.print();
 $('exportCsv').onclick=()=>{
   const rows=[
-    ['勤務日','勤務区分','勤務・有給区分','有給日数','総営収（税込）','その他（＋）','その他（－）','A空転','B空転','給与計算用税込営収','税抜営収','出勤時刻（アルコール）','退勤時刻（アルコール）','通常休憩分','深夜休憩分','実働分','深夜労働分','休日区分'],
+    ['勤務日','勤務区分','勤務・有給区分','有給日数','総営収（税込）','その他（＋）','その他（－）','配車手数料','A空転','B空転','給与計算用税込営収','税抜営収','出勤時刻（アルコール）','退勤時刻（アルコール）','通常休憩分','深夜休憩分','実働分','深夜労働分','休日区分'],
     ...currentEntries().map(e=>{
       const t=entryTimeInfo(e),leave=leaveUnits(e);
       return [
@@ -816,6 +820,7 @@ $('exportCsv').onclick=()=>{
         leave?0:grossSalesOf(e),
         leave?0:Number(e.otherPlus||0),
         leave?0:Number(e.otherMinus||0),
+        leave?0:Number(e.dispatchFee||0),
         leave?0:Number(e.idleA||0),
         leave?0:Number(e.idleB||0),
         leave?0:payrollGross(e),

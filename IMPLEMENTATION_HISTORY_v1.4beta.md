@@ -1971,3 +1971,13 @@ Build: `20260918-04`
 - 利用者マニュアルとProduction回帰試験を同じ説明へ更新。
 - 給与計算、保存キー、認証、Firebase、Firestore、Drive保存・復元、税額表の処理は変更していない。
 
+---
+
+## Phase 18 — 配車手数料のProduction選別移植（Build 20261114-01）
+
+- Develop版で実装・回帰確認済みの「配車手数料」をProductionへ選別移植。
+- 日別の営収調整、給与計算用税込営収の減算、端末保存、入力途中の復元、編集、CSV出力、復旧時の項目表示へ反映。
+- 過去データは `dispatchFee = 0` として読み込み、既存の給与計算結果を維持。
+- Production保存キー、認証、Firebase、Firestore、Google Drive、税額表は変更していない。
+- 管理者用給与計算条件画面、OCR、Develop専用テスト機能は移植していない。
+

@@ -6,8 +6,8 @@
   const BEFORE_RECOVERY_KEY=()=>STORAGE()?.isDevelop?'taxiPayDevelopBeforeBuiltInRecoveryV1':'taxiPayBeforeBuiltInRecoveryV1';
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clone=x=>JSON.parse(JSON.stringify(x));
-  const LABELS={date:'勤務日',paidLeaveUnits:'有休日数',grossSales:'総営収（税込）',adjustedGrossSales:'給与計算用税込営収',grossRevenue:'給与計算用税込営収',otherPlus:'その他（＋）',otherMinus:'その他（－）',idleA:'A空転',idleB:'B空転',clockIn:'出勤時刻',clockOut:'退勤時刻',normalBreakMinutes:'通常休憩',nightBreakMinutes:'深夜休憩',holidayType:'休日区分',hadAccident:'事故',hadViolation:'違反'};
-  function valueText(field,v){if(v===undefined)return '未設定';if(v===null)return 'なし';if(typeof v==='object')return JSON.stringify(v);if(typeof v==='boolean')return v?'あり':'なし';if(/gross|Plus|Minus|idle/i.test(field)&&Number.isFinite(Number(v)))return `${Number(v).toLocaleString('ja-JP')}円`;if(/Minutes/i.test(field)&&Number.isFinite(Number(v)))return `${Number(v)}分`;return String(v);}
+  const LABELS={date:'勤務日',paidLeaveUnits:'有休日数',grossSales:'総営収（税込）',adjustedGrossSales:'給与計算用税込営収',grossRevenue:'給与計算用税込営収',otherPlus:'その他（＋）',otherMinus:'その他（－）',dispatchFee:'配車手数料',idleA:'A空転',idleB:'B空転',clockIn:'出勤時刻',clockOut:'退勤時刻',normalBreakMinutes:'通常休憩',nightBreakMinutes:'深夜休憩',holidayType:'休日区分',hadAccident:'事故',hadViolation:'違反'};
+  function valueText(field,v){if(v===undefined)return '未設定';if(v===null)return 'なし';if(typeof v==='object')return JSON.stringify(v);if(typeof v==='boolean')return v?'あり':'なし';if(/gross|Plus|Minus|Fee|idle/i.test(field)&&Number.isFinite(Number(v)))return `${Number(v).toLocaleString('ja-JP')}円`;if(/Minutes/i.test(field)&&Number.isFinite(Number(v)))return `${Number(v)}分`;return String(v);}
   function sourceState(x){
     if(x&&x.schema){
       const supportedDriveSchemas=new Set(['taxi-pay-drive-v1','taxi-pay-drive-v2','taxi-pay-drive-v3']);
